@@ -1,0 +1,90 @@
+const mongoose = require('mongoose');
+
+const BookSchema = new mongoose.Schema({
+  isbn: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true
+  },
+  title: {
+    type: String,
+    required: true,
+    index: true
+  },
+  authors: [{
+    type: String,
+    index: true
+  }],
+  publisher: String,
+  publishedDate: String,
+  description: String,
+  pageCount: Number,
+  genres: [{
+    type: String,
+    index: true
+  }],
+  language: {
+    type: String,
+    default: 'en'
+  },
+  coverImage: String,
+  
+  // Library management fields
+  status: {
+    type: String,
+    enum: ['available', 'reading', 'loaned', 'wishlist'],
+    default: 'available'
+  },
+  location: {
+    type: String,
+    default: ''
+  },
+  
+  // User fields
+  rating: {
+    type: Number,
+    min: 1,
+    max: 5
+  },
+  notes: String,
+  tags: [{
+    type: String,
+    index: true
+  }],
+  
+  // Metadata
+  googleBooksId: String,
+  dataSource: {
+    type: String,
+    enum: ['google', 'manual'],
+    default: 'google'
+  },
+  
+  addedDate: {
+    type: Date,
+    default: Date.now
+  },
+  lastModified: {
+    type: Date,
+    default: Date.now
+  }
+}, {
+  timestamps: true
+});
+
+// Update lastModified on save
+BookSchema.pre('save', function(next) {
+  this.lastModified = Date.now();
+  next();
+});
+
+// Create text index for search
+BookSchema.index({ 
+  title: 'text', 
+  authors: 'text', 
+  description: 'text',
+  tags: 'text'
+});
+
+module.exports = mongoose.model('Book', BookSchema);
