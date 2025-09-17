@@ -6,6 +6,8 @@ A clean, mobile-optimized web application for managing your personal book collec
 
 - 📷 **Barcode Scanning**: Scan ISBN barcodes using your device's camera
 - 📚 **Google Books Integration**: Automatically fetch book metadata including covers, genres, and descriptions
+- 📖 **Open Library Integration**: Enhanced genre/subject data from Open Library
+- 📑 **BISAC Categorization**: Standardized book categorization using industry-standard BISAC codes
 - 📱 **Mobile Optimized**: Clean, responsive design that works great on phones and tablets
 - 🔍 **Search & Filter**: Search your library by title, author, genre, or ISBN
 - 📊 **Statistics Dashboard**: View your reading statistics and library insights
@@ -46,6 +48,12 @@ ADMIN_PASSWORD=admin123
 
 # Google Books API (required)
 GOOGLE_BOOKS_API_KEY=your-google-books-api-key
+
+# Open Library (optional - set to false to disable)
+USE_OPEN_LIBRARY=true
+
+# BISAC Mapping (optional - set to false to use raw genres instead of standardized categories)
+USE_BISAC_MAPPING=false
 
 # Server
 PORT=5000
@@ -115,9 +123,11 @@ Access the application at http://localhost
 - `POST /api/books` - Add new book
 - `PUT /api/books/:isbn` - Update book
 - `DELETE /api/books/:isbn` - Delete book
+- `POST /api/books/:isbn/enhance` - Enhance existing book with BISAC categories
 
 ### Scanner
-- `POST /api/scanner/lookup` - Lookup book by ISBN
+- `POST /api/scanner/lookup` - Lookup book by ISBN (with enhanced metadata)
+- `POST /api/scanner/batch-lookup` - Batch lookup multiple ISBNs
 
 ### Search
 - `GET /api/search` - Search library
@@ -133,8 +143,9 @@ MyLibrary/
 ├── backend/
 │   ├── models/         # MongoDB schemas
 │   ├── routes/         # API routes
-│   ├── services/       # Business logic
+│   ├── services/       # Business logic (Google, OpenLibrary, BISAC)
 │   ├── middleware/     # Auth middleware
+│   ├── utils/          # Utility scripts
 │   └── server.js       # Express server
 ├── frontend/
 │   ├── src/
@@ -162,7 +173,48 @@ MyLibrary/
    - Images are optimized for mobile
    - Pagination keeps page loads fast
 
+## Enhanced Metadata System
+
+The application now fetches metadata from both Google Books and Open Library, then maps genres to standardized BISAC categories.
+
+### Rate Limiting & Performance
+
+**Open Library Rate Limits:**
+- Automatic rate limiting: 1 second minimum between requests
+- Retry logic: Up to 2 retries with 2-second delays
+- Graceful degradation: Falls back to Google Books if Open Library fails
+- Batch limiting: Only enhances first 3 books in search results
+
+If experiencing rate limiting issues:
+```bash
+# In .env file
+USE_OPEN_LIBRARY=false
+```
+
+### Testing Enhanced Metadata
+
+```bash
+cd backend
+node utils/testEnhancedMetadata.js
+```
+
+### Manual Book Enhancement
+
+For existing books without BISAC categories:
+```bash
+# Enhance single book via API
+POST /api/books/:isbn/enhance
+
+# Or bulk enhance existing library
+node backend/utils/enhanceExistingBooks.js
+```
+
 ## Troubleshooting
+
+### Open Library Rate Limiting?
+- The system automatically handles rate limits
+- Set `USE_OPEN_LIBRARY=false` in .env to disable
+- Wait a few minutes if you see persistent 429 errors
 
 ### Camera not working?
 - Ensure HTTPS or localhost (camera requires secure context)
@@ -183,7 +235,7 @@ MyLibrary/
 
 - **Frontend**: React 18, Material-UI v5, @zxing/library
 - **Backend**: Express.js, MongoDB, Mongoose
-- **APIs**: Google Books API
+- **APIs**: Google Books API, Open Library API
 - **Deployment**: Docker, nginx
 
 ## Design Principles
@@ -195,6 +247,8 @@ MyLibrary/
 
 ## Future Enhancements (v2)
 
+- Expand BISAC category mappings
+- Thema international categorization support
 - Calibre integration for additional metadata
 - Book lending tracking with due dates
 - Reading progress and goals

@@ -24,6 +24,22 @@ const BookSchema = new mongoose.Schema({
     type: String,
     index: true
   }],
+  
+  // All raw subjects combined from sources (for reference)
+  allSubjects: [String],
+  
+  // BISAC standardized categories
+  bisacCategories: [{
+    code: String,
+    description: String
+  }],
+  
+  // Raw subject data from different sources
+  rawSubjects: {
+    google: [String],
+    openLibrary: [String]
+  },
+  
   language: {
     type: String,
     default: 'en'
@@ -57,9 +73,15 @@ const BookSchema = new mongoose.Schema({
   googleBooksId: String,
   dataSource: {
     type: String,
-    enum: ['google', 'manual'],
+    enum: ['google', 'manual', 'enhanced'],
     default: 'google'
   },
+  
+  // Track metadata sources
+  metadataSources: [{
+    source: String,
+    fetchedAt: Date
+  }],
   
   addedDate: {
     type: Date,

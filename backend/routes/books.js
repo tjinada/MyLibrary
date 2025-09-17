@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Book = require('../models/Book');
 const auth = require('../middleware/auth');
+const bookMetadataService = require('../services/bookMetadataService');
 const { body, validationResult } = require('express-validator');
 
 // Get all books with filtering and pagination
@@ -118,6 +119,49 @@ router.delete('/:isbn', auth, async (req, res) => {
   } catch (error) {
     console.error('Error deleting book:', error);
     res.status(500).json({ message: 'Failed to delete book' });
+  }
+});
+
+// Enhance book metadata (requires auth)
+router.post('/:isbn/enhance', auth, async (req, res) => {
+  try {
+    const { isbn } = req.params;
+    
+    // Find the existing book
+    const book = await Book.findOne({ isbn });
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+    
+    // Fetch enhanced metadata
+    const enhancedData = await bookMetadataService.fetchEnhancedBookData(isbn);
+    
+    if (!enhancedData) {
+      return res.status(404).json({ message: 'Could not fetch enhanced metadata' });
+    }
+    
+    // Update book with enhanced data
+    book.bisacCategories = enhancedData.bisacCategories || [];
+    book.rawSubjects = enhancedData.rawSubjects || {};
+    book.metadataSources = enhancedData.metadataSources || [];
+    
+    // Update genres if we got better ones
+    if (enhancedData.genres && enhancedData.genres.length > 0) {
+      book.genres = enhancedData.genres;
+    }
+    
+    book.dataSource = 'enhanced';
+    book.lastModified = Date.now();
+    
+    await book.save();
+    
+    res.json({
+      message: 'Book metadata enhanced successfully',
+      book
+    });
+  } catch (error) {
+    console.error('Error enhancing book metadata:', error);
+    res.status(500).json({ message: 'Failed to enhance book metadata' });
   }
 });
 

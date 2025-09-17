@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Book = require('../models/Book');
 const googleBooksService = require('../services/googleBooksService');
+const bookMetadataService = require('../services/bookMetadataService');
 
 // Search local library
 router.get('/', async (req, res) => {
@@ -54,17 +55,32 @@ router.get('/', async (req, res) => {
 // Search Google Books (for adding new books)
 router.get('/google', async (req, res) => {
   try {
-    const { q } = req.query;
+    const { q, enhanced = 'true' } = req.query;
 
     if (!q || q.trim().length < 2) {
       return res.status(400).json({ message: 'Search query must be at least 2 characters' });
     }
 
-    const books = await googleBooksService.searchBooks(q, 20);
+    let books;
+    
+    // Check if enhanced metadata is requested (default: true)
+    if (enhanced === 'true') {
+      try {
+        // Try to get enhanced metadata for search results
+        books = await bookMetadataService.searchBooksWithEnhancedMetadata(q, 20);
+      } catch (enhancedError) {
+        console.log('Enhanced search failed, falling back to Google Books only:', enhancedError.message);
+        books = await googleBooksService.searchBooks(q, 20);
+      }
+    } else {
+      // Use Google Books only
+      books = await googleBooksService.searchBooks(q, 20);
+    }
+    
     res.json(books);
   } catch (error) {
     console.error('Google Books search error:', error);
-    res.status(500).json({ message: 'Failed to search Google Books' });
+    res.status(500).json({ message: 'Failed to search books' });
   }
 });
 

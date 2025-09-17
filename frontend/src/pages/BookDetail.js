@@ -180,16 +180,92 @@ const BookDetail = () => {
               )}
             </Grid>
 
+            {/* Display genres/categories */}
             {book.genres?.length > 0 && (
               <Box sx={{ my: 2 }}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Genres
+                  {book.bisacCategories?.length > 0 ? 'Categories' : 'Genres'}
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {book.genres.map((genre, index) => (
-                    <Chip key={index} label={genre} size="small" />
-                  ))}
+                  {book.bisacCategories?.length > 0 ? (
+                    // Show BISAC categories
+                    book.bisacCategories.map((category, index) => {
+                      const parts = category.description.split(' / ');
+                      const label = parts[parts.length - 1];
+                      return (
+                        <Chip 
+                          key={index} 
+                          label={label} 
+                          size="small"
+                          title={category.description}
+                          color="primary"
+                          variant="outlined"
+                        />
+                      );
+                    })
+                  ) : (
+                    // Show simplified genres
+                    book.genres.map((genre, index) => (
+                      <Chip 
+                        key={index} 
+                        label={genre} 
+                        size="small"
+                        color={genre.includes('Fiction') ? 'primary' : 'secondary'}
+                        variant={genre.includes('Fiction') ? 'filled' : 'outlined'}
+                      />
+                    ))
+                  )}
                 </Box>
+                
+                {/* Show all subjects if available */}
+                {book.allSubjects?.length > 0 && (
+                  <details style={{ marginTop: '8px' }}>
+                    <summary style={{ 
+                      cursor: 'pointer', 
+                      fontSize: '0.75rem', 
+                      color: 'text.secondary',
+                      userSelect: 'none'
+                    }}>
+                      View all {book.allSubjects.length} subject tags
+                    </summary>
+                    <Box sx={{ 
+                      mt: 1, 
+                      display: 'flex', 
+                      flexWrap: 'wrap', 
+                      gap: 0.5,
+                      maxHeight: '150px',
+                      overflowY: 'auto',
+                      p: 1,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      backgroundColor: 'background.paper'
+                    }}>
+                      {book.allSubjects.map((subject, index) => (
+                        <Chip 
+                          key={index} 
+                          label={subject} 
+                          size="small"
+                          variant="outlined"
+                          sx={{ fontSize: '0.7rem', height: '20px' }}
+                        />
+                      ))}
+                    </Box>
+                  </details>
+                )}
+                
+                {/* Show source counts if raw subjects available */}
+                {book.rawSubjects && (
+                  <Typography variant="caption" color="text.secondary" sx={{ 
+                    display: 'block',
+                    mt: 1,
+                    fontSize: '0.75rem' 
+                  }}>
+                    {book.rawSubjects.google?.length > 0 && `Google Books: ${book.rawSubjects.google.length} categories`}
+                    {book.rawSubjects.google?.length > 0 && book.rawSubjects.openLibrary?.length > 0 && ' | '}
+                    {book.rawSubjects.openLibrary?.length > 0 && `Open Library: ${book.rawSubjects.openLibrary.length} subjects`}
+                  </Typography>
+                )}
               </Box>
             )}
 
