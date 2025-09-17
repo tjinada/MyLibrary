@@ -76,9 +76,29 @@ const BookCard = ({ book, onClick }) => {
   const getImageUrls = () => {
     const urls = [];
     
-    // 1. Primary cover image (high quality)
+    // 1. Primary cover image (high quality) - this should be the saved selection
     if (book.coverImage) {
-      urls.push(getHighQualityCover(book.coverImage));
+      // Ensure the saved cover is properly formatted
+      let savedCover = book.coverImage;
+      
+      // Ensure HTTPS
+      if (savedCover.startsWith('http://')) {
+        savedCover = savedCover.replace('http://', 'https://');
+      }
+      
+      // Don't modify zoom parameter if it's already set (respect user's selection)
+      urls.push(savedCover);
+      
+      // If the saved cover is from Google Books, also try with different zoom levels
+      if (savedCover.includes('googleapis.com') || savedCover.includes('books.google.com')) {
+        // Try the exact URL first, then alternatives
+        if (!savedCover.includes('zoom=0')) {
+          const highQualityUrl = savedCover.includes('zoom=') 
+            ? savedCover.replace(/zoom=\d+/, 'zoom=0')
+            : savedCover + (savedCover.includes('?') ? '&zoom=0' : '?zoom=0');
+          urls.push(highQualityUrl);
+        }
+      }
     }
     
     // 2. Google Books direct API (high quality)
@@ -140,6 +160,11 @@ const BookCard = ({ book, onClick }) => {
 
   // Load image with fallback logic
   useEffect(() => {
+    // First, try the book's saved cover image
+    if (book.coverImage) {
+      console.log(`Loading cover for "${book.title}":`, book.coverImage);
+    }
+    
     const urls = getImageUrls();
     if (urls.length === 0) {
       setImageStatus('error');
@@ -151,6 +176,8 @@ const BookCard = ({ book, onClick }) => {
 
     const tryLoadImage = (url) => {
       if (isCancelled || !mountedRef.current) return;
+      
+      console.log(`Trying to load image ${currentIndex + 1}/${urls.length}: ${url}`);
 
       // Special handling for Google Books API search (last resort)
       if (url.includes('googleapis.com/books/v1/volumes?q=')) {
@@ -174,9 +201,11 @@ const BookCard = ({ book, onClick }) => {
         if (!isCancelled && mountedRef.current) {
           // Check if the image is actually valid (not a 1x1 pixel or placeholder)
           if (img.width > 1 && img.height > 1) {
+            console.log(`Successfully loaded image for "${book.title}"`);
             setCurrentImageUrl(url);
             setImageStatus('loaded');
           } else {
+            console.log('Image too small, trying next...');
             tryNextUrl();
           }
         }
@@ -184,6 +213,7 @@ const BookCard = ({ book, onClick }) => {
 
       img.onerror = () => {
         if (isCancelled || !mountedRef.current) return;
+        console.log(`Failed to load image, trying next...`);
         tryNextUrl();
       };
 
@@ -196,6 +226,7 @@ const BookCard = ({ book, onClick }) => {
           }, 100);
         } else {
           // All URLs failed
+          console.log(`All image sources failed for "${book.title}"`);
           setImageStatus('error');
         }
       };

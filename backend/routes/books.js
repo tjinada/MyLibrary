@@ -76,9 +76,29 @@ router.post('/', auth, [
       return res.status(409).json({ message: 'Book already exists in library' });
     }
 
-    const book = new Book(req.body);
+    // Ensure cover image URL is properly formatted
+    let coverImage = req.body.coverImage;
+    if (coverImage) {
+      // Ensure HTTPS
+      if (coverImage.startsWith('http://')) {
+        coverImage = coverImage.replace('http://', 'https://');
+      }
+      // Log the cover image being saved for debugging
+      console.log('Saving book with cover:', coverImage);
+    }
+
+    const bookData = {
+      ...req.body,
+      coverImage: coverImage,
+      // Ensure tags and genres are arrays
+      tags: req.body.tags || [],
+      genres: req.body.genres || [],
+    };
+
+    const book = new Book(bookData);
     await book.save();
 
+    console.log('Book saved successfully:', book.isbn, 'Cover:', book.coverImage);
     res.status(201).json(book);
   } catch (error) {
     console.error('Error adding book:', error);

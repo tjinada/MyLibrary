@@ -65,8 +65,13 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
     
     // Add primary cover if available
     if (bookData.coverImage) {
+      let primaryUrl = bookData.coverImage;
+      // Ensure HTTPS
+      if (primaryUrl.startsWith('http://')) {
+        primaryUrl = primaryUrl.replace('http://', 'https://');
+      }
       options.push({
-        url: bookData.coverImage,
+        url: primaryUrl,
         source: 'Primary (Google Books)',
         quality: 'High'
       });
@@ -98,23 +103,25 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
 
     // Add Open Library alternatives
     if (bookData.isbn) {
+      const cleanIsbn = bookData.isbn.replace(/[-\s]/g, '');
+      
       // Large
       options.push({
-        url: `https://covers.openlibrary.org/b/isbn/${bookData.isbn}-L.jpg`,
+        url: `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-L.jpg`,
         source: 'Open Library',
         quality: 'Large'
       });
       
       // Medium
       options.push({
-        url: `https://covers.openlibrary.org/b/isbn/${bookData.isbn}-M.jpg`,
+        url: `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg`,
         source: 'Open Library',
         quality: 'Medium'
       });
       
       // Small
       options.push({
-        url: `https://covers.openlibrary.org/b/isbn/${bookData.isbn}-S.jpg`,
+        url: `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-S.jpg`,
         source: 'Open Library',
         quality: 'Small'
       });
@@ -125,6 +132,7 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
       index === self.findIndex(o => o.url === option.url)
     );
 
+    console.log('Generated cover options:', uniqueOptions);
     return uniqueOptions;
   };
 
@@ -189,13 +197,23 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
     setError(null);
 
     try {
+      // Get the selected cover URL
+      const selectedCoverUrl = coverOptions[selectedCoverIndex]?.url || bookData.coverImage;
+      
+      // Log for debugging
+      console.log('Selected cover index:', selectedCoverIndex);
+      console.log('Selected cover URL:', selectedCoverUrl);
+      console.log('Cover options:', coverOptions);
+      
       // Prepare book data with selected cover and custom fields
       const bookToAdd = {
         ...bookData,
-        coverImage: coverOptions[selectedCoverIndex]?.url || bookData.coverImage,
+        coverImage: selectedCoverUrl,
         genres: customGenres,
         tags: customTags,
       };
+      
+      console.log('Sending book data:', bookToAdd);
 
       await bookService.addBook(bookToAdd);
       setActiveStep(2);
