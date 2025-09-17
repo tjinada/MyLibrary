@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Card,
   CardMedia,
@@ -8,15 +7,10 @@ import {
   Typography,
   Chip,
   Box,
+  Rating,
 } from '@mui/material';
 
-const BookCard = ({ book }) => {
-  const navigate = useNavigate();
-
-  const handleClick = () => {
-    navigate(`/book/${book.isbn}`);
-  };
-
+const BookCard = ({ book, onClick }) => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'available':
@@ -32,31 +26,45 @@ const BookCard = ({ book }) => {
     }
   };
 
+  const handleClick = () => {
+    if (onClick) {
+      onClick(book);
+    }
+  };
+
   return (
     <Card 
       sx={{ 
         height: '100%', 
         display: 'flex', 
         flexDirection: 'column',
-        transition: 'transform 0.2s',
+        transition: 'all 0.2s ease-in-out',
         '&:hover': {
-          transform: 'scale(1.02)',
+          transform: 'translateY(-4px)',
+          boxShadow: (theme) => theme.shadows[8],
         },
       }}
     >
-      <CardActionArea onClick={handleClick} sx={{ flexGrow: 1 }}>
+      <CardActionArea 
+        onClick={handleClick} 
+        sx={{ 
+          flexGrow: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'stretch',
+        }}
+      >
         <CardMedia
           component="img"
-          height="200"
-          image={book.coverImage || '/api/placeholder/150/200'}
-          alt={book.title}
           sx={{ 
-            objectFit: 'contain',
+            height: 280,
+            objectFit: 'cover',
             bgcolor: 'grey.100',
-            p: 1,
           }}
+          image={book.coverImage || '/api/placeholder/200/280'}
+          alt={book.title}
         />
-        <CardContent>
+        <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
           <Typography 
             gutterBottom 
             variant="subtitle1" 
@@ -69,7 +77,9 @@ const BookCard = ({ book }) => {
               WebkitBoxOrient: 'vertical',
               minHeight: '3em',
               fontWeight: 500,
+              lineHeight: 1.5,
             }}
+            title={book.title}
           >
             {book.title}
           </Typography>
@@ -83,21 +93,27 @@ const BookCard = ({ book }) => {
               whiteSpace: 'nowrap',
               mb: 1,
             }}
+            title={book.authors?.join(', ')}
           >
             {book.authors?.join(', ') || 'Unknown Author'}
           </Typography>
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ mt: 'auto', pt: 1 }}>
+            {book.rating ? (
+              <Rating 
+                value={book.rating} 
+                readOnly 
+                size="small" 
+                sx={{ mb: 1 }}
+              />
+            ) : null}
+            
             <Chip 
               label={book.status} 
               size="small" 
               color={getStatusColor(book.status)}
+              sx={{ fontWeight: 500 }}
             />
-            {book.rating && (
-              <Typography variant="body2" color="text.secondary">
-                ★ {book.rating}
-              </Typography>
-            )}
           </Box>
         </CardContent>
       </CardActionArea>
