@@ -35,6 +35,8 @@ import {
   MenuBook as PagesIcon,
   Category as CategoryIcon,
   Person as AuthorIcon,
+  Add as AddIcon,
+  LocalOffer as TagIcon,
 } from '@mui/icons-material';
 import bookService from '../../services/bookService';
 
@@ -52,7 +54,10 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted })
     rating: 0,
     notes: '',
     tags: [],
+    genres: [],
   });
+  const [newTag, setNewTag] = useState('');
+  const [newGenre, setNewGenre] = useState('');
 
   useEffect(() => {
     if (book) {
@@ -61,9 +66,12 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted })
         rating: book.rating || 0,
         notes: book.notes || '',
         tags: book.tags || [],
+        genres: book.genres || [],
       });
       setTabValue(0); // Reset to details tab
       setEditMode(false); // Exit edit mode
+      setNewTag('');
+      setNewGenre('');
     }
   }, [book]);
 
@@ -109,6 +117,40 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted })
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddTag = () => {
+    if (newTag.trim() && !editedBook.tags.includes(newTag.trim())) {
+      setEditedBook({
+        ...editedBook,
+        tags: [...editedBook.tags, newTag.trim()]
+      });
+      setNewTag('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove) => {
+    setEditedBook({
+      ...editedBook,
+      tags: editedBook.tags.filter(t => t !== tagToRemove)
+    });
+  };
+
+  const handleAddGenre = () => {
+    if (newGenre.trim() && !editedBook.genres.includes(newGenre.trim())) {
+      setEditedBook({
+        ...editedBook,
+        genres: [...editedBook.genres, newGenre.trim()]
+      });
+      setNewGenre('');
+    }
+  };
+
+  const handleRemoveGenre = (genreToRemove) => {
+    setEditedBook({
+      ...editedBook,
+      genres: editedBook.genres.filter(g => g !== genreToRemove)
+    });
   };
 
   const getStatusColor = (status) => {
@@ -301,13 +343,98 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted })
                         <CategoryIcon fontSize="small" color="action" />
                         <Typography variant="body2" color="text.secondary">Genres</Typography>
                       </Box>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                        {book.genres.map((genre, index) => (
-                          <Chip key={index} label={genre} size="small" variant="outlined" />
-                        ))}
-                      </Box>
+                      {editMode ? (
+                        <Box>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                            {editedBook.genres.map((genre, index) => (
+                              <Chip
+                                key={index}
+                                label={genre}
+                                size="small"
+                                variant="outlined"
+                                onDelete={() => handleRemoveGenre(genre)}
+                              />
+                            ))}
+                          </Box>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <TextField
+                              size="small"
+                              placeholder="Add genre..."
+                              value={newGenre}
+                              onChange={(e) => setNewGenre(e.target.value)}
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleAddGenre();
+                                }
+                              }}
+                            />
+                            <IconButton size="small" onClick={handleAddGenre}>
+                              <AddIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        </Box>
+                      ) : (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                          {book.genres.map((genre, index) => (
+                            <Chip key={index} label={genre} size="small" variant="outlined" />
+                          ))}
+                        </Box>
+                      )}
                     </Grid>
                   )}
+                  
+                  {/* Tags section */}
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <TagIcon fontSize="small" color="action" />
+                      <Typography variant="body2" color="text.secondary">Tags</Typography>
+                    </Box>
+                    {editMode ? (
+                      <Box>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                          {editedBook.tags.map((tag, index) => (
+                            <Chip
+                              key={index}
+                              label={tag}
+                              size="small"
+                              color="secondary"
+                              onDelete={() => handleRemoveTag(tag)}
+                            />
+                          ))}
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <TextField
+                            size="small"
+                            placeholder="Add tag..."
+                            value={newTag}
+                            onChange={(e) => setNewTag(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddTag();
+                              }
+                            }}
+                          />
+                          <IconButton size="small" onClick={handleAddTag}>
+                            <AddIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      </Box>
+                    ) : (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        {book.tags && book.tags.length > 0 ? (
+                          book.tags.map((tag, index) => (
+                            <Chip key={index} label={tag} size="small" color="secondary" />
+                          ))
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            No tags added
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                  </Grid>
                 </Grid>
               </Paper>
             </Grid>

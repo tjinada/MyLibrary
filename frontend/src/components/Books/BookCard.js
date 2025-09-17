@@ -72,23 +72,67 @@ const BookCard = ({ book, onClick }) => {
     return cleanUrl;
   };
 
-  // Get all possible image URLs for this book
+  // Get all possible image URLs for this book (ordered by preference)
   const getImageUrls = () => {
     const urls = [];
     
-    // Primary cover image
+    // 1. Primary cover image (high quality)
     if (book.coverImage) {
       urls.push(getHighQualityCover(book.coverImage));
     }
     
-    // Open Library fallback
+    // 2. Google Books direct API (high quality)
+    if (book.googleBooksId) {
+      urls.push(`https://books.google.com/books/content?id=${book.googleBooksId}&printsec=frontcover&img=1&zoom=0&source=gbs_api`);
+    }
+    
+    // 3. Open Library (Large)
     if (book.isbn) {
       urls.push(`https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg`);
     }
     
-    // Google Books direct API fallback
+    // 4. Google Books lower quality with zoom=1
+    if (book.coverImage && book.coverImage.includes('googleapis.com')) {
+      const lowerQualityUrl = book.coverImage.includes('zoom=') 
+        ? book.coverImage.replace(/zoom=\d+/, 'zoom=1')
+        : book.coverImage + (book.coverImage.includes('?') ? '&zoom=1' : '?zoom=1');
+      urls.push(lowerQualityUrl);
+    }
+    
+    // 5. Open Library (Medium)
+    if (book.isbn) {
+      urls.push(`https://covers.openlibrary.org/b/isbn/${book.isbn}-M.jpg`);
+    }
+    
+    // 6. Google Books thumbnail
     if (book.googleBooksId) {
-      urls.push(`https://books.google.com/books/content?id=${book.googleBooksId}&printsec=frontcover&img=1&zoom=0&source=gbs_api`);
+      urls.push(`https://books.google.com/books/content?id=${book.googleBooksId}&printsec=frontcover&img=1&zoom=1&source=gbs_api`);
+    }
+    
+    // 7. Open Library (Small) as last resort
+    if (book.isbn) {
+      urls.push(`https://covers.openlibrary.org/b/isbn/${book.isbn}-S.jpg`);
+    }
+    
+    // 8. Try alternate ISBN formats (ISBN-13 to ISBN-10 or vice versa)
+    if (book.isbn) {
+      // If we have ISBN-13, try ISBN-10
+      if (book.isbn.length === 13 && book.isbn.startsWith('978')) {
+        const isbn10 = book.isbn.substring(3, 12); // Remove first 3 digits and last check digit
+        urls.push(`https://covers.openlibrary.org/b/isbn/${isbn10}-M.jpg`);
+      }
+      // If we have ISBN-10, try ISBN-13 with 978 prefix
+      else if (book.isbn.length === 10) {
+        const isbn13 = '978' + book.isbn.substring(0, 9); // Add 978 prefix, remove check digit
+        urls.push(`https://covers.openlibrary.org/b/isbn/${isbn13}-M.jpg`);
+      }
+    }
+    
+    // 9. Try searching by title and author as absolute last resort
+    if (book.title && book.authors && book.authors.length > 0) {
+      const query = encodeURIComponent(`${book.title} ${book.authors[0]}`);
+      // This is a hack - we'll try to get a Google Books search result thumbnail
+      urls.push(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`);
     }
     
     return urls.filter(Boolean);
@@ -108,22 +152,48 @@ const BookCard = ({ book, onClick }) => {
     const tryLoadImage = (url) => {
       if (isCancelled || !mountedRef.current) return;
 
+      // Special handling for Google Books API search (last resort)
+      if (url.includes('googleapis.com/books/v1/volumes?q=')) {
+        fetch(url)
+          .then(res => res.json())
+          .then(data => {
+            if (data.items && data.items.length > 0 && data.items[0].volumeInfo?.imageLinks?.thumbnail) {
+              const thumbnailUrl = data.items[0].volumeInfo.imageLinks.thumbnail.replace('http://', 'https://');
+              tryLoadImage(thumbnailUrl);
+            } else {
+              tryNextUrl();
+            }
+          })
+          .catch(() => tryNextUrl());
+        return;
+      }
+
       const img = new Image();
       
       img.onload = () => {
         if (!isCancelled && mountedRef.current) {
-          setCurrentImageUrl(url);
-          setImageStatus('loaded');
+          // Check if the image is actually valid (not a 1x1 pixel or placeholder)
+          if (img.width > 1 && img.height > 1) {
+            setCurrentImageUrl(url);
+            setImageStatus('loaded');
+          } else {
+            tryNextUrl();
+          }
         }
       };
 
       img.onerror = () => {
         if (isCancelled || !mountedRef.current) return;
-        
-        // Try next URL
+        tryNextUrl();
+      };
+
+      const tryNextUrl = () => {
         currentIndex++;
         if (currentIndex < urls.length) {
-          tryLoadImage(urls[currentIndex]);
+          // Add a small delay between attempts to avoid rate limiting
+          setTimeout(() => {
+            tryLoadImage(urls[currentIndex]);
+          }, 100);
         } else {
           // All URLs failed
           setImageStatus('error');
@@ -142,7 +212,7 @@ const BookCard = ({ book, onClick }) => {
     return () => {
       isCancelled = true;
     };
-  }, [book.coverImage, book.isbn, book.googleBooksId]); // Only re-run if book data changes
+  }, [book.coverImage, book.isbn, book.googleBooksId, book.title]); // Re-run if book data changes
 
   return (
     <Card 
@@ -189,7 +259,7 @@ const BookCard = ({ book, onClick }) => {
             />
           )}
           
-          {/* Error/No image fallback */}
+          {/* Error/No image fallback - create a custom book cover */}
           {imageStatus === 'error' && (
             <Box
               sx={{
@@ -199,20 +269,49 @@ const BookCard = ({ book, onClick }) => {
                 justifyContent: 'center',
                 height: '100%',
                 width: '100%',
-                bgcolor: 'grey.50',
+                bgcolor: 'primary.light',
+                background: `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`,
+                p: 2,
               }}
             >
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  color: 'white',
+                  textAlign: 'center',
+                  fontWeight: 'bold',
+                  mb: 1,
+                  fontSize: '0.9rem',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                }}
+              >
+                {book.title}
+              </Typography>
               <BookIcon 
                 sx={{ 
-                  fontSize: 80,
-                  color: 'action.disabled',
-                  opacity: 0.3,
-                  mb: 1,
+                  fontSize: 60,
+                  color: 'white',
+                  opacity: 0.7,
+                  my: 1,
                 }} 
               />
-              <Typography variant="caption" color="text.disabled">
-                No cover available
-              </Typography>
+              {book.authors && book.authors[0] && (
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    color: 'white',
+                    opacity: 0.9,
+                    textAlign: 'center',
+                    fontSize: '0.7rem',
+                  }}
+                >
+                  {book.authors[0]}
+                </Typography>
+              )}
             </Box>
           )}
           

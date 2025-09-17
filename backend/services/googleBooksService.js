@@ -64,13 +64,19 @@ class GoogleBooksService {
   }
 
   /**
-   * Get high-resolution cover image URL
+   * Get high-resolution cover image URL with multiple fallbacks
    * @param {Object} imageLinks - Google Books imageLinks object
    * @param {string} bookId - Google Books volume ID for fallback
    * @returns {string} Best available cover image URL
    */
   getHighResCoverImage(imageLinks, bookId = null) {
-    if (!imageLinks) return null;
+    if (!imageLinks) {
+      // If no imageLinks but we have bookId, try direct API
+      if (bookId) {
+        return `https://books.google.com/books/content?id=${bookId}&printsec=frontcover&img=1&zoom=0&source=gbs_api`;
+      }
+      return null;
+    }
 
     // Try to get the highest quality image available
     let coverImage = imageLinks.extraLarge || 
@@ -79,7 +85,13 @@ class GoogleBooksService {
                     imageLinks.small || 
                     imageLinks.thumbnail;
     
-    if (!coverImage) return null;
+    if (!coverImage) {
+      // If no cover but we have bookId, try direct API
+      if (bookId) {
+        return `https://books.google.com/books/content?id=${bookId}&printsec=frontcover&img=1&zoom=0&source=gbs_api`;
+      }
+      return null;
+    }
 
     // Ensure HTTPS
     if (coverImage.startsWith('http://')) {
