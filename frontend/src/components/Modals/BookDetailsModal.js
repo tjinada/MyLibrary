@@ -24,6 +24,8 @@ import {
   useMediaQuery,
   Alert,
   CircularProgress,
+  Card,
+  CardMedia,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -37,6 +39,9 @@ import {
   Person as AuthorIcon,
   Add as AddIcon,
   LocalOffer as TagIcon,
+  ArrowBackIos as PrevIcon,
+  ArrowForwardIos as NextIcon,
+  Image as ImageIcon,
 } from '@mui/icons-material';
 import bookService from '../../services/bookService';
 
@@ -55,9 +60,89 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted })
     notes: '',
     tags: [],
     genres: [],
+    coverImage: '',
   });
   const [newTag, setNewTag] = useState('');
   const [newGenre, setNewGenre] = useState('');
+  
+  // Cover selection state
+  const [coverOptions, setCoverOptions] = useState([]);
+  const [selectedCoverIndex, setSelectedCoverIndex] = useState(0);
+
+  // Generate cover options for the book
+  const generateCoverOptions = (bookData) => {
+    const options = [];
+    
+    // Current cover (if exists)
+    if (bookData.coverImage) {
+      let currentUrl = bookData.coverImage;
+      if (currentUrl.startsWith('http://')) {
+        currentUrl = currentUrl.replace('http://', 'https://');
+      }
+      options.push({
+        url: currentUrl,
+        source: 'Current Cover',
+        quality: 'Original'
+      });
+    }
+
+    // Google Books alternatives
+    if (bookData.googleBooksId) {
+      // High quality
+      options.push({
+        url: `https://books.google.com/books/content?id=${bookData.googleBooksId}&printsec=frontcover&img=1&zoom=0&source=gbs_api`,
+        source: 'Google Books',
+        quality: 'High'
+      });
+      
+      // Medium quality
+      options.push({
+        url: `https://books.google.com/books/content?id=${bookData.googleBooksId}&printsec=frontcover&img=1&zoom=1&source=gbs_api`,
+        source: 'Google Books',
+        quality: 'Medium'
+      });
+
+      // Thumbnail
+      options.push({
+        url: `https://books.google.com/books/content?id=${bookData.googleBooksId}&printsec=frontcover&img=1&zoom=5&source=gbs_api`,
+        source: 'Google Books',
+        quality: 'Thumbnail'
+      });
+    }
+
+    // Open Library alternatives
+    if (bookData.isbn) {
+      const cleanIsbn = bookData.isbn.replace(/[-\s]/g, '');
+      
+      // Large
+      options.push({
+        url: `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-L.jpg`,
+        source: 'Open Library',
+        quality: 'Large'
+      });
+      
+      // Medium
+      options.push({
+        url: `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg`,
+        source: 'Open Library',
+        quality: 'Medium'
+      });
+      
+      // Small
+      options.push({
+        url: `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-S.jpg`,
+        source: 'Open Library',
+        quality: 'Small'
+      });
+    }
+
+    // Remove duplicates
+    const uniqueOptions = options.filter((option, index, self) =>
+      index === self.findIndex(o => o.url === option.url)
+    );
+
+    return uniqueOptions;
+  };
 
   useEffect(() => {
     if (book) {
@@ -67,7 +152,14 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted })
         notes: book.notes || '',
         tags: book.tags || [],
         genres: book.genres || [],
+        coverImage: book.coverImage || '',
       });
+      
+      // Generate cover options
+      const options = generateCoverOptions(book);
+      setCoverOptions(options);
+      setSelectedCoverIndex(0);
+      
       setTabValue(0); // Reset to details tab
       setEditMode(false); // Exit edit mode
       setNewTag('');
@@ -82,7 +174,15 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted })
       setLoading(true);
       setError(null);
       
-      await bookService.updateBook(book.isbn, editedBook);
+      // Include selected cover if changed
+      const updates = {
+        ...editedBook,
+        coverImage: coverOptions[selectedCoverIndex] 
+          ? coverOptions[selectedCoverIndex].url 
+          : editedBook.coverImage
+      };
+      
+      await bookService.updateBook(book.isbn, updates);
       
       if (onBookUpdated) {
         onBookUpdated();
@@ -153,6 +253,18 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted })
     });
   };
 
+  const handlePrevCover = () => {
+    setSelectedCoverIndex((prev) => 
+      prev > 0 ? prev - 1 : coverOptions.length - 1
+    );
+  };
+
+  const handleNextCover = () => {
+    setSelectedCoverIndex((prev) => 
+      prev < coverOptions.length - 1 ? prev + 1 : 0
+    );
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'available': return 'success';
@@ -190,7 +302,19 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted })
               <IconButton onClick={handleSave} size="small" color="primary" disabled={loading}>
                 <SaveIcon />
               </IconButton>
-              <IconButton onClick={() => setEditMode(false)} size="small" disabled={loading}>
+              <IconButton onClick={() => {
+                setEditMode(false);
+                // Reset to original values
+                setEditedBook({
+                  status: book.status || 'available',
+                  rating: book.rating || 0,
+                  notes: book.notes || '',
+                  tags: book.tags || [],
+                  genres: book.genres || [],
+                  coverImage: book.coverImage || '',
+                });
+                setSelectedCoverIndex(0);
+              }} size="small" disabled={loading}>
                 <CancelIcon />
               </IconButton>
             </>
@@ -217,30 +341,106 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted })
         {tabValue === 0 && (
           <Grid container spacing={3}>
             {/* Book Cover */}
-            {book.coverImage && (
-              <Grid item xs={12} sm={4}>
-                <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'center',
-                  mb: 2,
-                }}>
-                  <img
-                    src={book.coverImage}
-                    alt={book.title}
-                    style={{
-                      maxWidth: '100%',
-                      height: 'auto',
-                      maxHeight: 400,
-                      borderRadius: 8,
-                      boxShadow: theme.shadows[4],
-                    }}
-                  />
-                </Box>
-              </Grid>
-            )}
+            <Grid item xs={12} sm={4}>
+              <Box>
+                {editMode ? (
+                  // Edit mode - show cover selection with navigation
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <ImageIcon fontSize="small" />
+                      Select Cover ({selectedCoverIndex + 1} of {coverOptions.length})
+                    </Typography>
+                    <Card sx={{ position: 'relative' }}>
+                      {coverOptions.length > 0 && (
+                        <>
+                          <CardMedia
+                            component="img"
+                            image={coverOptions[selectedCoverIndex].url}
+                            alt={book.title}
+                            sx={{ height: 'auto', maxHeight: 400 }}
+                            onError={(e) => {
+                              e.target.src = '/api/placeholder/200/300';
+                            }}
+                          />
+                          
+                          {/* Navigation buttons */}
+                          {coverOptions.length > 1 && (
+                            <>
+                              <IconButton
+                                onClick={handlePrevCover}
+                                sx={{
+                                  position: 'absolute',
+                                  left: 0,
+                                  top: '50%',
+                                  transform: 'translateY(-50%)',
+                                  bgcolor: 'rgba(0, 0, 0, 0.5)',
+                                  color: 'white',
+                                  '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.7)' },
+                                }}
+                              >
+                                <PrevIcon />
+                              </IconButton>
+                              <IconButton
+                                onClick={handleNextCover}
+                                sx={{
+                                  position: 'absolute',
+                                  right: 0,
+                                  top: '50%',
+                                  transform: 'translateY(-50%)',
+                                  bgcolor: 'rgba(0, 0, 0, 0.5)',
+                                  color: 'white',
+                                  '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.7)' },
+                                }}
+                              >
+                                <NextIcon />
+                              </IconButton>
+                            </>
+                          )}
+                          
+                          {/* Cover info overlay */}
+                          <Box sx={{
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            bgcolor: 'rgba(0, 0, 0, 0.7)',
+                            color: 'white',
+                            p: 1,
+                          }}>
+                            <Typography variant="caption">
+                              {coverOptions[selectedCoverIndex].source} - {coverOptions[selectedCoverIndex].quality}
+                            </Typography>
+                          </Box>
+                        </>
+                      )}
+                    </Card>
+                  </Box>
+                ) : (
+                  // View mode - show current cover
+                  <Box>
+                    {book.coverImage && (
+                      <img
+                        src={book.coverImage}
+                        alt={book.title}
+                        style={{
+                          maxWidth: '100%',
+                          height: 'auto',
+                          maxHeight: 400,
+                          borderRadius: 8,
+                          boxShadow: theme.shadows[4],
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    )}
+                  </Box>
+                )}
+              </Box>
+            </Grid>
 
             {/* Book Details */}
-            <Grid item xs={12} sm={book.coverImage ? 8 : 12}>
+            <Grid item xs={12} sm={8}>
               {/* Status and Rating */}
               <Paper sx={{ p: 2, mb: 2 }}>
                 <Grid container spacing={2}>
@@ -337,7 +537,7 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted })
                     </Grid>
                   )}
                   
-                  {book.genres?.length > 0 && (
+                  {(book.genres?.length > 0 || editMode) && (
                     <Grid item xs={12}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                         <CategoryIcon fontSize="small" color="action" />
