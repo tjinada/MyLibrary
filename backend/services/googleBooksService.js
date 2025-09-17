@@ -64,6 +64,61 @@ class GoogleBooksService {
   }
 
   /**
+   * Get high-resolution cover image URL
+   * @param {Object} imageLinks - Google Books imageLinks object
+   * @param {string} bookId - Google Books volume ID for fallback
+   * @returns {string} Best available cover image URL
+   */
+  getHighResCoverImage(imageLinks, bookId = null) {
+    if (!imageLinks) return null;
+
+    // Try to get the highest quality image available
+    let coverImage = imageLinks.extraLarge || 
+                    imageLinks.large || 
+                    imageLinks.medium || 
+                    imageLinks.small || 
+                    imageLinks.thumbnail;
+    
+    if (!coverImage) return null;
+
+    // Ensure HTTPS
+    if (coverImage.startsWith('http://')) {
+      coverImage = coverImage.replace('http://', 'https://');
+    }
+
+    // Google Books API hack: modify the URL parameters to get higher resolution
+    // Remove any zoom parameter and add zoom=0 for full resolution
+    if (coverImage.includes('zoom=')) {
+      coverImage = coverImage.replace(/zoom=\d+/, 'zoom=0');
+    } else if (coverImage.includes('?')) {
+      coverImage += '&zoom=0';
+    } else {
+      coverImage += '?zoom=0';
+    }
+
+    // Remove any edge curl effect
+    if (coverImage.includes('edge=')) {
+      coverImage = coverImage.replace(/edge=\w+/, 'edge=none');
+    } else {
+      coverImage += '&edge=none';
+    }
+
+    // If we have a Google Books ID, we can also try the direct cover API
+    // This sometimes provides better quality images
+    if (bookId && !coverImage.includes('/books/content')) {
+      // Alternative high-res URL format
+      const alternativeUrl = `https://books.google.com/books/content?id=${bookId}&printsec=frontcover&img=1&zoom=0&source=gbs_api`;
+      
+      // For thumbnail URLs, replace with the higher quality alternative
+      if (imageLinks.thumbnail && !imageLinks.large && !imageLinks.extraLarge) {
+        return alternativeUrl;
+      }
+    }
+
+    return coverImage;
+  }
+
+  /**
    * Format Google Books API response to our schema
    * @param {Object} bookData - Raw Google Books data
    * @returns {Object} Formatted book data
@@ -79,20 +134,8 @@ class GoogleBooksService {
       isbn = isbn13 ? isbn13.identifier : (isbn10 ? isbn10.identifier : null);
     }
 
-    // Get best quality cover image
-    let coverImage = null;
-    if (info.imageLinks) {
-      coverImage = info.imageLinks.extraLarge || 
-                  info.imageLinks.large || 
-                  info.imageLinks.medium || 
-                  info.imageLinks.small || 
-                  info.imageLinks.thumbnail;
-      
-      // Ensure HTTPS
-      if (coverImage && coverImage.startsWith('http://')) {
-        coverImage = coverImage.replace('http://', 'https://');
-      }
-    }
+    // Get high-resolution cover image
+    const coverImage = this.getHighResCoverImage(info.imageLinks, bookData.id);
 
     return {
       isbn: isbn,

@@ -4,6 +4,46 @@ class OpenLibraryService {
   constructor() {
     // Use the Books API endpoint which is much more efficient and less rate-limited
     this.booksApiURL = 'https://openlibrary.org/api/books';
+    this.coversApiURL = 'https://covers.openlibrary.org/b';
+  }
+
+  /**
+   * Get high-resolution cover image URL from Open Library
+   * @param {string} isbn - ISBN of the book
+   * @returns {string} Cover image URL or null
+   */
+  getCoverImageURL(isbn) {
+    if (!isbn) return null;
+    
+    // Clean ISBN
+    const cleanISBN = isbn.replace(/[-\s]/g, '');
+    
+    // Open Library provides covers in different sizes: S, M, L
+    // L = Large (up to 500px wide)
+    // We'll return the large version for better quality
+    return `${this.coversApiURL}/isbn/${cleanISBN}-L.jpg`;
+  }
+
+  /**
+   * Check if Open Library has a cover for this ISBN
+   * @param {string} isbn - ISBN of the book
+   * @returns {boolean} Whether a cover exists
+   */
+  async hasCover(isbn) {
+    try {
+      const coverUrl = this.getCoverImageURL(isbn);
+      if (!coverUrl) return false;
+      
+      // Check if the image exists by making a HEAD request
+      const response = await axios.head(coverUrl, {
+        timeout: 3000,
+        validateStatus: (status) => status === 200 || status === 302
+      });
+      
+      return response.status === 200 || response.status === 302;
+    } catch (error) {
+      return false;
+    }
   }
 
   /**
@@ -74,6 +114,9 @@ class OpenLibraryService {
         });
       }
       
+      // Get high-quality cover URL
+      const coverUrl = this.getCoverImageURL(cleanISBN);
+      
       // Return processed subject data
       return {
         subjects: [...new Set(subjects)], // Remove duplicates
@@ -84,7 +127,8 @@ class OpenLibraryService {
         title: bookData.title,
         authors: bookData.authors ? bookData.authors.map(a => a.name) : [],
         publishers: bookData.publishers ? bookData.publishers.map(p => p.name) : [],
-        publish_date: bookData.publish_date
+        publish_date: bookData.publish_date,
+        cover_url: coverUrl // Add the cover URL
       };
       
     } catch (error) {
@@ -173,6 +217,9 @@ class OpenLibraryService {
           });
         }
         
+        // Get cover URL
+        const coverUrl = this.getCoverImageURL(isbn);
+        
         results[isbn] = {
           subjects: [...new Set(subjects)],
           subject_places: subjectPlaces,
@@ -181,7 +228,8 @@ class OpenLibraryService {
           title: bookData.title,
           authors: bookData.authors ? bookData.authors.map(a => a.name) : [],
           publishers: bookData.publishers ? bookData.publishers.map(p => p.name) : [],
-          publish_date: bookData.publish_date
+          publish_date: bookData.publish_date,
+          cover_url: coverUrl
         };
       }
       

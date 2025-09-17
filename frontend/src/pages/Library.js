@@ -20,6 +20,7 @@ import BookList from '../components/Books/BookList';
 import AddBookModal from '../components/Modals/AddBookModal';
 import BookDetailsModal from '../components/Modals/BookDetailsModal';
 import bookService from '../services/bookService';
+import imagePreloader from '../utils/imagePreloader';
 
 const Library = () => {
   // State management
@@ -64,6 +65,19 @@ const Library = () => {
         page: 1,
         limit: 1000, // Get all books for client-side filtering
       });
+      
+      // Preload book cover images
+      if (data.books && data.books.length > 0) {
+        const imageUrls = data.books
+          .map(book => book.coverImage)
+          .filter(Boolean);
+        
+        // Start preloading images in the background
+        imagePreloader.preloadMultiple(imageUrls).then(() => {
+          console.log('Images preloaded');
+        });
+      }
+      
       setBooks(data.books);
       setError(null);
     } catch (err) {
@@ -193,6 +207,8 @@ const Library = () => {
   }, []);
 
   const handleBookAdded = useCallback(() => {
+    // Clear image cache to ensure fresh images
+    imagePreloader.clearCache();
     fetchBooks(); // Refresh the book list
     setAddBookModalOpen(false);
   }, []);

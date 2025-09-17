@@ -60,6 +60,16 @@ class BookMetadataService {
         }
       };
       
+      // Use Open Library cover if it might be better quality
+      // Open Library often has better scans for older books
+      if (openLibData?.cover_url && (!googleData.coverImage || googleData.coverImage.includes('zoom=1'))) {
+        // Check if Open Library has a cover and use it as fallback
+        enhancedBook.coverImage = openLibData.cover_url;
+        enhancedBook.coverImageSource = 'openlibrary';
+      } else {
+        enhancedBook.coverImageSource = 'google';
+      }
+      
       // Apply BISAC mapping if enabled
       if (useBISAC) {
         // Map to BISAC categories
