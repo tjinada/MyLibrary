@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -47,9 +47,13 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
+  // Ref for auto-focusing ISBN input
+  const isbnInputRef = useRef(null);
+
   // Cover selection state
   const [coverOptions, setCoverOptions] = useState([]);
   const [selectedCoverIndex, setSelectedCoverIndex] = useState(0);
+  const [validatingCovers, setValidatingCovers] = useState(false);
 
   // Custom fields state
   const [customGenres, setCustomGenres] = useState([]);
@@ -59,10 +63,39 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
 
   const steps = ['Enter ISBN', 'Review Details', 'Complete'];
 
-  // Generate multiple cover URLs for selection
+  // Auto-focus ISBN field when modal opens
+  useEffect(() => {
+    if (open && activeStep === 0 && isbnInputRef.current) {
+      // Small delay to ensure the modal is fully rendered
+      const timer = setTimeout(() => {
+        isbnInputRef.current.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [open, activeStep]);
+
+  // Enhanced cover options generation with smart prioritization
   const generateCoverOptions = (bookData) => {
     const options = [];
     
+    // Define quality priorities (higher number = higher priority)
+    const qualityPriority = {
+      'Large': 3,
+      'High': 3,
+      'Medium': 2,
+      'Small': 1,
+      'Thumbnail': 1
+    };
+    
+    // Define source priorities (higher number = higher priority) 
+    const sourcePriority = {
+      'Google Books': 3,
+      'Google Books (Direct)': 3,
+      'Primary (Google Books)': 3,
+      'Open Library': 2,
+      'Fallback': 1
+    };
+
     // Add primary cover if available
     if (bookData.coverImage) {
       let primaryUrl = bookData.coverImage;
@@ -73,31 +106,35 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
       options.push({
         url: primaryUrl,
         source: 'Primary (Google Books)',
-        quality: 'High'
+        quality: 'High',
+        priority: calculatePriority('Primary (Google Books)', 'High', qualityPriority, sourcePriority)
       });
     }
 
-    // Add Google Books alternatives
+    // Add Google Books alternatives with quality-based URLs
     if (bookData.googleBooksId) {
-      // High quality
+      // Large quality (zoom=0)
       options.push({
         url: `https://books.google.com/books/content?id=${bookData.googleBooksId}&printsec=frontcover&img=1&zoom=0&source=gbs_api`,
-        source: 'Google Books (Direct)',
-        quality: 'High'
+        source: 'Google Books',
+        quality: 'Large',
+        priority: calculatePriority('Google Books', 'Large', qualityPriority, sourcePriority)
       });
       
-      // Medium quality
+      // Medium quality (zoom=1) 
       options.push({
         url: `https://books.google.com/books/content?id=${bookData.googleBooksId}&printsec=frontcover&img=1&zoom=1&source=gbs_api`,
         source: 'Google Books',
-        quality: 'Medium'
+        quality: 'Medium',
+        priority: calculatePriority('Google Books', 'Medium', qualityPriority, sourcePriority)
       });
 
-      // Thumbnail
+      // Thumbnail (zoom=5)
       options.push({
         url: `https://books.google.com/books/content?id=${bookData.googleBooksId}&printsec=frontcover&img=1&zoom=5&source=gbs_api`,
         source: 'Google Books',
-        quality: 'Thumbnail'
+        quality: 'Thumbnail',
+        priority: calculatePriority('Google Books', 'Thumbnail', qualityPriority, sourcePriority)
       });
     }
 
@@ -109,31 +146,85 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
       options.push({
         url: `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-L.jpg`,
         source: 'Open Library',
-        quality: 'Large'
+        quality: 'Large',
+        priority: calculatePriority('Open Library', 'Large', qualityPriority, sourcePriority)
       });
       
       // Medium
       options.push({
         url: `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg`,
         source: 'Open Library',
-        quality: 'Medium'
+        quality: 'Medium', 
+        priority: calculatePriority('Open Library', 'Medium', qualityPriority, sourcePriority)
       });
       
       // Small
       options.push({
         url: `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-S.jpg`,
         source: 'Open Library',
-        quality: 'Small'
+        quality: 'Small',
+        priority: calculatePriority('Open Library', 'Small', qualityPriority, sourcePriority)
       });
     }
 
-    // Remove duplicates based on URL
-    const uniqueOptions = options.filter((option, index, self) =>
-      index === self.findIndex(o => o.url === option.url)
-    );
+    // Remove duplicates based on URL and sort by priority (highest first)
+    const uniqueOptions = options
+      .filter((option, index, self) =>
+        index === self.findIndex(o => o.url === option.url)
+      )
+      .sort((a, b) => b.priority - a.priority);
 
-    console.log('Generated cover options:', uniqueOptions);
+    console.log('Generated cover options (sorted by priority):', uniqueOptions);
     return uniqueOptions;
+  };
+
+  // Helper function to calculate priority score
+  const calculatePriority = (source, quality, qualityPriority, sourcePriority) => {
+    const qualityScore = qualityPriority[quality] || 0;
+    const sourceScore = sourcePriority[source] || 0;
+    // Weight quality more heavily than source (quality * 2 + source)
+    return (qualityScore * 2) + sourceScore;
+  };
+
+  // Validate if a cover image actually loads
+  const validateCoverImage = (url) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        // Check if it's actually an image (not a 404 page or placeholder)
+        if (img.width > 50 && img.height > 50) {
+          resolve(true);
+        } else {
+          resolve(false);
+        }
+      };
+      img.onerror = () => resolve(false);
+      img.src = url;
+      
+      // Timeout after 3 seconds
+      setTimeout(() => resolve(false), 3000);
+    });
+  };
+
+  // Validate all covers and filter working ones
+  const validateAndFilterCovers = async (coverOptions) => {
+    console.log('Validating', coverOptions.length, 'cover options...');
+    
+    const validationPromises = coverOptions.map(async (option) => {
+      const isValid = await validateCoverImage(option.url);
+      console.log(`Cover validation: ${option.source} ${option.quality} - ${isValid ? 'VALID' : 'INVALID'}`);
+      return { ...option, isValid };
+    });
+    
+    const validatedOptions = await Promise.all(validationPromises);
+    
+    // Return only working covers, sorted by priority
+    const workingCovers = validatedOptions
+      .filter(option => option.isValid)
+      .sort((a, b) => b.priority - a.priority);
+    
+    console.log(`Found ${workingCovers.length} valid covers out of ${coverOptions.length}`);
+    return workingCovers;
   };
 
   const handleISBNLookup = async (scannedISBN) => {
@@ -151,10 +242,27 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
       const data = await bookService.lookupISBN(isbnToLookup);
       setBookData(data);
       
-      // Generate cover options
-      const options = generateCoverOptions(data);
-      setCoverOptions(options);
-      setSelectedCoverIndex(0);
+      // Generate all possible cover options first
+      const allOptions = generateCoverOptions(data);
+      
+      // Show loading state for cover validation
+      setValidatingCovers(true);
+      
+      // Validate and filter working covers
+      const validOptions = await validateAndFilterCovers(allOptions);
+      
+      if (validOptions.length > 0) {
+        setCoverOptions(validOptions);
+        setSelectedCoverIndex(0); // Auto-select the best valid cover
+        console.log('Auto-selected best valid cover:', validOptions[0]);
+      } else {
+        // No valid covers found, use original list with placeholder handling
+        console.log('No valid covers found, using original options with placeholder');
+        setCoverOptions(allOptions);
+        setSelectedCoverIndex(0);
+      }
+      
+      setValidatingCovers(false);
       
       // Initialize custom fields with existing genres
       setCustomGenres(data.genres || []);
@@ -165,6 +273,7 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
       setError(err.response?.data?.message || 'Book not found. Please try another ISBN.');
     } finally {
       setLoading(false);
+      setValidatingCovers(false);
     }
   };
 
@@ -245,6 +354,7 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
     setError(null);
     setCoverOptions([]);
     setSelectedCoverIndex(0);
+    setValidatingCovers(false);
     setCustomGenres([]);
     setCustomTags([]);
     setNewGenre('');
@@ -332,6 +442,7 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <TextField
+                  ref={isbnInputRef}
                   fullWidth
                   label="ISBN"
                   variant="outlined"
@@ -362,14 +473,51 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
         {activeStep === 1 && bookData && (
           <Grid container spacing={3}>
             <Grid item xs={12} sm={4}>
-              {/* Cover Selection */}
+              {/* Enhanced Cover Selection with Validation */}
               <Box>
                 <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <ImageIcon fontSize="small" />
-                  Select Cover ({selectedCoverIndex + 1} of {coverOptions.length})
+                  {validatingCovers ? (
+                    <>
+                      Validating Covers...
+                      <CircularProgress size={16} sx={{ ml: 1 }} />
+                    </>
+                  ) : (
+                    <>
+                      Select Cover ({selectedCoverIndex + 1} of {coverOptions.length})
+                      {coverOptions[selectedCoverIndex] && selectedCoverIndex === 0 && coverOptions.length > 1 && (
+                        <Chip 
+                          label="Best Quality" 
+                          size="small" 
+                          color="primary" 
+                          variant="outlined"
+                          sx={{ ml: 1 }}
+                        />
+                      )}
+                    </>
+                  )}
                 </Typography>
                 <Card sx={{ position: 'relative' }}>
-                  {coverOptions.length > 0 && (
+                  {validatingCovers ? (
+                    // Show loading state during validation
+                    <Box sx={{
+                      height: 400,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: 'grey.50',
+                      color: 'text.secondary'
+                    }}>
+                      <CircularProgress sx={{ mb: 2 }} />
+                      <Typography variant="body2">
+                        Validating cover options...
+                      </Typography>
+                      <Typography variant="caption">
+                        Finding the best quality cover
+                      </Typography>
+                    </Box>
+                  ) : coverOptions.length > 0 && (
                     <>
                       <CardMedia
                         component="img"
@@ -415,21 +563,44 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
                         </>
                       )}
                       
-                      {/* Cover info */}
+                      {/* Enhanced Cover info with priority indication */}
                       <Box sx={{
                         position: 'absolute',
                         bottom: 0,
                         left: 0,
                         right: 0,
-                        bgcolor: 'rgba(0, 0, 0, 0.7)',
+                        bgcolor: 'rgba(0, 0, 0, 0.8)',
                         color: 'white',
                         p: 1,
                       }}>
-                        <Typography variant="caption">
+                        <Typography variant="caption" display="block">
                           {coverOptions[selectedCoverIndex].source} - {coverOptions[selectedCoverIndex].quality}
                         </Typography>
+                        {selectedCoverIndex === 0 && (
+                          <Typography variant="caption" sx={{ color: '#4caf50' }}>
+                            ⭐ Auto-selected best quality
+                          </Typography>
+                        )}
                       </Box>
                     </>
+                  )}
+                  
+                  {/* Show message if no covers available */}
+                  {!validatingCovers && coverOptions.length === 0 && (
+                    <Box sx={{
+                      height: 300,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: 'grey.50',
+                      color: 'text.secondary'
+                    }}>
+                      <ImageIcon sx={{ fontSize: 48, mb: 1, opacity: 0.5 }} />
+                      <Typography variant="body2">
+                        No cover image available
+                      </Typography>
+                    </Box>
                   )}
                 </Card>
               </Box>
@@ -573,7 +744,7 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
         {activeStep === 2 && (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Alert severity="success">
-              Book successfully added to your library!
+              Book successfully added to your library with the best available cover!
             </Alert>
           </Box>
         )}
