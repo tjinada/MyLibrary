@@ -28,16 +28,31 @@ const BookCard = ({ book, onClick }) => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'available':
-        return 'success';
+      case 'to-read':
+        return 'info';
       case 'reading':
         return 'primary';
+      case 'read':
+        return 'success';
       case 'loaned':
         return 'warning';
-      case 'wishlist':
-        return 'default';
       default:
         return 'default';
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'to-read':
+        return 'To Read';
+      case 'reading':
+        return 'Reading';
+      case 'read':
+        return 'Read';
+      case 'loaned':
+        return 'Loaned';
+      default:
+        return status;
     }
   };
 
@@ -409,7 +424,7 @@ const BookCard = ({ book, onClick }) => {
             ) : null}
             
             <Chip 
-              label={book.status} 
+              label={getStatusLabel(book.status)} 
               size="small" 
               color={getStatusColor(book.status)}
               sx={{ fontWeight: 500 }}

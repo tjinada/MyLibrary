@@ -170,14 +170,16 @@ const Library = () => {
   const bookCounts = useMemo(() => {
     const counts = {
       all: books.length,
-      available: 0,
+      'to-read': 0,
       reading: 0,
+      read: 0,
       loaned: 0,
-      wishlist: 0,
     };
     books.forEach(book => {
-      if (counts[book.status] !== undefined) {
-        counts[book.status]++;
+      // Handle legacy 'available' status
+      const status = book.status === 'available' ? 'to-read' : book.status;
+      if (counts[status] !== undefined) {
+        counts[status]++;
       }
     });
     return counts;

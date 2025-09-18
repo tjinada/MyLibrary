@@ -147,7 +147,7 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted })
   useEffect(() => {
     if (book) {
       setEditedBook({
-        status: book.status || 'available',
+        status: book.status || 'to-read',
         rating: book.rating || 0,
         notes: book.notes || '',
         tags: book.tags || [],
@@ -267,11 +267,21 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted })
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'available': return 'success';
+      case 'to-read': return 'info';
       case 'reading': return 'primary';
+      case 'read': return 'success';
       case 'loaned': return 'warning';
-      case 'wishlist': return 'default';
       default: return 'default';
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'to-read': return 'To Read';
+      case 'reading': return 'Reading';
+      case 'read': return 'Read';
+      case 'loaned': return 'Loaned';
+      default: return status;
     }
   };
 
@@ -306,7 +316,7 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted })
                 setEditMode(false);
                 // Reset to original values
                 setEditedBook({
-                  status: book.status || 'available',
+                  status: book.status || 'to-read',
                   rating: book.rating || 0,
                   notes: book.notes || '',
                   tags: book.tags || [],
@@ -453,17 +463,17 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted })
                           label="Status"
                           onChange={(e) => setEditedBook({...editedBook, status: e.target.value})}
                         >
-                          <MenuItem value="available">Available</MenuItem>
+                          <MenuItem value="to-read">To Read</MenuItem>
                           <MenuItem value="reading">Reading</MenuItem>
+                          <MenuItem value="read">Read</MenuItem>
                           <MenuItem value="loaned">Loaned</MenuItem>
-                          <MenuItem value="wishlist">Wishlist</MenuItem>
                         </Select>
                       </FormControl>
                     ) : (
                       <Box>
                         <Typography variant="body2" color="text.secondary">Status</Typography>
                         <Chip 
-                          label={book.status} 
+                          label={getStatusLabel(book.status)} 
                           color={getStatusColor(book.status)}
                           size="small"
                         />

@@ -49,8 +49,8 @@ const BookSchema = new mongoose.Schema({
   // Library management fields
   status: {
     type: String,
-    enum: ['available', 'reading', 'loaned', 'wishlist'],
-    default: 'available'
+    enum: ['to-read', 'reading', 'read', 'loaned'],
+    default: 'to-read'
   },
   location: {
     type: String,
