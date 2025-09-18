@@ -114,9 +114,6 @@ out/
 # Nuxt.js
 .nuxt/
 
-# Gatsby files
-public/
-
 # VuePress
 .vuepress/dist
 
