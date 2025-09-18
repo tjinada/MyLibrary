@@ -1,264 +1,171 @@
-# My Library - Home Library Management System
+# My Library - Personal Book Management System
 
-A clean, mobile-optimized web application for managing your personal book collection. Built with React, Express, MongoDB, and Google Books API.
+A full-stack web application for managing your personal book collection with barcode scanning, book lookup, and library organization features.
 
 ## Features
 
-- 📷 **Barcode Scanning**: Scan ISBN barcodes using your device's camera
-- 📚 **Google Books Integration**: Automatically fetch book metadata including covers, genres, and descriptions
-- 📖 **Open Library Integration**: Enhanced genre/subject data from Open Library
-- 📑 **BISAC Categorization**: Standardized book categorization using industry-standard BISAC codes
-- 📱 **Mobile Optimized**: Clean, responsive design that works great on phones and tablets
-- 🔍 **Search & Filter**: Search your library by title, author, genre, or ISBN
-- 📊 **Statistics Dashboard**: View your reading statistics and library insights
-- 🏷️ **Book Management**: Track reading status, location, ratings, and personal notes
-- 🔐 **Simple Admin Auth**: Secure admin login to manage your library
+- 📚 **Book Management**: Add, edit, and delete books from your library
+- 📷 **Barcode Scanning**: Scan ISBN barcodes using your device camera
+- 🔍 **Book Search**: Search by title, author, or ISBN
+- 📊 **Status Tracking**: Track reading status (To Read, Reading, Read, Loaned)
+- 🏷️ **Tags & Genres**: Organize with custom tags and genres
+- 🖼️ **Cover Selection**: Choose from multiple cover image sources
+- 📱 **Responsive Design**: Works on desktop, tablet, and mobile
 
-## Prerequisites
+## Quick Start with Docker
 
-- Node.js 18+ and npm
-- MongoDB (local or Docker)
-- Google Books API Key
+### Prerequisites
+- Docker and Docker Compose installed
+- Google Books API key (optional but recommended)
 
-## Setup Instructions
+### Setup
 
-### 1. Clone and Install
-
+1. Clone the repository:
 ```bash
-cd E:\Repositories\MyLibrary
-npm install:all
+git clone https://github.com/yourusername/MyLibrary.git
+cd MyLibrary
 ```
 
-This will install dependencies for both backend and frontend.
+2. Create environment file:
+```bash
+cp .env.example .env
+```
 
-### 2. Configure Environment Variables
-
-Edit the `.env` file in the root directory:
-
+3. Edit `.env` and add your configuration:
 ```env
-# MongoDB (adjust if using local MongoDB)
-MONGO_URI=mongodb://localhost:27017/home-library
 MONGO_ROOT_USER=admin
-MONGO_ROOT_PASSWORD=password123
-
-# Authentication (change these!)
-JWT_SECRET=your-secret-jwt-key-change-this
+MONGO_ROOT_PASSWORD=your_secure_password
+JWT_SECRET=your_jwt_secret_key
 ADMIN_USERNAME=admin
-ADMIN_PASSWORD=admin123
-
-# Google Books API (required)
-GOOGLE_BOOKS_API_KEY=your-google-books-api-key
-
-# Open Library (optional - set to false to disable)
-USE_OPEN_LIBRARY=true
-
-# BISAC Mapping (optional - set to false to use raw genres instead of standardized categories)
-USE_BISAC_MAPPING=false
-
-# Server
-PORT=5000
-NODE_ENV=development
-FRONTEND_URL=http://localhost:3000
+ADMIN_PASSWORD=your_admin_password
+GOOGLE_BOOKS_API_KEY=your_google_books_api_key
 ```
 
-### 3. Get Google Books API Key
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing
-3. Enable "Books API" from the API Library
-4. Create credentials (API Key)
-5. Add the key to your `.env` file
-
-### 4. Start Development Servers
-
-**Option 1: Run both frontend and backend together**
-```bash
-npm run dev
-```
-
-**Option 2: Run separately**
-```bash
-# Terminal 1 - Backend
-npm run dev:backend
-
-# Terminal 2 - Frontend
-npm run dev:frontend
-```
-
-### 5. Access the Application
-
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:5000/api
-
-Default admin credentials:
-- Username: `admin`
-- Password: `admin123`
-
-⚠️ **Important**: Change these credentials in the `.env` file before deploying!
-
-## Docker Deployment
-
-### Build and Run with Docker Compose
-
+4. Build and run with Docker:
 ```bash
 docker-compose up --build
 ```
 
-This will:
-- Start MongoDB container
-- Build and run the backend
-- Build and run the frontend with nginx
+### Access the Application
 
-Access the application at http://localhost
+- **Frontend**: http://localhost:8050
+- **Backend API**: http://localhost:5010
+- **MongoDB**: localhost:27017
+
+### Default Login
+- Username: `admin` (or what you set in .env)
+- Password: `your_admin_password` (what you set in .env)
+
+## Development Setup
+
+### Backend
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+### Frontend
+```bash
+cd frontend
+npm install
+npm start
+```
+
+## Technology Stack
+
+### Frontend
+- React 18
+- Material-UI (MUI)
+- React Router
+- Axios
+- ZXing (barcode scanning)
+
+### Backend
+- Node.js + Express
+- MongoDB + Mongoose
+- JWT Authentication
+- Google Books API
+- Open Library API
+
+### DevOps
+- Docker & Docker Compose
+- Nginx (production)
+- Multi-stage builds
 
 ## API Endpoints
 
-### Authentication
-- `POST /api/auth/login` - Admin login
-- `GET /api/auth/verify` - Verify JWT token
-
-### Books
-- `GET /api/books` - Get all books (with pagination)
-- `GET /api/books/:isbn` - Get single book
+- `POST /api/auth/login` - User login
+- `GET /api/books` - Get all books
 - `POST /api/books` - Add new book
 - `PUT /api/books/:isbn` - Update book
 - `DELETE /api/books/:isbn` - Delete book
-- `POST /api/books/:isbn/enhance` - Enhance existing book with BISAC categories
-
-### Scanner
-- `POST /api/scanner/lookup` - Lookup book by ISBN (with enhanced metadata)
-- `POST /api/scanner/batch-lookup` - Batch lookup multiple ISBNs
-
-### Search
-- `GET /api/search` - Search library
-- `GET /api/search/google` - Search Google Books
-
-### Statistics
+- `POST /api/scanner/lookup` - Lookup book by ISBN
+- `GET /api/search` - Search books
 - `GET /api/stats` - Get library statistics
 
-## Project Structure
+## Book Status Options
 
-```
-MyLibrary/
-├── backend/
-│   ├── models/         # MongoDB schemas
-│   ├── routes/         # API routes
-│   ├── services/       # Business logic (Google, OpenLibrary, BISAC)
-│   ├── middleware/     # Auth middleware
-│   ├── utils/          # Utility scripts
-│   └── server.js       # Express server
-├── frontend/
-│   ├── src/
-│   │   ├── components/ # React components
-│   │   ├── pages/      # Page components
-│   │   ├── services/   # API services
-│   │   └── contexts/   # React contexts
-│   └── public/
-├── docker-compose.yml
-└── .env
-```
+- **To Read** - Books you plan to read
+- **Reading** - Currently reading
+- **Read** - Completed books
+- **Loaned** - Books lent to others
 
-## Mobile Usage Tips
-
-1. **Adding Books**: 
-   - Grant camera permissions when prompted
-   - Hold phone steady when scanning barcodes
-   - Manual ISBN entry available as fallback
-
-2. **Navigation**: 
-   - Use the hamburger menu for navigation
-   - Swipe gestures supported on book grid
-
-3. **Performance**:
-   - Images are optimized for mobile
-   - Pagination keeps page loads fast
-
-## Enhanced Metadata System
-
-The application now fetches metadata from both Google Books and Open Library, then maps genres to standardized BISAC categories.
-
-### Rate Limiting & Performance
-
-**Open Library Rate Limits:**
-- Automatic rate limiting: 1 second minimum between requests
-- Retry logic: Up to 2 retries with 2-second delays
-- Graceful degradation: Falls back to Google Books if Open Library fails
-- Batch limiting: Only enhances first 3 books in search results
-
-If experiencing rate limiting issues:
-```bash
-# In .env file
-USE_OPEN_LIBRARY=false
-```
-
-### Testing Enhanced Metadata
+## Docker Commands
 
 ```bash
-cd backend
-node utils/testEnhancedMetadata.js
-```
+# Start services
+docker-compose up -d
 
-### Manual Book Enhancement
+# View logs
+docker-compose logs -f
 
-For existing books without BISAC categories:
-```bash
-# Enhance single book via API
-POST /api/books/:isbn/enhance
+# Stop services
+docker-compose down
 
-# Or bulk enhance existing library
-node backend/utils/enhanceExistingBooks.js
+# Rebuild after changes
+docker-compose up -d --build
+
+# Remove everything including volumes
+docker-compose down -v
 ```
 
 ## Troubleshooting
 
-### Open Library Rate Limiting?
-- The system automatically handles rate limits
-- Set `USE_OPEN_LIBRARY=false` in .env to disable
-- Wait a few minutes if you see persistent 429 errors
+### Port Conflicts
+The application uses the following ports:
+- `8050` - Frontend (nginx)
+- `5010` - Backend API
+- `27017` - MongoDB
 
-### Camera not working?
-- Ensure HTTPS or localhost (camera requires secure context)
-- Check browser permissions for camera access
-- Try manual ISBN entry as fallback
+Change these in `docker-compose.yml` if needed.
 
-### Books not found?
-- Verify Google Books API key is correct
-- Check if ISBN is valid (10 or 13 digits)
-- Some older books may not be in Google Books
+### Missing Dependencies
+```bash
+# Regenerate package-lock.json files
+cd backend && npm install
+cd ../frontend && npm install
+```
 
-### MongoDB connection issues?
-- Ensure MongoDB is running
-- Check connection string in `.env`
-- Verify credentials if authentication is enabled
+### Database Issues
+```bash
+# Reset database (warning: deletes all data)
+docker-compose down -v
+docker-compose up -d
+```
 
-## Tech Stack
+## Contributing
 
-- **Frontend**: React 18, Material-UI v5, @zxing/library
-- **Backend**: Express.js, MongoDB, Mongoose
-- **APIs**: Google Books API, Open Library API
-- **Deployment**: Docker, nginx
-
-## Design Principles
-
-- **KISS**: Simple, focused features
-- **YAGNI**: Core functionality only, no over-engineering  
-- **SOLID**: Clean separation of concerns
-- **Mobile First**: Optimized for phones and tablets
-
-## Future Enhancements (v2)
-
-- Expand BISAC category mappings
-- Thema international categorization support
-- Calibre integration for additional metadata
-- Book lending tracking with due dates
-- Reading progress and goals
-- Export library to CSV/PDF
-- Multiple user support
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
 
 ## License
 
-MIT
+MIT License - feel free to use this for your personal library!
 
 ## Support
 
-For issues or questions, please check the troubleshooting section or create an issue in the repository.
+For issues or questions, please open an issue on GitHub.
