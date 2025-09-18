@@ -11,7 +11,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:8050',
+  origin: process.env.FRONTEND_URL || 'https://library.tjbookrequests.org/login',
   credentials: true
 }));
 app.use(express.json());
