@@ -3,25 +3,28 @@ FROM node:18-alpine as build
 
 WORKDIR /app
 
-# Copy package files (handle both with and without lock file)
+# Copy package files
 COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy source code
+# Copy all application files
 COPY . .
+
+# Verify public folder exists
+RUN ls -la public/
 
 # Build the application
 RUN npm run build
 
-# Production stage
+# Production stage  
 FROM nginx:alpine
 
 # Copy built files from build stage
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Copy nginx configuration if it exists
+# Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port

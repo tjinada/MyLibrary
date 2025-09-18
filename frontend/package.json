@@ -10,7 +10,6 @@
     "@zxing/library": "^0.20.0",
     "axios": "^1.6.0",
     "lodash": "^4.17.21",
-    "my-library": "file:..",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.0",
