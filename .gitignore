@@ -1,8 +1,8 @@
 # Dependencies
 node_modules/
 */node_modules/
-package-lock.json
-*/package-lock.json
+
+# Yarn files (if using npm, we don't need these)
 yarn.lock
 */yarn.lock
 
@@ -80,7 +80,6 @@ ehthumbs.db
 Thumbs.db
 
 # Docker
-*.log
 docker-compose.override.yml
 
 # Backups
@@ -92,8 +91,6 @@ dump/
 
 # PM2
 .pm2/
-pids/
-logs/
 
 # Optional npm cache directory
 .npm
@@ -110,22 +107,14 @@ logs/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variable files
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
-
 # Next.js
 .next/
 out/
 
 # Nuxt.js
 .nuxt/
-dist/
 
 # Gatsby files
-.cache/
 public/
 
 # VuePress
@@ -168,3 +157,7 @@ venv.bak/
 # Misc
 *.pem
 .vercel
+
+# Uploads folder (but keep the folder itself)
+backend/uploads/*
+!backend/uploads/.gitkeep
