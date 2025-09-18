@@ -12,9 +12,6 @@ RUN npm install
 # Copy all application files
 COPY . .
 
-# Verify public folder exists
-RUN ls -la public/
-
 # Build the application
 RUN npm run build
 
