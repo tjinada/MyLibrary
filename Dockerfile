@@ -33,14 +33,14 @@ COPY --from=frontend-build /app/frontend/build ./public
 RUN mkdir -p uploads
 
 # Expose port
-EXPOSE 5000
+EXPOSE 5010
 
 # Environment variables
 ENV NODE_ENV=production
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:5000/api/health', (r) => {r.statusCode === 200 ? process.exit(0) : process.exit(1)})" || exit 1
+  CMD node -e "require('http').get('http://localhost:5010/api/health', (r) => {r.statusCode === 200 ? process.exit(0) : process.exit(1)})" || exit 1
 
 # Start the server
 CMD ["node", "server.js"]
