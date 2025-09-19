@@ -2,19 +2,27 @@ const googleBooksService = require('./googleBooksService');
 const openLibraryService = require('./openLibraryService');
 const bisacMappingService = require('./bisacMappingService');
 const improvedCategoryService = require('./improvedCategoryService');
+const multiGenreCategoryService = require('./multiGenreCategoryService');
 const coverValidationService = require('./coverValidationService');
 
 class BookMetadataService {
   constructor() {
     // Can be set to false to disable Open Library integration temporarily
     this.useOpenLibrary = process.env.USE_OPEN_LIBRARY !== 'false';
+    // Check which categorization system to use
+    this.useMultiGenre = process.env.USE_MULTI_GENRE === 'true';
     
     // Log service configuration on startup
     console.log('=== BookMetadataService Configuration ===');
     console.log('USE_OPEN_LIBRARY:', this.useOpenLibrary);
     console.log('USE_BISAC_MAPPING:', process.env.USE_BISAC_MAPPING !== 'false');
+    console.log('USE_MULTI_GENRE:', this.useMultiGenre);
     console.log('NODE_ENV:', process.env.NODE_ENV);
-    console.log('Categorization Service:', process.env.USE_BISAC_MAPPING !== 'false' ? 'BISAC' : 'ImprovedCategoryService');
+    if (this.useMultiGenre) {
+      console.log('Categorization Service: MultiGenreCategoryService (multiple genres allowed)');
+    } else {
+      console.log('Categorization Service:', process.env.USE_BISAC_MAPPING !== 'false' ? 'BISAC' : 'ImprovedCategoryService');
+    }
     console.log('=========================================');
   }
   /**
@@ -89,13 +97,33 @@ class BookMetadataService {
         console.log(`No valid JPEG cover found for ISBN ${cleanISBN}`);
       }
       
-      // Apply BISAC mapping if enabled
+      // Apply categorization based on configuration
       console.log(`\n=== Categorization Debug for ISBN: ${cleanISBN} ===`);
       console.log('Title:', googleData.title);
+      console.log('USE_MULTI_GENRE:', this.useMultiGenre);
       console.log('USE_BISAC_MAPPING:', useBISAC);
       console.log('All Subjects Combined:', allSubjects);
       
-      if (useBISAC) {
+      if (this.useMultiGenre) {
+        // Use new multi-genre categorization system
+        console.log('Using MultiGenreCategoryService...');
+        const categorization = multiGenreCategoryService.categorizeBook(
+          allSubjects,
+          googleData.title,
+          googleData.description,
+          googleData.authors
+        );
+        
+        enhancedBook.categoryType = categorization.categoryType;
+        enhancedBook.genres = categorization.genres;
+        enhancedBook.genreReasons = categorization.genreReasons;
+        
+        // Set primaryCategory for backward compatibility
+        enhancedBook.primaryCategory = categorization.genres[0] || 'Uncategorized';
+        
+        console.log('Category Type:', categorization.categoryType);
+        console.log('Genres:', categorization.genres);
+      } else if (useBISAC) {
         console.log('Using BISAC Mapping Service...');
         // Map to BISAC categories
         const bisacCategories = bisacMappingService.mapToBISAC(allSubjects);
@@ -172,8 +200,9 @@ class BookMetadataService {
    */
   async searchBooksWithEnhancedMetadata(query, maxResults = 20) {
     try {
-      // Check if BISAC mapping is disabled
-      const useBISAC = process.env.USE_BISAC_MAPPING !== 'false';
+      // Check which categorization system to use
+      const useMultiGenre = process.env.USE_MULTI_GENRE === 'true';
+      const useBISAC = !useMultiGenre && process.env.USE_BISAC_MAPPING !== 'false';
       
       // First search Google Books
       const googleBooks = await googleBooksService.searchBooks(query, maxResults);
@@ -207,7 +236,30 @@ class BookMetadataService {
               // Combine subjects
               const allSubjects = this.combineSubjects(book, openLibData);
               
-              if (useBISAC) {
+              if (useMultiGenre) {
+                // Use multi-genre categorization
+                const categorization = multiGenreCategoryService.categorizeBook(
+                  allSubjects,
+                  book.title,
+                  book.description,
+                  book.authors
+                );
+                
+                enhancedBooks.push({
+                  ...book,
+                  coverImage: bestCover ? bestCover.url : null,
+                  coverQualityScore: bestCover ? bestCover.score : 0,
+                  categoryType: categorization.categoryType,
+                  genres: categorization.genres,
+                  genreReasons: categorization.genreReasons,
+                  primaryCategory: categorization.genres[0] || 'Uncategorized',
+                  rawSubjects: {
+                    google: book.genres || [],
+                    openLibrary: openLibData?.subjects || []
+                  },
+                  dataSource: 'enhanced'
+                });
+              } else if (useBISAC) {
                 // Map to BISAC if enabled
                 const bisacCategories = bisacMappingService.mapToBISAC(allSubjects);
                 
@@ -253,7 +305,25 @@ class BookMetadataService {
               }
             } else {
               // Open Library had no data
-              if (useBISAC) {
+              if (useMultiGenre) {
+                // Use multi-genre categorization with Google data only
+                const categorization = multiGenreCategoryService.categorizeBook(
+                  book.genres || [],
+                  book.title,
+                  book.description,
+                  book.authors
+                );
+                
+                enhancedBooks.push({
+                  ...book,
+                  coverImage: bestCover ? bestCover.url : null,
+                  coverQualityScore: bestCover ? bestCover.score : 0,
+                  categoryType: categorization.categoryType,
+                  genres: categorization.genres,
+                  genreReasons: categorization.genreReasons,
+                  primaryCategory: categorization.genres[0] || 'Uncategorized'
+                });
+              } else if (useBISAC) {
                 const bisacCategories = bisacMappingService.mapToBISAC(book.genres || []);
                 const category = bisacCategories.length > 0
                   ? this.extractSimpleGenres(bisacCategories)[0]
@@ -301,7 +371,25 @@ class BookMetadataService {
               console.log(`Cover validation also failed: ${coverErr.message}`);
             }
             
-            if (useBISAC) {
+            if (useMultiGenre) {
+              // Use multi-genre categorization with available data
+              const categorization = multiGenreCategoryService.categorizeBook(
+                book.genres || [],
+                book.title,
+                book.description,
+                book.authors
+              );
+              
+              enhancedBooks.push({
+                ...book,
+                coverImage: bestCover ? bestCover.url : null,
+                coverQualityScore: bestCover ? bestCover.score : 0,
+                categoryType: categorization.categoryType,
+                genres: categorization.genres,
+                genreReasons: categorization.genreReasons,
+                primaryCategory: categorization.genres[0] || 'Uncategorized'
+              });
+            } else if (useBISAC) {
               const bisacCategories = bisacMappingService.mapToBISAC(book.genres || []);
               const category = bisacCategories.length > 0
                 ? this.extractSimpleGenres(bisacCategories)[0]
@@ -336,7 +424,22 @@ class BookMetadataService {
           }
         } else {
           // For remaining books that don't go through enhancement
-          if (useBISAC) {
+          if (useMultiGenre) {
+            // Use multi-genre categorization
+            const categorization = multiGenreCategoryService.categorizeBook(
+              book.genres || [],
+              book.title,
+              book.description,
+              book.authors
+            );
+            
+            enhancedBooks.push({
+              ...book,
+              categoryType: categorization.categoryType,
+              genres: categorization.genres,
+              primaryCategory: categorization.genres[0] || 'Uncategorized'
+            });
+          } else if (useBISAC) {
             const bisacCategories = bisacMappingService.mapToBISAC(book.genres || []);
             const category = bisacCategories.length > 0
               ? this.extractSimpleGenres(bisacCategories)[0]

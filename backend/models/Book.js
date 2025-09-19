@@ -38,6 +38,12 @@ const BookSchema = new mongoose.Schema({
     index: true
   },
   
+  // Reasoning for genre assignments (for debugging/transparency)
+  genreReasons: {
+    type: Map,
+    of: [String]
+  },
+  
   // All raw subjects combined from sources (for reference)
   allSubjects: [String],
   
