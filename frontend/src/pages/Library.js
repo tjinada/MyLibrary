@@ -13,10 +13,11 @@ import {
   Fade,
 } from '@mui/material';
 import Header from '../components/Layout/Header';
-import Toolbar from '../components/Layout/Toolbar';
+import ImprovedToolbar from '../components/Layout/ImprovedToolbar';
 import SearchBar from '../components/Search/SearchBar';
 import BookGrid from '../components/Books/BookGrid';
 import BookList from '../components/Books/BookList';
+import QuickAddBooks from '../components/Modals/QuickAddBooks';
 import AddBookModal from '../components/Modals/AddBookModal';
 import BookDetailsModal from '../components/Modals/BookDetailsModal';
 import bookService from '../services/bookService';
@@ -32,7 +33,8 @@ const Library = () => {
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem('libraryViewMode') || 'grid';
   });
-  const [addBookModalOpen, setAddBookModalOpen] = useState(false);
+  const [quickAddModalOpen, setQuickAddModalOpen] = useState(false);
+  const [manualAddModalOpen, setManualAddModalOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   
@@ -110,7 +112,7 @@ const Library = () => {
     // Genre filter
     if (filters.genre !== 'all') {
       filtered = filtered.filter(book => 
-        book.genres?.includes(filters.genre)
+        book.genres?.includes(filters.genre) || book.primaryCategory === filters.genre
       );
     }
 
@@ -152,18 +154,23 @@ const Library = () => {
     setPage(1); // Reset to first page when filters change
   }, [filteredBooks.length, itemsPerPage]);
 
-  // Extract genres from books
+  // Extract genres from books (now using primaryCategory)
   const genres = useMemo(() => {
     const genreMap = new Map();
     books.forEach(book => {
-      book.genres?.forEach(genre => {
-        genreMap.set(genre, (genreMap.get(genre) || 0) + 1);
-      });
+      // Use primaryCategory if available, otherwise fall back to genres
+      if (book.primaryCategory) {
+        genreMap.set(book.primaryCategory, (genreMap.get(book.primaryCategory) || 0) + 1);
+      } else if (book.genres) {
+        book.genres.forEach(genre => {
+          genreMap.set(genre, (genreMap.get(genre) || 0) + 1);
+        });
+      }
     });
     return Array.from(genreMap.entries())
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 10); // Top 10 genres
+      .slice(0, 15); // Top 15 genres
   }, [books]);
 
   // Calculate book counts by status
@@ -208,11 +215,18 @@ const Library = () => {
     });
   }, []);
 
-  const handleBookAdded = useCallback(() => {
+  const handleBooksAdded = useCallback(() => {
     // Clear image cache to ensure fresh images
     imagePreloader.clearCache();
     fetchBooks(); // Refresh the book list
-    setAddBookModalOpen(false);
+  }, []);
+
+  const handleOpenAddModal = useCallback((mode) => {
+    if (mode === 'manual') {
+      setManualAddModalOpen(true);
+    } else {
+      setQuickAddModalOpen(true);
+    }
   }, []);
 
   const handleBookClick = useCallback((book) => {
@@ -262,8 +276,9 @@ const Library = () => {
         </Box>
 
         {/* Toolbar with filters */}
-        <Toolbar
-          onAddBook={() => setAddBookModalOpen(true)}
+        <ImprovedToolbar
+          onAddBook={handleOpenAddModal}
+          onQuickAdd={() => setQuickAddModalOpen(true)}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           filters={filters}
@@ -380,11 +395,18 @@ const Library = () => {
         )}
       </Container>
 
-      {/* Add Book Modal */}
+      {/* Quick Add Books Modal */}
+      <QuickAddBooks
+        open={quickAddModalOpen}
+        onClose={() => setQuickAddModalOpen(false)}
+        onBooksAdded={handleBooksAdded}
+      />
+
+      {/* Manual Add Book Modal */}
       <AddBookModal
-        open={addBookModalOpen}
-        onClose={() => setAddBookModalOpen(false)}
-        onBookAdded={handleBookAdded}
+        open={manualAddModalOpen}
+        onClose={() => setManualAddModalOpen(false)}
+        onBookAdded={handleBooksAdded}
       />
 
       {/* Book Details Modal */}
