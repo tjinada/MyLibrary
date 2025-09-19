@@ -11,21 +11,38 @@ import {
   useTheme,
   useMediaQuery,
   Fade,
+  ToggleButtonGroup,
+  ToggleButton,
+  Grid,
 } from '@mui/material';
+import {
+  ViewModule as ViewModuleIcon,
+  ViewList as ViewListIcon,
+  LibraryBooks as LibraryBooksIcon,
+  CollectionsBookmark as CollectionsIcon,
+} from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import Header from '../components/Layout/Header';
 import ImprovedToolbar from '../components/Layout/ImprovedToolbar';
 import SearchBar from '../components/Search/SearchBar';
 import BookGrid from '../components/Books/BookGrid';
 import BookList from '../components/Books/BookList';
+import CollectionCard from '../components/Collections/CollectionCard';
 import QuickAddBooks from '../components/Modals/QuickAddBooks';
 import AddBookModal from '../components/Modals/AddBookModal';
 import BookDetailsModal from '../components/Modals/BookDetailsModal';
+import ManageCollectionsModal from '../components/Collections/ManageCollectionsModal';
 import bookService from '../services/bookService';
+import libraryService from '../services/libraryService';
 import imagePreloader from '../utils/imagePreloader';
+import { useCollections } from '../contexts/CollectionContext';
 
 const Library = () => {
+  const navigate = useNavigate();
+  const { expandedCollections, toggleCollection } = useCollections();
+  
   // State management
-  const [books, setBooks] = useState([]);
+  const [libraryItems, setLibraryItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
@@ -33,169 +50,201 @@ const Library = () => {
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem('libraryViewMode') || 'grid';
   });
+  const [libraryView, setLibraryView] = useState(() => {
+    return localStorage.getItem('libraryDisplayMode') || 'unified';
+  });
   const [quickAddModalOpen, setQuickAddModalOpen] = useState(false);
   const [manualAddModalOpen, setManualAddModalOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [manageCollectionsOpen, setManageCollectionsOpen] = useState(false);
   
   // Filters state
   const [filters, setFilters] = useState({
     search: '',
     status: 'all',
     genre: 'all',
-    sort: '-addedDate',
+    sort: 'title',
   });
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const itemsPerPage = viewMode === 'grid' ? 24 : 20;
 
-  // Fetch books on component mount
+  // Fetch library data
   useEffect(() => {
-    fetchBooks();
-  }, []);
+    fetchLibrary();
+  }, [filters.status, filters.genre, filters.sort, libraryView]);
 
-  // Save view mode preference
+  // Save view preferences
   useEffect(() => {
     localStorage.setItem('libraryViewMode', viewMode);
   }, [viewMode]);
 
-  const fetchBooks = async () => {
+  useEffect(() => {
+    localStorage.setItem('libraryDisplayMode', libraryView);
+  }, [libraryView]);
+
+  const fetchLibrary = async () => {
     try {
       setLoading(true);
-      const data = await bookService.getBooks({
-        page: 1,
-        limit: 1000, // Get all books for client-side filtering
-      });
       
-      // Preload book cover images
-      if (data.books && data.books.length > 0) {
+      if (libraryView === 'books-only') {
+        // Fetch only books
+        const data = await bookService.getBooks({
+          page: 1,
+          limit: 1000,
+          status: filters.status !== 'all' ? filters.status : undefined,
+          genre: filters.genre !== 'all' ? filters.genre : undefined,
+        });
+        
+        // Transform to library item format
+        const items = data.books.map(book => ({
+          type: 'book',
+          data: book
+        }));
+        
+        setLibraryItems(items);
+        
+        // Preload images
         const imageUrls = data.books
           .map(book => book.coverImage)
           .filter(Boolean);
-        
-        // Start preloading images in the background
-        imagePreloader.preloadMultiple(imageUrls).then(() => {
-          console.log('Images preloaded');
+        imagePreloader.preloadMultiple(imageUrls);
+      } else {
+        // Fetch unified library view
+        const data = await libraryService.getUnifiedLibrary({
+          search: '',
+          status: filters.status,
+          genre: filters.genre,
+          sort: filters.sort,
+          viewMode: libraryView,
+          includeCollections: true,
+          expandCollections: false,
+          limit: 1000
         });
+        
+        setLibraryItems(data.items);
+        
+        // Preload images for books and collections
+        const bookImages = data.items
+          .filter(item => item.type === 'book')
+          .map(item => item.data.coverImage)
+          .filter(Boolean);
+          
+        const collectionImages = data.items
+          .filter(item => item.type === 'collection')
+          .flatMap(item => item.data.books?.slice(0, 4).map(b => b.coverImage) || [])
+          .filter(Boolean);
+          
+        imagePreloader.preloadMultiple([...bookImages, ...collectionImages]);
       }
       
-      setBooks(data.books);
       setError(null);
     } catch (err) {
-      setError('Failed to load books');
-      setBooks([]);
+      console.error('Failed to load library:', err);
+      setError('Failed to load library');
+      setLibraryItems([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Filter and sort books
-  const filteredBooks = useMemo(() => {
-    let filtered = [...books];
-
-    // Search filter
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(book => 
-        book.title?.toLowerCase().includes(searchLower) ||
-        book.authors?.some(author => author.toLowerCase().includes(searchLower)) ||
-        book.isbn?.includes(searchLower)
-      );
-    }
-
-    // Status filter
-    if (filters.status !== 'all') {
-      filtered = filtered.filter(book => book.status === filters.status);
-    }
-
-    // Genre filter
-    if (filters.genre !== 'all') {
-      filtered = filtered.filter(book => 
-        book.genres?.includes(filters.genre) || book.primaryCategory === filters.genre
-      );
-    }
-
-    // Sorting
-    filtered.sort((a, b) => {
-      const sortField = filters.sort.replace('-', '');
-      const sortOrder = filters.sort.startsWith('-') ? -1 : 1;
-
-      if (sortField === 'title') {
-        return sortOrder * (a.title || '').localeCompare(b.title || '');
+  // Filter items (client-side for search)
+  const filteredItems = useMemo(() => {
+    if (!filters.search) return libraryItems;
+    
+    const searchLower = filters.search.toLowerCase();
+    return libraryItems.filter(item => {
+      if (item.type === 'book') {
+        const book = item.data;
+        return (
+          book.title?.toLowerCase().includes(searchLower) ||
+          book.authors?.some(author => author.toLowerCase().includes(searchLower)) ||
+          book.isbn?.includes(searchLower)
+        );
+      } else if (item.type === 'collection') {
+        const collection = item.data;
+        return (
+          collection.name?.toLowerCase().includes(searchLower) ||
+          collection.description?.toLowerCase().includes(searchLower) ||
+          collection.books?.some(book => 
+            book.title?.toLowerCase().includes(searchLower) ||
+            book.authors?.some(author => author.toLowerCase().includes(searchLower))
+          )
+        );
       }
-      if (sortField === 'authors') {
-        const aAuthor = a.authors?.[0] || '';
-        const bAuthor = b.authors?.[0] || '';
-        return sortOrder * aAuthor.localeCompare(bAuthor);
-      }
-      if (sortField === 'rating') {
-        return sortOrder * ((a.rating || 0) - (b.rating || 0));
-      }
-      if (sortField === 'addedDate') {
-        return sortOrder * (new Date(a.addedDate) - new Date(b.addedDate));
-      }
-      return 0;
+      return false;
     });
-
-    return filtered;
-  }, [books, filters]);
+  }, [libraryItems, filters.search]);
 
   // Pagination
-  const paginatedBooks = useMemo(() => {
+  const paginatedItems = useMemo(() => {
     const startIndex = (page - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return filteredBooks.slice(startIndex, endIndex);
-  }, [filteredBooks, page, itemsPerPage]);
+    return filteredItems.slice(startIndex, endIndex);
+  }, [filteredItems, page, itemsPerPage]);
 
   // Calculate total pages
   useEffect(() => {
-    setTotalPages(Math.ceil(filteredBooks.length / itemsPerPage));
-    setPage(1); // Reset to first page when filters change
-  }, [filteredBooks.length, itemsPerPage]);
+    setTotalPages(Math.ceil(filteredItems.length / itemsPerPage));
+    setPage(1);
+  }, [filteredItems.length, itemsPerPage]);
 
-  // Extract genres from books (now using primaryCategory)
+  // Extract genres from items
   const genres = useMemo(() => {
     const genreMap = new Map();
-    books.forEach(book => {
-      // Use primaryCategory if available, otherwise fall back to genres
-      if (book.primaryCategory) {
-        genreMap.set(book.primaryCategory, (genreMap.get(book.primaryCategory) || 0) + 1);
-      } else if (book.genres) {
-        book.genres.forEach(genre => {
-          genreMap.set(genre, (genreMap.get(genre) || 0) + 1);
-        });
+    libraryItems.forEach(item => {
+      if (item.type === 'book') {
+        const book = item.data;
+        if (book.primaryCategory) {
+          genreMap.set(book.primaryCategory, (genreMap.get(book.primaryCategory) || 0) + 1);
+        } else if (book.genres) {
+          book.genres.forEach(genre => {
+            genreMap.set(genre, (genreMap.get(genre) || 0) + 1);
+          });
+        }
       }
     });
     return Array.from(genreMap.entries())
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 15); // Top 15 genres
-  }, [books]);
+      .slice(0, 15);
+  }, [libraryItems]);
 
-  // Calculate book counts by status
+  // Calculate book counts
   const bookCounts = useMemo(() => {
     const counts = {
-      all: books.length,
+      all: 0,
       'to-read': 0,
       reading: 0,
       read: 0,
       loaned: 0,
     };
-    books.forEach(book => {
-      // Handle legacy 'available' status
-      const status = book.status === 'available' ? 'to-read' : book.status;
-      if (counts[status] !== undefined) {
-        counts[status]++;
+    
+    libraryItems.forEach(item => {
+      if (item.type === 'book') {
+        counts.all++;
+        const status = item.data.status === 'available' ? 'to-read' : item.data.status;
+        if (counts[status] !== undefined) {
+          counts[status]++;
+        }
+      } else if (item.type === 'collection') {
+        counts.all += item.data.bookCount || 0;
+        // Count books in collections by status if expanded
+        if (expandedCollections.has(item.data._id) && item.data.books) {
+          item.data.books.forEach(book => {
+            const status = book.status === 'available' ? 'to-read' : book.status;
+            if (counts[status] !== undefined) {
+              counts[status]++;
+            }
+          });
+        }
       }
     });
+    
     return counts;
-  }, [books]);
-
-  // Check if any filters are active
-  const hasActiveFilters = filters.search !== '' || 
-                          filters.status !== 'all' || 
-                          filters.genre !== 'all';
+  }, [libraryItems, expandedCollections]);
 
   // Handler functions
   const handleSearch = useCallback((searchTerm) => {
@@ -211,14 +260,13 @@ const Library = () => {
       search: '',
       status: 'all',
       genre: 'all',
-      sort: '-addedDate',
+      sort: 'title',
     });
   }, []);
 
   const handleBooksAdded = useCallback(() => {
-    // Clear image cache to ensure fresh images
     imagePreloader.clearCache();
-    fetchBooks(); // Refresh the book list
+    fetchLibrary();
   }, []);
 
   const handleOpenAddModal = useCallback((mode) => {
@@ -229,24 +277,41 @@ const Library = () => {
     }
   }, []);
 
+  const handleItemClick = useCallback((item) => {
+    if (item.type === 'book') {
+      setSelectedBook(item.data);
+      setDetailsModalOpen(true);
+    } else if (item.type === 'collection') {
+      navigate(`/collections/${item.data._id}`);
+    }
+  }, [navigate]);
+
   const handleBookClick = useCallback((book) => {
     setSelectedBook(book);
     setDetailsModalOpen(true);
   }, []);
 
   const handleBookUpdated = useCallback(() => {
-    fetchBooks(); // Refresh the book list
+    fetchLibrary();
   }, []);
 
   const handleBookDeleted = useCallback(() => {
-    fetchBooks(); // Refresh the book list
+    fetchLibrary();
     setDetailsModalOpen(false);
   }, []);
+
+  const handleCollectionToggle = useCallback((collectionId, expanded) => {
+    toggleCollection(collectionId);
+  }, [toggleCollection]);
+
+  const hasActiveFilters = filters.search !== '' || 
+                          filters.status !== 'all' || 
+                          filters.genre !== 'all';
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <Header />
-      <MuiToolbar /> {/* Spacer for fixed header */}
+      <MuiToolbar />
       
       <Container maxWidth="xl" sx={{ py: 3 }}>
         {/* Page Title and Search */}
@@ -273,6 +338,29 @@ const Library = () => {
           }}>
             <SearchBar onSearch={handleSearch} />
           </Box>
+          
+          {/* Library View Toggle */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+            <ToggleButtonGroup
+              value={libraryView}
+              exclusive
+              onChange={(e, newView) => newView && setLibraryView(newView)}
+              size="small"
+            >
+              <ToggleButton value="unified">
+                <ViewModuleIcon sx={{ mr: 1 }} />
+                All
+              </ToggleButton>
+              <ToggleButton value="books-only">
+                <LibraryBooksIcon sx={{ mr: 1 }} />
+                Books Only
+              </ToggleButton>
+              <ToggleButton value="collections-only">
+                <CollectionsIcon sx={{ mr: 1 }} />
+                Collections Only
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
         </Box>
 
         {/* Toolbar with filters */}
@@ -298,9 +386,9 @@ const Library = () => {
             mb: 3,
           }}>
             <Typography variant="body2" color="text.secondary">
-              {filteredBooks.length === 0 
-                ? 'No books found'
-                : `Showing ${Math.min((page - 1) * itemsPerPage + 1, filteredBooks.length)}-${Math.min(page * itemsPerPage, filteredBooks.length)} of ${filteredBooks.length} books`
+              {filteredItems.length === 0 
+                ? 'No items found'
+                : `Showing ${Math.min((page - 1) * itemsPerPage + 1, filteredItems.length)}-${Math.min(page * itemsPerPage, filteredItems.length)} of ${filteredItems.length} items`
               }
             </Typography>
             {totalPages > 1 && !isMobile && (
@@ -326,7 +414,7 @@ const Library = () => {
           <Alert severity="error" sx={{ borderRadius: 2 }}>
             {error}
           </Alert>
-        ) : filteredBooks.length === 0 ? (
+        ) : filteredItems.length === 0 ? (
           <Fade in timeout={500}>
             <Paper 
               elevation={0} 
@@ -343,7 +431,7 @@ const Library = () => {
                 gutterBottom
                 sx={{ fontWeight: 500 }}
               >
-                {hasActiveFilters ? 'No books match your filters' : 'Your library is empty'}
+                {hasActiveFilters ? 'No items match your filters' : 'Your library is empty'}
               </Typography>
               <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
                 {hasActiveFilters 
@@ -371,12 +459,61 @@ const Library = () => {
           <Fade in timeout={500}>
             <Box>
               {viewMode === 'grid' ? (
-                <BookGrid books={paginatedBooks} onBookClick={handleBookClick} />
+                <Grid container spacing={2}>
+                  {paginatedItems.map((item) => {
+                    if (item.type === 'collection') {
+                      return (
+                        <Grid item xs={12} sm={6} md={4} lg={3} key={item.data._id}>
+                          <CollectionCard
+                            collection={item.data}
+                            expanded={expandedCollections.has(item.data._id)}
+                            onToggleExpand={handleCollectionToggle}
+                            onClick={() => navigate(`/collections/${item.data._id}`)}
+                            viewMode={viewMode}
+                          />
+                        </Grid>
+                      );
+                    } else {
+                      // Render book - the grid will be handled by parent
+                      return null;
+                    }
+                  })}
+                </Grid>
               ) : (
-                <BookList books={paginatedBooks} onBookClick={handleBookClick} />
+                // List view
+                <Box>
+                  {paginatedItems.map((item) => {
+                    if (item.type === 'collection') {
+                      return (
+                        <CollectionCard
+                          key={item.data._id}
+                          collection={item.data}
+                          expanded={expandedCollections.has(item.data._id)}
+                          onToggleExpand={handleCollectionToggle}
+                          onClick={() => navigate(`/collections/${item.data._id}`)}
+                          viewMode="list"
+                        />
+                      );
+                    }
+                    return null;
+                  })}
+                </Box>
               )}
               
-              {/* Pagination - Bottom for mobile or when multiple pages */}
+              {/* Render books separately */}
+              {viewMode === 'grid' ? (
+                <BookGrid 
+                  books={paginatedItems.filter(item => item.type === 'book').map(item => item.data)} 
+                  onBookClick={handleBookClick}
+                />
+              ) : (
+                <BookList 
+                  books={paginatedItems.filter(item => item.type === 'book').map(item => item.data)} 
+                  onBookClick={handleBookClick}
+                />
+              )}
+              
+              {/* Pagination */}
               {totalPages > 1 && (
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
                   <Pagination
@@ -412,11 +549,30 @@ const Library = () => {
       {/* Book Details Modal */}
       <BookDetailsModal
         open={detailsModalOpen}
-        onClose={() => setDetailsModalOpen(false)}
+        onClose={() => {
+          setDetailsModalOpen(false);
+          setSelectedBook(null);
+        }}
         book={selectedBook}
         onBookUpdated={handleBookUpdated}
         onBookDeleted={handleBookDeleted}
+        onManageCollections={() => {
+          setManageCollectionsOpen(true);
+        }}
       />
+
+      {/* Manage Collections Modal */}
+      {selectedBook && (
+        <ManageCollectionsModal
+          open={manageCollectionsOpen}
+          onClose={() => setManageCollectionsOpen(false)}
+          book={selectedBook}
+          onCollectionsUpdated={() => {
+            handleBookUpdated();
+            setManageCollectionsOpen(false);
+          }}
+        />
+      )}
     </Box>
   );
 };

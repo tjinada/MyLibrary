@@ -24,6 +24,8 @@ const scannerRoutes = require('./routes/scanner');
 const searchRoutes = require('./routes/search');
 const statsRoutes = require('./routes/stats');
 const diagnosticRoutes = require('./routes/diagnostic');
+const collectionsRoutes = require('./routes/collections');
+const libraryRoutes = require('./routes/library');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -32,6 +34,8 @@ app.use('/api/scanner', scannerRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/diagnostic', diagnosticRoutes);
+app.use('/api/collections', collectionsRoutes);
+app.use('/api/library', libraryRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

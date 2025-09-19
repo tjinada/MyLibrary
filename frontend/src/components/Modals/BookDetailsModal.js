@@ -42,10 +42,11 @@ import {
   ArrowBackIos as PrevIcon,
   ArrowForwardIos as NextIcon,
   Image as ImageIcon,
+  CollectionsBookmark as CollectionsIcon,
 } from '@mui/icons-material';
 import bookService from '../../services/bookService';
 
-const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted }) => {
+const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, onManageCollections }) => {
   const [tabValue, setTabValue] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -346,6 +347,7 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted })
           <Tab label="Details" />
           <Tab label="Description" />
           <Tab label="Notes" />
+          <Tab label="Collections" />
         </Tabs>
 
         {tabValue === 0 && (
@@ -680,6 +682,49 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted })
                 {book.notes || 'No notes yet. Click edit to add notes.'}
               </Typography>
             )}
+          </Paper>
+        )}
+
+        {tabValue === 3 && (
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CollectionsIcon />
+                Collections
+              </Box>
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            
+            {book.collections && book.collections.length > 0 ? (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  This book is in the following collections:
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                  {book.collections.map((collection) => (
+                    <Chip
+                      key={collection._id || collection}
+                      label={collection.name || collection}
+                      color="primary"
+                      variant="outlined"
+                    />
+                  ))}
+                </Box>
+              </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                This book is not in any collections yet.
+              </Typography>
+            )}
+            
+            <Button
+              variant="contained"
+              startIcon={<CollectionsIcon />}
+              onClick={onManageCollections}
+              fullWidth
+            >
+              Manage Collections
+            </Button>
           </Paper>
         )}
       </DialogContent>

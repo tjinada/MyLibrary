@@ -92,6 +92,12 @@ const BookSchema = new mongoose.Schema({
     index: true
   }],
   
+  // Collections this book belongs to
+  collections: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Collection'
+  }],
+  
   // Metadata
   googleBooksId: String,
   dataSource: {

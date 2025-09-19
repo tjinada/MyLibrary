@@ -10,7 +10,11 @@
     "build:frontend": "npm run build --prefix frontend",
     "start:backend": "npm start --prefix backend"
   },
-  "keywords": ["library", "books", "management"],
+  "keywords": [
+    "library",
+    "books",
+    "management"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {

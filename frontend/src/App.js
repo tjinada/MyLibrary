@@ -6,6 +6,9 @@ import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import Login from './pages/Login';
 import Library from './pages/Library';
+import Collections from './pages/Collections';
+import CollectionDetails from './pages/CollectionDetails';
+import { CollectionProvider } from './contexts/CollectionContext';
 
 // Create a mobile-optimized theme
 const theme = createTheme({
@@ -58,15 +61,19 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
-        <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route element={<PrivateRoute />}>
-              <Route path="/" element={<Library />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-          </Routes>
-        </Router>
+        <CollectionProvider>
+          <Router>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route element={<PrivateRoute />}>
+                <Route path="/" element={<Library />} />
+                <Route path="/collections" element={<Collections />} />
+                <Route path="/collections/:id" element={<CollectionDetails />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Route>
+            </Routes>
+          </Router>
+        </CollectionProvider>
       </AuthProvider>
     </ThemeProvider>
   );
