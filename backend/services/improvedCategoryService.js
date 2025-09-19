@@ -367,7 +367,12 @@ class ImprovedCategoryService {
    * Returns exactly ONE category and ensures Fiction/Nonfiction separation
    */
   categorizeBook(subjects, title = '', description = '') {
+    console.log('\n[ImprovedCategoryService] Starting categorization...');
+    console.log('[ImprovedCategoryService] Input subjects:', subjects);
+    console.log('[ImprovedCategoryService] Title:', title);
+    
     if (!subjects || !Array.isArray(subjects) || subjects.length === 0) {
+      console.log('[ImprovedCategoryService] No subjects provided, inferring from title/description');
       return this.inferFromTitleAndDescription(title, description);
     }
 
@@ -380,14 +385,17 @@ class ImprovedCategoryService {
 
     // Score each category
     const categoryScores = {};
+    console.log('[ImprovedCategoryService] Scoring categories...');
     
     for (const [category, config] of Object.entries(KEYWORD_MAPPINGS)) {
       let score = 0;
+      const matches = [];
       
       // Check for keyword matches
       for (const keyword of config.keywords) {
         if (this.containsKeyword(allText, keyword)) {
           score += config.weight;
+          matches.push(keyword);
         }
       }
       
@@ -395,11 +403,13 @@ class ImprovedCategoryService {
       for (const excludeWord of (config.excludeWords || [])) {
         if (this.containsKeyword(allText, excludeWord)) {
           score -= config.weight * 0.5;
+          matches.push(`-${excludeWord}`);
         }
       }
       
       if (score > 0) {
         categoryScores[category] = score;
+        console.log(`[ImprovedCategoryService]   ${category}: score=${score}, matches=${matches.join(', ')}`);
       }
     }
     
@@ -416,8 +426,12 @@ class ImprovedCategoryService {
     
     // If no category found, use intelligent fallback
     if (!bestCategory) {
+      console.log('[ImprovedCategoryService] No category matched, using intelligent fallback...');
       bestCategory = this.intelligentFallback(allText);
     }
+    
+    console.log('[ImprovedCategoryService] Final category selected:', bestCategory);
+    console.log('[ImprovedCategoryService] Category type:', this.getParentCategory(bestCategory));
     
     return bestCategory;
   }

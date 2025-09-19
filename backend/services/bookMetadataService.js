@@ -8,6 +8,14 @@ class BookMetadataService {
   constructor() {
     // Can be set to false to disable Open Library integration temporarily
     this.useOpenLibrary = process.env.USE_OPEN_LIBRARY !== 'false';
+    
+    // Log service configuration on startup
+    console.log('=== BookMetadataService Configuration ===');
+    console.log('USE_OPEN_LIBRARY:', this.useOpenLibrary);
+    console.log('USE_BISAC_MAPPING:', process.env.USE_BISAC_MAPPING !== 'false');
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    console.log('Categorization Service:', process.env.USE_BISAC_MAPPING !== 'false' ? 'BISAC' : 'ImprovedCategoryService');
+    console.log('=========================================');
   }
   /**
    * Fetch enhanced book data from multiple sources
@@ -82,32 +90,45 @@ class BookMetadataService {
       }
       
       // Apply BISAC mapping if enabled
+      console.log(`\n=== Categorization Debug for ISBN: ${cleanISBN} ===`);
+      console.log('Title:', googleData.title);
+      console.log('USE_BISAC_MAPPING:', useBISAC);
+      console.log('All Subjects Combined:', allSubjects);
+      
       if (useBISAC) {
+        console.log('Using BISAC Mapping Service...');
         // Map to BISAC categories
         const bisacCategories = bisacMappingService.mapToBISAC(allSubjects);
+        console.log('BISAC Categories Found:', bisacCategories);
         enhancedBook.bisacCategories = bisacCategories;
         
         // Update genres field with simplified BISAC descriptions
         if (bisacCategories.length > 0) {
           enhancedBook.genres = this.extractSimpleGenres(bisacCategories);
+          console.log('Genres from BISAC:', enhancedBook.genres);
         } else {
           // If no BISAC mapping, use improved categorization
+          console.log('No BISAC categories found, falling back to ImprovedCategoryService...');
           const category = improvedCategoryService.categorizeBook(
             allSubjects,
             googleData.title,
             googleData.description
           );
+          console.log('Category from ImprovedCategoryService:', category);
           enhancedBook.genres = [category];
           enhancedBook.primaryCategory = category;
           enhancedBook.categoryType = improvedCategoryService.getParentCategory(category);
         }
       } else {
+        console.log('Using ImprovedCategoryService (BISAC disabled)...');
         // BISAC mapping disabled - use improved category mapping
         const category = improvedCategoryService.categorizeBook(
           allSubjects,
           googleData.title,
           googleData.description
         );
+        console.log('Category Result:', category);
+        console.log('Category Type:', improvedCategoryService.getParentCategory(category));
         enhancedBook.genres = [category];
         enhancedBook.primaryCategory = category;
         enhancedBook.categoryType = improvedCategoryService.getParentCategory(category);
@@ -116,6 +137,11 @@ class BookMetadataService {
         // Store all raw subjects for reference
         enhancedBook.allSubjects = allSubjects;
       }
+      
+      console.log('Final Genres:', enhancedBook.genres);
+      console.log('Primary Category:', enhancedBook.primaryCategory);
+      console.log('Category Type:', enhancedBook.categoryType);
+      console.log('=== End Categorization Debug ===\n');
       
       // Add metadata sources tracking
       enhancedBook.metadataSources = [

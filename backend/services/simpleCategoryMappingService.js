@@ -215,12 +215,21 @@ const KEYWORD_MAPPINGS = {
 };
 
 class SimpleCategoryMappingService {
+  constructor() {
+    console.log('[SimpleCategoryMappingService] Service initialized - THIS SHOULD NOT BE USED!');
+    console.log('[SimpleCategoryMappingService] If you see this, the old service is being loaded instead of ImprovedCategoryService');
+  }
+  
   /**
    * Map an array of subjects/genres to simplified categories
    * @param {Array} subjects - Array of subject/genre strings
    * @returns {Array} Array of simplified category strings
    */
   mapToSimpleCategories(subjects) {
+    console.log('\n[WARNING] SimpleCategoryMappingService.mapToSimpleCategories() called!');
+    console.log('[WARNING] This service returns MULTIPLE categories and should be replaced by ImprovedCategoryService');
+    console.log('[WARNING] Input subjects:', subjects);
+    
     if (!subjects || !Array.isArray(subjects) || subjects.length === 0) {
       return [];
     }

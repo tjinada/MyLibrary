@@ -23,6 +23,7 @@ const bookRoutes = require('./routes/books');
 const scannerRoutes = require('./routes/scanner');
 const searchRoutes = require('./routes/search');
 const statsRoutes = require('./routes/stats');
+const diagnosticRoutes = require('./routes/diagnostic');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -30,6 +31,7 @@ app.use('/api/books', bookRoutes);
 app.use('/api/scanner', scannerRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/diagnostic', diagnosticRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
