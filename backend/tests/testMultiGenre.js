@@ -69,7 +69,7 @@ const testBooks = [
     title: 'Where the Crawdads Sing',
     description: 'A murder mystery and coming-of-age story set in the marshes',
     expectedType: 'Fiction',
-    expectedGenres: ['Mystery / Thriller', 'Romance', 'Contemporary Fiction']
+    expectedGenres: ['Mystery / Thriller', 'Romance'] // Should get top 2, not Contemporary Fiction
   },
   {
     name: 'The Very Hungry Caterpillar',
@@ -171,5 +171,36 @@ const conflicting = multiGenreCategoryService.categorizeBook(
   'A fictional story about cooking'
 );
 console.log(`Result: ${conflicting.categoryType} - ${conflicting.genres.join(', ')}`);
+
+// Test that we don't get too many genres
+console.log('\n=== Test: Preventing Genre Overload ===');
+const overloadTest = multiGenreCategoryService.categorizeBook(
+  ['Fiction', 'Novel'],
+  'A Simple Story',
+  'A story about a person living in a city who has relationships and faces challenges'
+);
+console.log('Input: Generic fiction with vague description');
+console.log(`Result: ${overloadTest.categoryType} - ${overloadTest.genres.join(', ')}`);
+console.log(`Expected: Should get only 1-2 genres, not all of them`);
+
+// Test score-based filtering
+console.log('\n=== Test: Score-based Genre Selection ===');
+const scoreTest = multiGenreCategoryService.categorizeBook(
+  ['Fantasy', 'Young Adult', 'Fiction'],
+  'The Lightning Thief',
+  'Percy Jackson discovers he is a demigod and goes on a quest'
+);
+console.log('Input: Clear Fantasy + YA book');
+console.log(`Result: ${scoreTest.genres.join(', ')}`);
+console.log(`Expected: Fantasy and Young Adult (both have high scores)`);
+
+const weakMatchTest = multiGenreCategoryService.categorizeBook(
+  ['Fiction'],
+  'Everyday Life',
+  'A book about daily experiences'
+);
+console.log('\nInput: Very generic fiction');
+console.log(`Result: ${weakMatchTest.genres.join(', ')}`);
+console.log(`Expected: Only Contemporary Fiction (default), not multiple weak matches`);
 
 console.log('\n=== Test Complete ===');

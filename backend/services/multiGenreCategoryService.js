@@ -92,17 +92,15 @@ const GENRE_RULES = {
       'horror', 'horror fiction', 'psychological horror', 'gothic horror'
     ],
     strongKeywords: [
-      'detective', 'investigation', 'murder', 'crime', 'police',
-      'fbi', 'cia', 'forensic', 'clue', 'suspect', 'victim',
-      'serial killer', 'conspiracy', 'espionage', 'spy',
-      'haunted', 'ghost', 'paranormal', 'supernatural', 'terror',
-      'frightening', 'scary', 'creepy', 'vampire', 'zombie'
+      'detective', 'investigation', 'murder', 'police',
+      'fbi', 'cia', 'forensic', 'serial killer', 'conspiracy',
+      'haunted', 'ghost story', 'paranormal thriller', 'supernatural horror',
+      'zombie', 'vampire thriller'
     ],
     weakKeywords: [
-      'mysterious', 'investigate', 'solve', 'case', 'suspenseful',
-      'dark', 'sinister', 'eerie', 'chilling'
+      'mysterious', 'suspenseful', 'creepy', 'eerie'
     ],
-    excludeIfPresent: ['true crime', 'criminology']
+    excludeIfPresent: ['true crime', 'criminology', 'criminal justice']
   },
   
   'Contemporary Fiction': {
@@ -113,13 +111,11 @@ const GENRE_RULES = {
       'family saga', 'coming of age', 'slice of life'
     ],
     strongKeywords: [
-      'contemporary', 'modern day', 'present day', 'current',
-      'family drama', 'relationship', 'marriage', 'divorce',
-      'suburban', 'urban', 'small town', 'friendship'
+      'contemporary', 'modern day', 'present day',
+      'family drama', 'relationship drama', 'marriage story'
     ],
     weakKeywords: [
-      'today', 'modern', 'current events', 'social issues',
-      'family', 'friends', 'work', 'career'
+      // Removed generic words that match too easily
     ],
     excludeIfPresent: [],
     isDefault: true // Use as default for fiction without other genres
@@ -134,16 +130,15 @@ const GENRE_RULES = {
       'rom-com', 'romantic comedy', 'chick lit'
     ],
     strongKeywords: [
-      'love story', 'love affair', 'romantic', 'courtship',
-      'relationship', 'dating', 'marriage', 'wedding',
-      'bride', 'groom', 'kiss', 'passion', 'desire',
+      'love story', 'love affair', 'romantic relationship',
+      'courtship', 'wedding romance', 'bride and groom',
       'soulmate', 'true love', 'happily ever after'
     ],
     weakKeywords: [
-      'love', 'heart', 'couple', 'attraction', 'chemistry',
-      'flirt', 'date', 'boyfriend', 'girlfriend'
+      // Removed overly generic words
+      'passion', 'desire', 'chemistry'
     ],
-    excludeIfPresent: ['self-help', 'relationship advice']
+    excludeIfPresent: ['self-help', 'relationship advice', 'marriage counseling']
   },
   
   'Cookbooks': {
@@ -381,7 +376,7 @@ class MultiGenreCategoryService {
    * Find all applicable genres for the book
    */
   findGenres(apiGenres, allText, categoryType, title) {
-    const foundGenres = [];
+    const genreScores = [];
     const genreReasons = {};
     
     // Check each possible genre
@@ -429,24 +424,109 @@ class MultiGenreCategoryService {
         }
       }
       
-      // Add genre if score is sufficient and not excluded
-      if (!excluded && score >= 10) {
-        foundGenres.push(genreName);
-        genreReasons[genreName] = reasons;
+      // Store genre with score if not excluded and has minimum score
+      if (!excluded && score > 0) {
+        genreScores.push({
+          genre: genreName,
+          score: score,
+          reasons: reasons
+        });
         console.log(`  ${genreName}: Score = ${score}`);
       }
     }
     
+    // Sort by score (highest first)
+    genreScores.sort((a, b) => b.score - a.score);
+    
+    // Apply intelligent filtering
+    const selectedGenres = this.selectTopGenres(genreScores, categoryType);
+    
+    // Build final results
+    const finalGenres = [];
+    const finalReasons = {};
+    
+    selectedGenres.forEach(item => {
+      finalGenres.push(item.genre);
+      finalReasons[item.genre] = item.reasons;
+    });
+    
     // If Fiction but no specific genres found, default to Contemporary Fiction
-    if (categoryType === 'Fiction' && foundGenres.length === 0) {
-      foundGenres.push('Contemporary Fiction');
-      genreReasons['Contemporary Fiction'] = ['Default fiction category (no specific genre matched)'];
+    if (categoryType === 'Fiction' && finalGenres.length === 0) {
+      finalGenres.push('Contemporary Fiction');
+      finalReasons['Contemporary Fiction'] = ['Default fiction category (no specific genre matched)'];
     }
     
     return {
-      genres: foundGenres,
-      reasons: genreReasons
+      genres: finalGenres,
+      reasons: finalReasons
     };
+  }
+  
+  /**
+   * Intelligently select top genres based on scores
+   * Rules:
+   * 1. Maximum 3 genres (usually 1-2)
+   * 2. If top score is very high (>= 100), only include others if they're also high
+   * 3. If scores are close, include multiple
+   * 4. Minimum score threshold of 10 to be considered
+   */
+  selectTopGenres(genreScores, categoryType) {
+    if (genreScores.length === 0) return [];
+    
+    const selected = [];
+    const MIN_SCORE_THRESHOLD = 10; // Minimum score to be considered
+    const MAX_GENRES = 3; // Maximum genres to assign
+    
+    // Always include the top scoring genre if it meets minimum threshold
+    const topGenre = genreScores[0];
+    if (topGenre.score >= MIN_SCORE_THRESHOLD) {
+      selected.push(topGenre);
+      console.log(`\nSelected primary genre: ${topGenre.genre} (score: ${topGenre.score})`);
+      
+      // Determine if we should include more genres
+      for (let i = 1; i < genreScores.length && selected.length < MAX_GENRES; i++) {
+        const candidate = genreScores[i];
+        
+        // Skip if below minimum threshold
+        if (candidate.score < MIN_SCORE_THRESHOLD) {
+          console.log(`  Skipping ${candidate.genre} - below minimum threshold (score: ${candidate.score})`);
+          break;
+        }
+        
+        // Calculate score ratio
+        const scoreRatio = candidate.score / topGenre.score;
+        
+        // Include if:
+        // 1. Score is at least 50% of top score (closely related)
+        // 2. Has exact match (score >= 100)
+        // 3. Score difference is less than 20 points for strong matches
+        if (scoreRatio >= 0.5 || candidate.score >= 100 || (topGenre.score - candidate.score) < 20) {
+          selected.push(candidate);
+          console.log(`  Selected additional genre: ${candidate.genre} (score: ${candidate.score}, ratio: ${scoreRatio.toFixed(2)})`);
+        } else {
+          console.log(`  Skipping ${candidate.genre} - score too low relative to primary (score: ${candidate.score}, ratio: ${scoreRatio.toFixed(2)})`);
+        }
+      }
+    }
+    
+    // Special case: Young Adult often pairs with another genre
+    // If we have YA and one other genre, that's fine
+    if (selected.length === 2 && selected.some(g => g.genre === 'Young Adult')) {
+      console.log('  Keeping both genres (Young Adult pairs well with other genres)');
+    }
+    
+    // Limit to maximum of 2 genres unless third is very strong
+    if (selected.length > 2) {
+      const thirdGenre = selected[2];
+      if (thirdGenre.score < 50 && thirdGenre.score < topGenre.score * 0.3) {
+        console.log(`  Removing third genre ${thirdGenre.genre} - not strong enough`);
+        selected.pop();
+      }
+    }
+    
+    console.log(`Final selection: ${selected.map(g => g.genre).join(', ')}\n`);
+    
+    return selected;
   }
 
   /**
