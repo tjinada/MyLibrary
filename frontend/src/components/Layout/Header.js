@@ -7,15 +7,12 @@ import {
   Menu,
   MenuItem,
   Box,
-  Button,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
 import {
   AccountCircle,
   LibraryBooks,
-  CollectionsBookmark,
-  Home,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -49,49 +46,14 @@ const Header = () => {
           variant="h6" 
           component="div" 
           sx={{ 
+            flexGrow: 1,
             fontWeight: 500,
             cursor: 'pointer',
-            mr: 3
           }}
           onClick={() => navigate('/')}
         >
           {isMobile ? 'My Library' : 'My Personal Library'}
         </Typography>
-        
-        {/* Navigation Links */}
-        <Box sx={{ flexGrow: 1, display: 'flex', gap: 1 }}>
-          <Button 
-            color="inherit" 
-            startIcon={<Home />}
-            onClick={() => navigate('/')}
-            sx={{ display: { xs: 'none', sm: 'flex' } }}
-          >
-            Library
-          </Button>
-          <Button 
-            color="inherit" 
-            startIcon={<CollectionsBookmark />}
-            onClick={() => navigate('/collections')}
-            sx={{ display: { xs: 'none', sm: 'flex' } }}
-          >
-            Collections
-          </Button>
-          {/* Mobile Navigation Icons */}
-          <IconButton
-            color="inherit"
-            onClick={() => navigate('/')}
-            sx={{ display: { xs: 'flex', sm: 'none' } }}
-          >
-            <Home />
-          </IconButton>
-          <IconButton
-            color="inherit"
-            onClick={() => navigate('/collections')}
-            sx={{ display: { xs: 'flex', sm: 'none' } }}
-          >
-            <CollectionsBookmark />
-          </IconButton>
-        </Box>
         
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Typography 

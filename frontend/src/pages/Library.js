@@ -20,6 +20,7 @@ import {
   ViewList as ViewListIcon,
   LibraryBooks as LibraryBooksIcon,
   CollectionsBookmark as CollectionsIcon,
+  Add as AddIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Layout/Header';
@@ -32,6 +33,7 @@ import QuickAddBooks from '../components/Modals/QuickAddBooks';
 import AddBookModal from '../components/Modals/AddBookModal';
 import BookDetailsModal from '../components/Modals/BookDetailsModal';
 import ManageCollectionsModal from '../components/Collections/ManageCollectionsModal';
+import CreateCollectionModal from '../components/Collections/CreateCollectionModal';
 import bookService from '../services/bookService';
 import libraryService from '../services/libraryService';
 import imagePreloader from '../utils/imagePreloader';
@@ -58,6 +60,7 @@ const Library = () => {
   const [selectedBook, setSelectedBook] = useState(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [manageCollectionsOpen, setManageCollectionsOpen] = useState(false);
+  const [createCollectionOpen, setCreateCollectionOpen] = useState(false);
   
   // Filters state
   const [filters, setFilters] = useState({
@@ -349,15 +352,11 @@ const Library = () => {
             >
               <ToggleButton value="unified">
                 <ViewModuleIcon sx={{ mr: 1 }} />
-                All
+                All Books & Collections
               </ToggleButton>
               <ToggleButton value="books-only">
                 <LibraryBooksIcon sx={{ mr: 1 }} />
                 Books Only
-              </ToggleButton>
-              <ToggleButton value="collections-only">
-                <CollectionsIcon sx={{ mr: 1 }} />
-                Collections Only
               </ToggleButton>
             </ToggleButtonGroup>
           </Box>
@@ -367,6 +366,7 @@ const Library = () => {
         <ImprovedToolbar
           onAddBook={handleOpenAddModal}
           onQuickAdd={() => setQuickAddModalOpen(true)}
+          onCreateCollection={() => setCreateCollectionOpen(true)}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           filters={filters}
@@ -573,6 +573,17 @@ const Library = () => {
           }}
         />
       )}
+      
+      {/* Create Collection Modal */}
+      <CreateCollectionModal
+        open={createCollectionOpen}
+        onClose={() => setCreateCollectionOpen(false)}
+        onCollectionCreated={(collection) => {
+          setCreateCollectionOpen(false);
+          fetchLibrary(); // Refresh library to show new collection
+          navigate(`/collections/${collection._id}`);
+        }}
+      />
     </Box>
   );
 };

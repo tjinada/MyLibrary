@@ -27,6 +27,7 @@ import {
   QrCodeScanner as ScanIcon,
   Keyboard as ManualIcon,
   ArrowDropDown as ArrowDownIcon,
+  CollectionsBookmark as CollectionsIcon,
 } from '@mui/icons-material';
 import StatusFilter from '../Filters/StatusFilter';
 import GenreFilter from '../Filters/GenreFilter';
@@ -35,6 +36,7 @@ import SortControl from '../Filters/SortControl';
 const ImprovedToolbar = ({
   onAddBook,
   onQuickAdd,
+  onCreateCollection,
   viewMode,
   onViewModeChange,
   filters,
@@ -101,8 +103,8 @@ const ImprovedToolbar = ({
         alignItems: 'center',
         flexWrap: isTablet ? 'wrap' : 'nowrap',
       }}>
-        {/* Add Book Button with dropdown */}
-        <Box>
+        {/* Add Book and Collection Buttons */}
+        <Box sx={{ display: 'flex', gap: 1 }}>
           {isMobile ? (
             // Mobile: Single button that opens quick add
             <Button
@@ -199,6 +201,20 @@ const ImprovedToolbar = ({
               </Menu>
             </Box>
           )}
+          
+          {/* Create Collection Button */}
+          <Button
+            variant="outlined"
+            startIcon={<CollectionsIcon />}
+            onClick={onCreateCollection}
+            size="large"
+            sx={{ 
+              fontWeight: 600,
+              display: { xs: 'none', sm: 'flex' },
+            }}
+          >
+            Create Collection
+          </Button>
         </Box>
 
         <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', sm: 'block' } }} />
