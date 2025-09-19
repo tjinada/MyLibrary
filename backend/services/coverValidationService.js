@@ -1,0 +1,253 @@
+const axios = require('axios');
+
+class CoverValidationService {
+  constructor() {
+    // Cache validation results for the session to avoid repeated checks
+    this.validationCache = new Map();
+    this.cacheTimeout = 1000 * 60 * 60; // 1 hour cache
+  }
+
+  /**
+   * Quality scores for different cover sources and sizes
+   */
+  getQualityScore(url, contentType) {
+    // Only JPEG images get a score, PNG and others get 0
+    if (contentType !== 'image/jpeg') {
+      return 0;
+    }
+
+    // Google Books scoring
+    if (url.includes('books.google.com') || url.includes('googleapis.com')) {
+      if (url.includes('zoom=0')) return 100; // Highest quality
+      if (url.includes('zoom=1')) return 70;
+      if (url.includes('zoom=2')) return 50;
+      if (url.includes('zoom=3')) return 40;
+      return 30; // Other zoom levels
+    }
+
+    // Open Library scoring
+    if (url.includes('openlibrary.org')) {
+      if (url.includes('-L.jpg')) return 90; // Large
+      if (url.includes('-M.jpg')) return 60; // Medium
+      if (url.includes('-S.jpg')) return 30; // Small
+      return 25; // Unknown size
+    }
+
+    // Unknown source but valid JPEG
+    return 20;
+  }
+
+  /**
+   * Validate a single cover URL by checking its content-type
+   * @param {string} url - Cover image URL
+   * @returns {Object} Validation result with score and content-type
+   */
+  async validateCoverUrl(url) {
+    if (!url) {
+      return { url, valid: false, score: 0, contentType: null, error: 'No URL provided' };
+    }
+
+    // Check cache first
+    const cached = this.validationCache.get(url);
+    if (cached && (Date.now() - cached.timestamp < this.cacheTimeout)) {
+      return cached.result;
+    }
+
+    try {
+      // Ensure HTTPS
+      const secureUrl = url.startsWith('http://') ? url.replace('http://', 'https://') : url;
+      
+      console.log(`Validating cover: ${secureUrl}`);
+      
+      // Make HEAD request to check content-type without downloading the full image
+      const response = await axios.head(secureUrl, {
+        timeout: 5000,
+        maxRedirects: 3,
+        validateStatus: (status) => status === 200 || status === 302 || status === 301
+      });
+
+      const contentType = response.headers['content-type'];
+      const contentLength = parseInt(response.headers['content-length'] || '0');
+      
+      // Check if it's a valid JPEG
+      const isValidJpeg = contentType && (
+        contentType.includes('image/jpeg') || 
+        contentType.includes('image/jpg')
+      );
+      
+      // Additional validation: reject very small images (likely placeholders)
+      const isValidSize = contentLength > 1000; // At least 1KB
+      
+      const valid = isValidJpeg && isValidSize;
+      const score = valid ? this.getQualityScore(secureUrl, 'image/jpeg') : 0;
+      
+      const result = {
+        url: secureUrl,
+        valid,
+        score,
+        contentType,
+        contentLength,
+        error: null
+      };
+
+      // Cache the result
+      this.validationCache.set(url, {
+        result,
+        timestamp: Date.now()
+      });
+
+      console.log(`Validation result for ${secureUrl}: valid=${valid}, score=${score}, type=${contentType}`);
+      
+      return result;
+
+    } catch (error) {
+      const errorMessage = error.response?.status === 404 ? 'Image not found' : error.message;
+      
+      const result = {
+        url,
+        valid: false,
+        score: 0,
+        contentType: null,
+        error: errorMessage
+      };
+
+      // Cache failed validation too
+      this.validationCache.set(url, {
+        result,
+        timestamp: Date.now()
+      });
+
+      console.log(`Validation failed for ${url}: ${errorMessage}`);
+      return result;
+    }
+  }
+
+  /**
+   * Generate all possible cover URLs for a book
+   * @param {string} isbn - Book ISBN
+   * @param {string} googleBooksId - Google Books volume ID
+   * @returns {Array} Array of potential cover URLs
+   */
+  generateCoverUrls(isbn, googleBooksId) {
+    const urls = [];
+
+    // Google Books URLs with different zoom levels (high to low quality)
+    if (googleBooksId) {
+      urls.push(
+        `https://books.google.com/books/content?id=${googleBooksId}&printsec=frontcover&img=1&zoom=0&edge=none&source=gbs_api`,
+        `https://books.google.com/books/content?id=${googleBooksId}&printsec=frontcover&img=1&zoom=1&edge=none&source=gbs_api`,
+        `https://books.google.com/books/content?id=${googleBooksId}&printsec=frontcover&img=1&zoom=2&edge=none&source=gbs_api`
+      );
+    }
+
+    // Open Library URLs (Large, Medium, Small)
+    if (isbn) {
+      const cleanIsbn = isbn.replace(/[-\s]/g, '');
+      urls.push(
+        `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-L.jpg`,
+        `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg`,
+        `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-S.jpg`
+      );
+
+      // Try alternate ISBN format (ISBN-13 to ISBN-10 conversion)
+      if (cleanIsbn.length === 13 && cleanIsbn.startsWith('978')) {
+        const isbn10 = cleanIsbn.substring(3, 12);
+        urls.push(
+          `https://covers.openlibrary.org/b/isbn/${isbn10}-L.jpg`,
+          `https://covers.openlibrary.org/b/isbn/${isbn10}-M.jpg`
+        );
+      }
+      // ISBN-10 to ISBN-13 conversion
+      else if (cleanIsbn.length === 10) {
+        const isbn13 = '978' + cleanIsbn.substring(0, 9);
+        urls.push(
+          `https://covers.openlibrary.org/b/isbn/${isbn13}-L.jpg`,
+          `https://covers.openlibrary.org/b/isbn/${isbn13}-M.jpg`
+        );
+      }
+    }
+
+    return urls;
+  }
+
+  /**
+   * Validate and rank multiple cover URLs
+   * @param {Array} urls - Array of cover URLs to validate
+   * @returns {Array} Sorted array of validation results (best first)
+   */
+  async validateAndRankCoverUrls(urls) {
+    if (!urls || urls.length === 0) {
+      return [];
+    }
+
+    // Validate all URLs in parallel with Promise.allSettled
+    const validationPromises = urls.map(url => this.validateCoverUrl(url));
+    const results = await Promise.allSettled(validationPromises);
+
+    // Extract successful validations
+    const validatedCovers = results
+      .filter(result => result.status === 'fulfilled')
+      .map(result => result.value)
+      .filter(cover => cover.valid) // Only keep valid JPEG images
+      .sort((a, b) => b.score - a.score); // Sort by score (highest first)
+
+    return validatedCovers;
+  }
+
+  /**
+   * Find the best available cover for a book
+   * @param {string} isbn - Book ISBN
+   * @param {string} googleBooksId - Google Books volume ID
+   * @param {string} existingCoverUrl - Current cover URL if any
+   * @returns {Object} Best cover result or null
+   */
+  async findBestCover(isbn, googleBooksId, existingCoverUrl = null) {
+    console.log(`Finding best cover for ISBN: ${isbn}, Google ID: ${googleBooksId}`);
+    
+    const urls = [];
+    
+    // If there's an existing cover URL, validate it first
+    if (existingCoverUrl) {
+      urls.push(existingCoverUrl);
+    }
+    
+    // Generate all possible URLs
+    const generatedUrls = this.generateCoverUrls(isbn, googleBooksId);
+    urls.push(...generatedUrls);
+    
+    // Remove duplicates
+    const uniqueUrls = [...new Set(urls)];
+    
+    // Validate and rank all URLs
+    const validatedCovers = await this.validateAndRankCoverUrls(uniqueUrls);
+    
+    if (validatedCovers.length === 0) {
+      console.log('No valid JPEG covers found');
+      return null;
+    }
+    
+    const bestCover = validatedCovers[0];
+    console.log(`Best cover found: ${bestCover.url} (score: ${bestCover.score})`);
+    
+    return bestCover;
+  }
+
+  /**
+   * Clear the validation cache
+   */
+  clearCache() {
+    this.validationCache.clear();
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats() {
+    return {
+      size: this.validationCache.size,
+      entries: Array.from(this.validationCache.keys())
+    };
+  }
+}
+
+module.exports = new CoverValidationService();

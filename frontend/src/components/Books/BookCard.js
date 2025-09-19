@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   Card,
   CardMedia,
@@ -13,18 +13,8 @@ import {
 import { MenuBook as BookIcon } from '@mui/icons-material';
 
 const BookCard = ({ book, onClick }) => {
-  const [imageStatus, setImageStatus] = useState('loading'); // 'loading', 'loaded', 'error'
-  const [currentImageUrl, setCurrentImageUrl] = useState(null);
-  const imageRef = useRef(null);
-  const mountedRef = useRef(true);
-
-  // Keep track of whether component is mounted
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -62,203 +52,19 @@ const BookCard = ({ book, onClick }) => {
     }
   };
 
-  // Get high quality cover URL
-  const getHighQualityCover = (url) => {
-    if (!url) return null;
-    
-    // Ensure HTTPS
-    let cleanUrl = url;
-    if (cleanUrl.startsWith('http://')) {
-      cleanUrl = cleanUrl.replace('http://', 'https://');
-    }
-    
-    // If it's a Google Books URL, ensure we're getting high quality
-    if (cleanUrl.includes('books.google.com') || cleanUrl.includes('googleapis.com')) {
-      // Replace zoom parameter with zoom=0 for full resolution
-      if (cleanUrl.includes('zoom=')) {
-        cleanUrl = cleanUrl.replace(/zoom=\d+/, 'zoom=0');
-      } else if (cleanUrl.includes('?')) {
-        cleanUrl += '&zoom=0';
-      } else {
-        cleanUrl += '?zoom=0';
-      }
-    }
-    
-    return cleanUrl;
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+    setImageError(false);
   };
 
-  // Get all possible image URLs for this book (ordered by preference)
-  const getImageUrls = () => {
-    const urls = [];
-    
-    // 1. Primary cover image (high quality) - this should be the saved selection
-    if (book.coverImage) {
-      // Ensure the saved cover is properly formatted
-      let savedCover = book.coverImage;
-      
-      // Ensure HTTPS
-      if (savedCover.startsWith('http://')) {
-        savedCover = savedCover.replace('http://', 'https://');
-      }
-      
-      // Don't modify zoom parameter if it's already set (respect user's selection)
-      urls.push(savedCover);
-      
-      // If the saved cover is from Google Books, also try with different zoom levels
-      if (savedCover.includes('googleapis.com') || savedCover.includes('books.google.com')) {
-        // Try the exact URL first, then alternatives
-        if (!savedCover.includes('zoom=0')) {
-          const highQualityUrl = savedCover.includes('zoom=') 
-            ? savedCover.replace(/zoom=\d+/, 'zoom=0')
-            : savedCover + (savedCover.includes('?') ? '&zoom=0' : '?zoom=0');
-          urls.push(highQualityUrl);
-        }
-      }
-    }
-    
-    // 2. Google Books direct API (high quality)
-    if (book.googleBooksId) {
-      urls.push(`https://books.google.com/books/content?id=${book.googleBooksId}&printsec=frontcover&img=1&zoom=0&source=gbs_api`);
-    }
-    
-    // 3. Open Library (Large)
-    if (book.isbn) {
-      urls.push(`https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg`);
-    }
-    
-    // 4. Google Books lower quality with zoom=1
-    if (book.coverImage && book.coverImage.includes('googleapis.com')) {
-      const lowerQualityUrl = book.coverImage.includes('zoom=') 
-        ? book.coverImage.replace(/zoom=\d+/, 'zoom=1')
-        : book.coverImage + (book.coverImage.includes('?') ? '&zoom=1' : '?zoom=1');
-      urls.push(lowerQualityUrl);
-    }
-    
-    // 5. Open Library (Medium)
-    if (book.isbn) {
-      urls.push(`https://covers.openlibrary.org/b/isbn/${book.isbn}-M.jpg`);
-    }
-    
-    // 6. Google Books thumbnail
-    if (book.googleBooksId) {
-      urls.push(`https://books.google.com/books/content?id=${book.googleBooksId}&printsec=frontcover&img=1&zoom=1&source=gbs_api`);
-    }
-    
-    // 7. Open Library (Small) as last resort
-    if (book.isbn) {
-      urls.push(`https://covers.openlibrary.org/b/isbn/${book.isbn}-S.jpg`);
-    }
-    
-    // 8. Try alternate ISBN formats (ISBN-13 to ISBN-10 or vice versa)
-    if (book.isbn) {
-      // If we have ISBN-13, try ISBN-10
-      if (book.isbn.length === 13 && book.isbn.startsWith('978')) {
-        const isbn10 = book.isbn.substring(3, 12); // Remove first 3 digits and last check digit
-        urls.push(`https://covers.openlibrary.org/b/isbn/${isbn10}-M.jpg`);
-      }
-      // If we have ISBN-10, try ISBN-13 with 978 prefix
-      else if (book.isbn.length === 10) {
-        const isbn13 = '978' + book.isbn.substring(0, 9); // Add 978 prefix, remove check digit
-        urls.push(`https://covers.openlibrary.org/b/isbn/${isbn13}-M.jpg`);
-      }
-    }
-    
-    // 9. Try searching by title and author as absolute last resort
-    if (book.title && book.authors && book.authors.length > 0) {
-      const query = encodeURIComponent(`${book.title} ${book.authors[0]}`);
-      // This is a hack - we'll try to get a Google Books search result thumbnail
-      urls.push(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`);
-    }
-    
-    return urls.filter(Boolean);
+  const handleImageError = () => {
+    console.log(`Failed to load cover for "${book.title}"`);
+    setImageError(true);
+    setImageLoaded(true);
   };
 
-  // Load image with fallback logic
-  useEffect(() => {
-    // First, try the book's saved cover image
-    if (book.coverImage) {
-      console.log(`Loading cover for "${book.title}":`, book.coverImage);
-    }
-    
-    const urls = getImageUrls();
-    if (urls.length === 0) {
-      setImageStatus('error');
-      return;
-    }
-
-    let currentIndex = 0;
-    let isCancelled = false;
-
-    const tryLoadImage = (url) => {
-      if (isCancelled || !mountedRef.current) return;
-      
-      console.log(`Trying to load image ${currentIndex + 1}/${urls.length}: ${url}`);
-
-      // Special handling for Google Books API search (last resort)
-      if (url.includes('googleapis.com/books/v1/volumes?q=')) {
-        fetch(url)
-          .then(res => res.json())
-          .then(data => {
-            if (data.items && data.items.length > 0 && data.items[0].volumeInfo?.imageLinks?.thumbnail) {
-              const thumbnailUrl = data.items[0].volumeInfo.imageLinks.thumbnail.replace('http://', 'https://');
-              tryLoadImage(thumbnailUrl);
-            } else {
-              tryNextUrl();
-            }
-          })
-          .catch(() => tryNextUrl());
-        return;
-      }
-
-      const img = new Image();
-      
-      img.onload = () => {
-        if (!isCancelled && mountedRef.current) {
-          // Check if the image is actually valid (not a 1x1 pixel or placeholder)
-          if (img.width > 1 && img.height > 1) {
-            console.log(`Successfully loaded image for "${book.title}"`);
-            setCurrentImageUrl(url);
-            setImageStatus('loaded');
-          } else {
-            console.log('Image too small, trying next...');
-            tryNextUrl();
-          }
-        }
-      };
-
-      img.onerror = () => {
-        if (isCancelled || !mountedRef.current) return;
-        console.log(`Failed to load image, trying next...`);
-        tryNextUrl();
-      };
-
-      const tryNextUrl = () => {
-        currentIndex++;
-        if (currentIndex < urls.length) {
-          // Add a small delay between attempts to avoid rate limiting
-          setTimeout(() => {
-            tryLoadImage(urls[currentIndex]);
-          }, 100);
-        } else {
-          // All URLs failed
-          console.log(`All image sources failed for "${book.title}"`);
-          setImageStatus('error');
-        }
-      };
-
-      // Start loading
-      img.src = url;
-    };
-
-    // Start with the first URL
-    setImageStatus('loading');
-    tryLoadImage(urls[0]);
-
-    // Cleanup function
-    return () => {
-      isCancelled = true;
-    };
-  }, [book.coverImage, book.isbn, book.googleBooksId, book.title]); // Re-run if book data changes
+  // Check if we have a validated cover from the backend
+  const hasValidCover = book.coverImage && book.coverQualityScore > 0;
 
   return (
     <Card 
@@ -293,7 +99,7 @@ const BookCard = ({ book, onClick }) => {
           overflow: 'hidden',
         }}>
           {/* Loading skeleton */}
-          {imageStatus === 'loading' && (
+          {!imageLoaded && hasValidCover && (
             <Skeleton 
               variant="rectangular" 
               animation="wave"
@@ -305,8 +111,27 @@ const BookCard = ({ book, onClick }) => {
             />
           )}
           
-          {/* Error/No image fallback - create a custom book cover */}
-          {imageStatus === 'error' && (
+          {/* Show cover image if we have a validated one and no error */}
+          {hasValidCover && !imageError && (
+            <img
+              src={book.coverImage}
+              alt={book.title}
+              style={{
+                height: '100%',
+                width: '100%',
+                objectFit: 'contain',
+                backgroundColor: '#f5f5f5',
+                padding: '8px',
+                display: imageLoaded ? 'block' : 'none',
+              }}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+              loading="lazy"
+            />
+          )}
+          
+          {/* Fallback when no valid cover or error - create a custom book cover */}
+          {(!hasValidCover || imageError) && (
             <Box
               sx={{
                 display: 'flex',
@@ -358,24 +183,21 @@ const BookCard = ({ book, onClick }) => {
                   {book.authors[0]}
                 </Typography>
               )}
+              {/* Show quality indicator in development */}
+              {process.env.NODE_ENV === 'development' && book.coverQualityScore !== undefined && (
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    color: 'white',
+                    opacity: 0.6,
+                    mt: 1,
+                    fontSize: '0.6rem',
+                  }}
+                >
+                  Cover Score: {book.coverQualityScore}
+                </Typography>
+              )}
             </Box>
-          )}
-          
-          {/* Loaded image */}
-          {imageStatus === 'loaded' && currentImageUrl && (
-            <img
-              ref={imageRef}
-              src={currentImageUrl}
-              alt={book.title}
-              style={{
-                height: '100%',
-                width: '100%',
-                objectFit: 'contain',
-                backgroundColor: '#f5f5f5',
-                padding: '8px',
-              }}
-              loading="lazy"
-            />
           )}
         </Box>
 

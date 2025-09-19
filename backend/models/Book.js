@@ -45,6 +45,10 @@ const BookSchema = new mongoose.Schema({
     default: 'en'
   },
   coverImage: String,
+  coverQualityScore: {
+    type: Number,
+    default: 0
+  },
   
   // Library management fields
   status: {

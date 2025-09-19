@@ -2,6 +2,7 @@ const googleBooksService = require('./googleBooksService');
 const openLibraryService = require('./openLibraryService');
 const bisacMappingService = require('./bisacMappingService');
 const simpleCategoryMappingService = require('./simpleCategoryMappingService');
+const coverValidationService = require('./coverValidationService');
 
 class BookMetadataService {
   constructor() {
@@ -60,14 +61,24 @@ class BookMetadataService {
         }
       };
       
-      // Use Open Library cover if it might be better quality
-      // Open Library often has better scans for older books
-      if (openLibData?.cover_url && (!googleData.coverImage || googleData.coverImage.includes('zoom=1'))) {
-        // Check if Open Library has a cover and use it as fallback
-        enhancedBook.coverImage = openLibData.cover_url;
-        enhancedBook.coverImageSource = 'openlibrary';
+      // Find and validate the best cover image
+      const bestCover = await coverValidationService.findBestCover(
+        cleanISBN,
+        googleData.googleBooksId,
+        googleData.coverImage
+      );
+      
+      if (bestCover) {
+        enhancedBook.coverImage = bestCover.url;
+        enhancedBook.coverImageSource = bestCover.url.includes('openlibrary') ? 'openlibrary' : 'google';
+        enhancedBook.coverQualityScore = bestCover.score;
+        console.log(`Selected best cover for ISBN ${cleanISBN}: ${bestCover.url} (score: ${bestCover.score})`);
       } else {
-        enhancedBook.coverImageSource = 'google';
+        // No valid JPEG cover found
+        enhancedBook.coverImage = null;
+        enhancedBook.coverImageSource = 'none';
+        enhancedBook.coverQualityScore = 0;
+        console.log(`No valid JPEG cover found for ISBN ${cleanISBN}`);
       }
       
       // Apply BISAC mapping if enabled
@@ -146,6 +157,13 @@ class BookMetadataService {
             // Try to get Open Library data
             const openLibData = await openLibraryService.searchByISBN(book.isbn);
             
+            // Validate and find best cover
+            const bestCover = await coverValidationService.findBestCover(
+              book.isbn,
+              book.googleBooksId,
+              book.coverImage
+            );
+            
             if (openLibData) {
               // Combine subjects
               const allSubjects = this.combineSubjects(book, openLibData);
@@ -156,6 +174,8 @@ class BookMetadataService {
                 
                 enhancedBooks.push({
                   ...book,
+                  coverImage: bestCover ? bestCover.url : null,
+                  coverQualityScore: bestCover ? bestCover.score : 0,
                   bisacCategories,
                   rawSubjects: {
                     google: book.genres || [],
@@ -171,6 +191,8 @@ class BookMetadataService {
                 const simpleCategories = simpleCategoryMappingService.mapToSimpleCategories(allSubjects);
                 enhancedBooks.push({
                   ...book,
+                  coverImage: bestCover ? bestCover.url : null,
+                  coverQualityScore: bestCover ? bestCover.score : 0,
                   bisacCategories: [],
                   rawSubjects: {
                     google: book.genres || [],
@@ -187,6 +209,8 @@ class BookMetadataService {
                 const bisacCategories = bisacMappingService.mapToBISAC(book.genres || []);
                 enhancedBooks.push({
                   ...book,
+                  coverImage: bestCover ? bestCover.url : null,
+                  coverQualityScore: bestCover ? bestCover.score : 0,
                   bisacCategories,
                   genres: bisacCategories.length > 0 
                     ? this.extractSimpleGenres(bisacCategories)
@@ -197,17 +221,33 @@ class BookMetadataService {
                 const simpleCategories = simpleCategoryMappingService.mapToSimpleCategories(book.genres || []);
                 enhancedBooks.push({
                   ...book,
+                  coverImage: bestCover ? bestCover.url : null,
+                  coverQualityScore: bestCover ? bestCover.score : 0,
                   genres: simpleCategories.length > 0 ? simpleCategories : ['General Fiction']
                 });
               }
             }
           } catch (err) {
-            // If enhancement fails
+            // If enhancement fails, still try to validate the cover
             console.log(`Failed to enhance book ${book.isbn}:`, err.message);
+            
+            let bestCover = null;
+            try {
+              bestCover = await coverValidationService.findBestCover(
+                book.isbn,
+                book.googleBooksId,
+                book.coverImage
+              );
+            } catch (coverErr) {
+              console.log(`Cover validation also failed: ${coverErr.message}`);
+            }
+            
             if (useBISAC) {
               const bisacCategories = bisacMappingService.mapToBISAC(book.genres || []);
               enhancedBooks.push({
                 ...book,
+                coverImage: bestCover ? bestCover.url : null,
+                coverQualityScore: bestCover ? bestCover.score : 0,
                 bisacCategories,
                 genres: bisacCategories.length > 0 
                   ? this.extractSimpleGenres(bisacCategories)
@@ -218,6 +258,8 @@ class BookMetadataService {
               const simpleCategories = simpleCategoryMappingService.mapToSimpleCategories(book.genres || []);
               enhancedBooks.push({
                 ...book,
+                coverImage: bestCover ? bestCover.url : null,
+                coverQualityScore: bestCover ? bestCover.score : 0,
                 genres: simpleCategories.length > 0 ? simpleCategories : ['General Fiction']
               });
             }

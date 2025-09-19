@@ -3,6 +3,7 @@ const router = express.Router();
 const Book = require('../models/Book');
 const auth = require('../middleware/auth');
 const bookMetadataService = require('../services/bookMetadataService');
+const coverValidationService = require('../services/coverValidationService');
 const { body, validationResult } = require('express-validator');
 
 // Get all books with filtering and pagination
@@ -170,6 +171,12 @@ router.post('/:isbn/enhance', auth, async (req, res) => {
       book.genres = enhancedData.genres;
     }
     
+    // Update cover if we found a better one
+    if (enhancedData.coverImage) {
+      book.coverImage = enhancedData.coverImage;
+      book.coverQualityScore = enhancedData.coverQualityScore || 0;
+    }
+    
     book.dataSource = 'enhanced';
     book.lastModified = Date.now();
     
@@ -182,6 +189,143 @@ router.post('/:isbn/enhance', auth, async (req, res) => {
   } catch (error) {
     console.error('Error enhancing book metadata:', error);
     res.status(500).json({ message: 'Failed to enhance book metadata' });
+  }
+});
+
+// Validate and update book cover (requires auth)
+router.post('/:isbn/validate-cover', auth, async (req, res) => {
+  try {
+    const { isbn } = req.params;
+    
+    // Find the existing book
+    const book = await Book.findOne({ isbn });
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+    
+    console.log(`Validating cover for book: ${book.title} (ISBN: ${isbn})`);
+    
+    // Find the best available cover
+    const bestCover = await coverValidationService.findBestCover(
+      book.isbn,
+      book.googleBooksId,
+      book.coverImage
+    );
+    
+    if (bestCover) {
+      // Update the book with the best cover
+      book.coverImage = bestCover.url;
+      book.coverQualityScore = bestCover.score;
+      book.lastModified = Date.now();
+      
+      await book.save();
+      
+      res.json({
+        message: 'Cover validated and updated successfully',
+        cover: {
+          url: bestCover.url,
+          score: bestCover.score,
+          contentType: bestCover.contentType,
+          source: bestCover.url.includes('openlibrary') ? 'openlibrary' : 'google'
+        },
+        book
+      });
+    } else {
+      // No valid cover found
+      book.coverImage = null;
+      book.coverQualityScore = 0;
+      book.lastModified = Date.now();
+      
+      await book.save();
+      
+      res.json({
+        message: 'No valid JPEG cover found for this book',
+        cover: null,
+        book
+      });
+    }
+  } catch (error) {
+    console.error('Error validating book cover:', error);
+    res.status(500).json({ message: 'Failed to validate book cover' });
+  }
+});
+
+// Batch validate covers for all books (requires auth)
+router.post('/validate-covers/batch', auth, async (req, res) => {
+  try {
+    const { limit = 10, skipValidated = true } = req.body;
+    
+    // Build query
+    const query = {};
+    if (skipValidated) {
+      query.$or = [
+        { coverQualityScore: { $exists: false } },
+        { coverQualityScore: 0 }
+      ];
+    }
+    
+    // Find books that need cover validation
+    const books = await Book.find(query).limit(limit);
+    
+    console.log(`Starting batch cover validation for ${books.length} books`);
+    
+    const results = {
+      updated: [],
+      failed: [],
+      noValidCover: []
+    };
+    
+    for (const book of books) {
+      try {
+        console.log(`Validating cover for: ${book.title}`);
+        
+        const bestCover = await coverValidationService.findBestCover(
+          book.isbn,
+          book.googleBooksId,
+          book.coverImage
+        );
+        
+        if (bestCover) {
+          book.coverImage = bestCover.url;
+          book.coverQualityScore = bestCover.score;
+          book.lastModified = Date.now();
+          await book.save();
+          
+          results.updated.push({
+            isbn: book.isbn,
+            title: book.title,
+            coverUrl: bestCover.url,
+            score: bestCover.score
+          });
+        } else {
+          book.coverImage = null;
+          book.coverQualityScore = 0;
+          book.lastModified = Date.now();
+          await book.save();
+          
+          results.noValidCover.push({
+            isbn: book.isbn,
+            title: book.title
+          });
+        }
+      } catch (error) {
+        console.error(`Failed to validate cover for ${book.isbn}:`, error.message);
+        results.failed.push({
+          isbn: book.isbn,
+          title: book.title,
+          error: error.message
+        });
+      }
+    }
+    
+    res.json({
+      message: 'Batch cover validation completed',
+      processed: books.length,
+      results
+    });
+  } catch (error) {
+    console.error('Error in batch cover validation:', error);
+    res.status(500).json({ message: 'Failed to validate covers in batch' });
   }
 });
 
