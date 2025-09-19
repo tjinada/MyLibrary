@@ -228,7 +228,8 @@ const GENRE_RULES = {
     exactMatches: [
       'biography', 'autobiography', 'memoir', 'memoirs',
       'life story', 'personal narrative', 'oral history',
-      'letters', 'diaries', 'journals', 'personal history'
+      'letters', 'diaries', 'journals', 'personal history',
+      'personal memoirs' // Add this common variant
     ],
     strongKeywords: [
       'life of', 'story of', 'portrait of', 'true story',
@@ -239,7 +240,7 @@ const GENRE_RULES = {
       'personal', 'individual', 'real', 'actual', 'authentic',
       'witness', 'testimony', 'account'
     ],
-    excludeIfPresent: ['fiction', 'novel', 'fictional']
+    excludeIfPresent: [] // Removed exclusions - biography/memoir is clear enough
   }
 };
 
@@ -448,6 +449,7 @@ class MultiGenreCategoryService {
         if (allText.includes(excludeWord.toLowerCase())) {
           excluded = true;
           reasons.push(`EXCLUDED due to presence of: "${excludeWord}"`);
+          console.log(`    [EXCLUSION] ${genreName} excluded due to: "${excludeWord}"`);
           break;
         }
       }
@@ -459,7 +461,11 @@ class MultiGenreCategoryService {
           score: score,
           reasons: reasons
         });
-        console.log(`  ${genreName}: Score = ${score}`);
+        if (!exactMatchFound) {
+          console.log(`  ${genreName}: Score = ${score}`);
+        }
+      } else if (excluded) {
+        console.log(`  ${genreName}: EXCLUDED (would have scored ${score})`);
       }
     }
     
