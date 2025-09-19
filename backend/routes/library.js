@@ -38,9 +38,6 @@ router.get('/unified', async (req, res) => {
         .populate({
           path: 'books',
           match: status !== 'all' ? { status } : {},
-          options: { 
-            sort: collection.collectionType === 'series' ? undefined : 'title' 
-          }
         })
         .populate('bookOrder')
         .sort('sortName');
