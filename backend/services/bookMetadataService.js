@@ -1,7 +1,7 @@
 const googleBooksService = require('./googleBooksService');
 const openLibraryService = require('./openLibraryService');
 const bisacMappingService = require('./bisacMappingService');
-const simpleCategoryMappingService = require('./simpleCategoryMappingService');
+const improvedCategoryService = require('./improvedCategoryService');
 const coverValidationService = require('./coverValidationService');
 
 class BookMetadataService {
@@ -91,13 +91,26 @@ class BookMetadataService {
         if (bisacCategories.length > 0) {
           enhancedBook.genres = this.extractSimpleGenres(bisacCategories);
         } else {
-          // If no BISAC mapping, use all combined subjects as genres
-          enhancedBook.genres = allSubjects;
+          // If no BISAC mapping, use improved categorization
+          const category = improvedCategoryService.categorizeBook(
+            allSubjects,
+            googleData.title,
+            googleData.description
+          );
+          enhancedBook.genres = [category];
+          enhancedBook.primaryCategory = category;
+          enhancedBook.categoryType = improvedCategoryService.getParentCategory(category);
         }
       } else {
-        // BISAC mapping disabled - use simple category mapping
-        const simpleCategories = simpleCategoryMappingService.mapToSimpleCategories(allSubjects);
-        enhancedBook.genres = simpleCategories.length > 0 ? simpleCategories : ['General Fiction'];
+        // BISAC mapping disabled - use improved category mapping
+        const category = improvedCategoryService.categorizeBook(
+          allSubjects,
+          googleData.title,
+          googleData.description
+        );
+        enhancedBook.genres = [category];
+        enhancedBook.primaryCategory = category;
+        enhancedBook.categoryType = improvedCategoryService.getParentCategory(category);
         enhancedBook.bisacCategories = [];
         
         // Store all raw subjects for reference
@@ -183,12 +196,19 @@ class BookMetadataService {
                   },
                   genres: bisacCategories.length > 0 
                     ? this.extractSimpleGenres(bisacCategories)
-                    : allSubjects,
+                    : [improvedCategoryService.categorizeBook(allSubjects, book.title, book.description)],
+                  primaryCategory: bisacCategories.length > 0
+                    ? this.extractSimpleGenres(bisacCategories)[0]
+                    : improvedCategoryService.categorizeBook(allSubjects, book.title, book.description),
                   dataSource: 'enhanced'
                 });
               } else {
-                // BISAC disabled - use simple category mapping
-                const simpleCategories = simpleCategoryMappingService.mapToSimpleCategories(allSubjects);
+                // BISAC disabled - use improved category mapping
+                const category = improvedCategoryService.categorizeBook(
+                  allSubjects,
+                  book.title,
+                  book.description
+                );
                 enhancedBooks.push({
                   ...book,
                   coverImage: bestCover ? bestCover.url : null,
@@ -198,7 +218,9 @@ class BookMetadataService {
                     google: book.genres || [],
                     openLibrary: openLibData?.subjects || []
                   },
-                  genres: simpleCategories.length > 0 ? simpleCategories : ['General Fiction'],
+                  genres: [category],
+                  primaryCategory: category,
+                  categoryType: improvedCategoryService.getParentCategory(category),
                   allSubjects,
                   dataSource: 'enhanced'
                 });
@@ -207,6 +229,10 @@ class BookMetadataService {
               // Open Library had no data
               if (useBISAC) {
                 const bisacCategories = bisacMappingService.mapToBISAC(book.genres || []);
+                const category = bisacCategories.length > 0
+                  ? this.extractSimpleGenres(bisacCategories)[0]
+                  : improvedCategoryService.categorizeBook(book.genres || [], book.title, book.description);
+                
                 enhancedBooks.push({
                   ...book,
                   coverImage: bestCover ? bestCover.url : null,
@@ -214,16 +240,23 @@ class BookMetadataService {
                   bisacCategories,
                   genres: bisacCategories.length > 0 
                     ? this.extractSimpleGenres(bisacCategories)
-                    : book.genres
+                    : [category],
+                  primaryCategory: category
                 });
               } else {
-                // No Open Library data, just use Google genres with simple mapping
-                const simpleCategories = simpleCategoryMappingService.mapToSimpleCategories(book.genres || []);
+                // No Open Library data, use improved categorization
+                const category = improvedCategoryService.categorizeBook(
+                  book.genres || [],
+                  book.title,
+                  book.description
+                );
                 enhancedBooks.push({
                   ...book,
                   coverImage: bestCover ? bestCover.url : null,
                   coverQualityScore: bestCover ? bestCover.score : 0,
-                  genres: simpleCategories.length > 0 ? simpleCategories : ['General Fiction']
+                  genres: [category],
+                  primaryCategory: category,
+                  categoryType: improvedCategoryService.getParentCategory(category)
                 });
               }
             }
@@ -244,6 +277,10 @@ class BookMetadataService {
             
             if (useBISAC) {
               const bisacCategories = bisacMappingService.mapToBISAC(book.genres || []);
+              const category = bisacCategories.length > 0
+                ? this.extractSimpleGenres(bisacCategories)[0]
+                : improvedCategoryService.categorizeBook(book.genres || [], book.title, book.description);
+              
               enhancedBooks.push({
                 ...book,
                 coverImage: bestCover ? bestCover.url : null,
@@ -251,36 +288,54 @@ class BookMetadataService {
                 bisacCategories,
                 genres: bisacCategories.length > 0 
                   ? this.extractSimpleGenres(bisacCategories)
-                  : book.genres
+                  : [category],
+                primaryCategory: category
               });
             } else {
-              // Just use Google genres with simple mapping
-              const simpleCategories = simpleCategoryMappingService.mapToSimpleCategories(book.genres || []);
+              // Use improved categorization
+              const category = improvedCategoryService.categorizeBook(
+                book.genres || [],
+                book.title,
+                book.description
+              );
               enhancedBooks.push({
                 ...book,
                 coverImage: bestCover ? bestCover.url : null,
                 coverQualityScore: bestCover ? bestCover.score : 0,
-                genres: simpleCategories.length > 0 ? simpleCategories : ['General Fiction']
+                genres: [category],
+                primaryCategory: category,
+                categoryType: improvedCategoryService.getParentCategory(category)
               });
             }
           }
         } else {
-          // For remaining books
+          // For remaining books that don't go through enhancement
           if (useBISAC) {
             const bisacCategories = bisacMappingService.mapToBISAC(book.genres || []);
+            const category = bisacCategories.length > 0
+              ? this.extractSimpleGenres(bisacCategories)[0]
+              : improvedCategoryService.categorizeBook(book.genres || [], book.title, book.description);
+            
             enhancedBooks.push({
               ...book,
               bisacCategories,
               genres: bisacCategories.length > 0 
                 ? this.extractSimpleGenres(bisacCategories)
-                : book.genres
+                : [category],
+              primaryCategory: category
             });
           } else {
-            // Simple mapping for remaining books
-            const simpleCategories = simpleCategoryMappingService.mapToSimpleCategories(book.genres || []);
+            // Use improved categorization for remaining books
+            const category = improvedCategoryService.categorizeBook(
+              book.genres || [],
+              book.title,
+              book.description
+            );
             enhancedBooks.push({
               ...book,
-              genres: simpleCategories.length > 0 ? simpleCategories : ['General Fiction']
+              genres: [category],
+              primaryCategory: category,
+              categoryType: improvedCategoryService.getParentCategory(category)
             });
           }
         }

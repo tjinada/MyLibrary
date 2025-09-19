@@ -25,6 +25,19 @@ const BookSchema = new mongoose.Schema({
     index: true
   }],
   
+  // Primary category (single, specific genre)
+  primaryCategory: {
+    type: String,
+    index: true
+  },
+  
+  // Category type (Fiction or Nonfiction)
+  categoryType: {
+    type: String,
+    enum: ['Fiction', 'Nonfiction'],
+    index: true
+  },
+  
   // All raw subjects combined from sources (for reference)
   allSubjects: [String],
   

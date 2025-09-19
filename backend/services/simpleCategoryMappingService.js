@@ -21,7 +21,6 @@ const SIMPLE_CATEGORIES = {
   'Politics & Current Affairs': 'Nonfiction',
   'Self-Help / Personal Development': 'Nonfiction',
   'Religion / Spirituality': 'Nonfiction',
-  'Science & Nature': 'Nonfiction',
   'Health & Fitness': 'Nonfiction',
   'Business & Economics': 'Nonfiction',
   'Travel': 'Nonfiction',
