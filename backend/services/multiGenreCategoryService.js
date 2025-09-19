@@ -49,14 +49,15 @@ const GENRE_RULES = {
     strongKeywords: [
       'magic', 'wizard', 'witch', 'dragon', 'elf', 'elves',
       'dwarf', 'dwarves', 'orc', 'goblin', 'fairy', 'faerie',
-      'sorcerer', 'sorcery', 'spell', 'enchantment', 'quest',
-      'realm', 'kingdom', 'prophecy', 'chosen one'
+      'sorcerer', 'sorcery', 'spell', 'enchantment',
+      'realm', 'kingdom', 'prophecy', 'chosen one', 'mage',
+      'magical powers', 'spellcasting', 'unicorn', 'phoenix'
     ],
     weakKeywords: [
       'magical', 'mystical', 'enchanted', 'supernatural',
       'mythology', 'legend', 'folklore'
     ],
-    excludeIfPresent: []
+    excludeIfPresent: ['space', 'spaceship', 'science fiction', 'sci-fi']
   },
   
   'SciFi / Dystopian': {
@@ -66,20 +67,24 @@ const GENRE_RULES = {
       'dystopian', 'dystopia', 'dystopian fiction',
       'post-apocalyptic', 'apocalyptic fiction', 'cyberpunk',
       'steampunk', 'space opera', 'hard science fiction',
-      'soft science fiction', 'military science fiction'
+      'soft science fiction', 'military science fiction',
+      'science fiction & fantasy' // Common combo
     ],
     strongKeywords: [
-      'space', 'spaceship', 'alien', 'robot', 'android', 'cyborg',
-      'artificial intelligence', 'ai', 'time travel', 'parallel universe',
-      'multiverse', 'future', 'futuristic', 'mars', 'colonization',
+      'space station', 'spaceship', 'alien', 'robot', 'android', 'cyborg',
+      'artificial intelligence', 'time travel', 'parallel universe',
+      'multiverse', 'futuristic', 'mars colony', 'space colonization',
       'dystopian society', 'totalitarian', 'surveillance state',
-      'post-apocalypse', 'apocalypse', 'pandemic', 'nuclear war'
+      'post-apocalypse', 'apocalypse', 'pandemic fiction',
+      'galaxy', 'interstellar', 'starship', 'space exploration',
+      'terraforming', 'cryosleep', 'wormhole', 'light speed'
     ],
     weakKeywords: [
+      'future', 'space', 'stars', 'planet', 'orbit',
       'technology', 'scientific', 'experiment', 'laboratory',
       'mutation', 'genetic', 'virtual reality', 'simulation'
     ],
-    excludeIfPresent: ['science', 'technology', 'computing'] // when clearly nonfiction
+    excludeIfPresent: ['astronomy', 'astrophysics', 'space science'] // when clearly nonfiction
   },
   
   'Mystery / Thriller': {
@@ -280,11 +285,13 @@ class MultiGenreCategoryService {
   categorizeBook(apiGenres = [], title = '', description = '', authors = []) {
     console.log('\n=== Multi-Genre Categorization Starting ===');
     console.log('Title:', title);
-    console.log('API Genres:', apiGenres);
+    console.log('Raw API Genres:', apiGenres);
     console.log('Authors:', authors);
     
     // Normalize input
     const normalizedApiGenres = this.normalizeGenres(apiGenres);
+    console.log('Normalized Genres:', normalizedApiGenres);
+    
     const allText = `${title} ${description} ${normalizedApiGenres.join(' ')}`.toLowerCase();
     
     // Step 1: Determine Fiction/Nonfiction
@@ -312,18 +319,32 @@ class MultiGenreCategoryService {
   }
 
   /**
-   * Normalize genres from API (handle objects, arrays, etc.)
+   * Normalize genres from API (handle objects, arrays, comma-separated, etc.)
    */
   normalizeGenres(apiGenres) {
     if (!apiGenres) return [];
     if (!Array.isArray(apiGenres)) return [String(apiGenres)];
     
-    return apiGenres.map(genre => {
+    const normalized = [];
+    
+    apiGenres.forEach(genre => {
       if (typeof genre === 'object' && genre.name) {
-        return genre.name;
+        normalized.push(genre.name);
+      } else {
+        const genreStr = String(genre);
+        // Split comma-separated genres
+        // e.g., "Fiction, science fiction, action & adventure" becomes multiple genres
+        if (genreStr.includes(',')) {
+          const parts = genreStr.split(',').map(p => p.trim());
+          normalized.push(...parts);
+        } else {
+          normalized.push(genreStr);
+        }
       }
-      return String(genre);
-    }).filter(Boolean);
+    });
+    
+    // Remove empty strings and clean up
+    return normalized.filter(Boolean).map(g => g.trim());
   }
 
   /**
@@ -389,13 +410,20 @@ class MultiGenreCategoryService {
       if (rules.requiresNonfiction && categoryType !== 'Nonfiction') continue;
       
       // Check for exact matches (highest priority)
+      let exactMatchFound = false;
       for (const exactMatch of rules.exactMatches) {
         const searchTerm = exactMatch.toLowerCase();
         if (apiGenres.some(g => g.toLowerCase() === searchTerm) ||
             apiGenres.some(g => g.toLowerCase().includes(searchTerm))) {
           score += 100;
           reasons.push(`Exact match from API: "${exactMatch}"`);
+          exactMatchFound = true;
         }
+      }
+      
+      // If we found an exact match, log it prominently
+      if (exactMatchFound && score >= 100) {
+        console.log(`  [EXACT MATCH] ${genreName}: Score = ${score}`);
       }
       
       // Check strong keywords
