@@ -62,7 +62,6 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
     tags: [],
     genres: [],
     coverImage: '',
-    categoryType: 'Fiction', // Add Fiction/Nonfiction
   });
   const [newTag, setNewTag] = useState('');
   const [newGenre, setNewGenre] = useState('');
@@ -149,18 +148,23 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
 
   useEffect(() => {
     if (book) {
+      // Ensure Fiction or Nonfiction is present in genres
+      let genres = book.genres || [];
+      if (!genres.includes('Fiction') && !genres.includes('Nonfiction')) {
+        genres = ['Fiction', ...genres]; // Default to Fiction if neither is present
+      }
+      
       const bookData = {
         status: book.status || 'to-read',
         rating: book.rating || 0,
         notes: book.notes || '',
         tags: book.tags || [],
-        genres: book.genres || [],
+        genres: genres,
         coverImage: book.coverImage || '',
-        categoryType: book.categoryType || 'Fiction',
       };
       
       setEditedBook(bookData);
-      setCurrentBookData(book); // Store current book data
+      setCurrentBookData({ ...book, genres }); // Store current book data with updated genres
       
       // Generate cover options
       const options = generateCoverOptions(book);
@@ -203,7 +207,6 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
         tags: updatedBook.tags || [],
         genres: updatedBook.genres || [],
         coverImage: updatedBook.coverImage || '',
-        categoryType: updatedBook.categoryType || 'Fiction',
       });
       
       if (onBookUpdated) {
@@ -269,9 +272,26 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
   };
 
   const handleRemoveGenre = (genreToRemove) => {
+    // Don't allow removing Fiction/Nonfiction if it's the only one
+    if ((genreToRemove === 'Fiction' || genreToRemove === 'Nonfiction')) {
+      const hasOtherCategory = editedBook.genres.includes(genreToRemove === 'Fiction' ? 'Nonfiction' : 'Fiction');
+      if (!hasOtherCategory) {
+        setError('You must have either Fiction or Nonfiction as a genre');
+        return;
+      }
+    }
     setEditedBook({
       ...editedBook,
       genres: editedBook.genres.filter(g => g !== genreToRemove)
+    });
+  };
+
+  const handleToggleFictionNonfiction = (type) => {
+    let newGenres = editedBook.genres.filter(g => g !== 'Fiction' && g !== 'Nonfiction');
+    newGenres = [type, ...newGenres];
+    setEditedBook({
+      ...editedBook,
+      genres: newGenres
     });
   };
 
@@ -477,31 +497,6 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
               {/* Status and Rating */}
               <Paper sx={{ p: 2, mb: 2 }}>
                 <Grid container spacing={2}>
-                  {/* Fiction/Nonfiction Category */}
-                  <Grid item xs={12}>
-                    {editMode ? (
-                      <FormControl fullWidth size="small">
-                        <InputLabel>Category Type</InputLabel>
-                        <Select
-                          value={editedBook.categoryType}
-                          label="Category Type"
-                          onChange={(e) => setEditedBook({...editedBook, categoryType: e.target.value})}
-                        >
-                          <MenuItem value="Fiction">Fiction</MenuItem>
-                          <MenuItem value="Nonfiction">Nonfiction</MenuItem>
-                        </Select>
-                      </FormControl>
-                    ) : (
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">Category</Typography>
-                        <Chip 
-                          label={displayBook.categoryType || 'Fiction'} 
-                          color={displayBook.categoryType === 'Fiction' ? 'primary' : 'secondary'}
-                          sx={{ mt: 0.5 }}
-                        />
-                      </Box>
-                    )}
-                  </Grid>
                   <Grid item xs={12} sm={6}>
                     {editMode ? (
                       <FormControl fullWidth size="small">
@@ -603,6 +598,24 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
                       </Box>
                       {editMode ? (
                         <Box>
+                          {/* Fiction/Nonfiction Toggle */}
+                          <Box sx={{ mb: 2 }}>
+                            <Button
+                              variant={editedBook.genres.includes('Fiction') ? 'contained' : 'outlined'}
+                              size="small"
+                              onClick={() => handleToggleFictionNonfiction('Fiction')}
+                              sx={{ mr: 1 }}
+                            >
+                              Fiction
+                            </Button>
+                            <Button
+                              variant={editedBook.genres.includes('Nonfiction') ? 'contained' : 'outlined'}
+                              size="small"
+                              onClick={() => handleToggleFictionNonfiction('Nonfiction')}
+                            >
+                              Nonfiction
+                            </Button>
+                          </Box>
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
                             {editedBook.genres.map((genre, index) => (
                               <Chip
@@ -610,7 +623,10 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
                                 label={genre}
                                 size="small"
                                 variant="outlined"
-                                onDelete={() => handleRemoveGenre(genre)}
+                                color={(genre === 'Fiction' || genre === 'Nonfiction') ? 'primary' : 'default'}
+                                onDelete={(genre !== 'Fiction' && genre !== 'Nonfiction') || 
+                                         (editedBook.genres.includes('Fiction') && editedBook.genres.includes('Nonfiction')) 
+                                         ? () => handleRemoveGenre(genre) : undefined}
                               />
                             ))}
                           </Box>
@@ -634,8 +650,14 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
                         </Box>
                       ) : (
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                          {book.genres.map((genre, index) => (
-                            <Chip key={index} label={genre} size="small" variant="outlined" />
+                          {displayBook.genres?.map((genre, index) => (
+                            <Chip 
+                              key={index} 
+                              label={genre} 
+                              size="small" 
+                              variant="outlined"
+                              color={(genre === 'Fiction' || genre === 'Nonfiction') ? 'primary' : 'default'}
+                            />
                           ))}
                         </Box>
                       )}
