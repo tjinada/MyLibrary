@@ -13,6 +13,15 @@ import {
   Fade,
   Grid,
   Grow,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  Checkbox,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Layout/Header';
@@ -22,6 +31,7 @@ import ActiveFilterChips from '../components/Filters/ActiveFilterChips';
 import BookCard from '../components/Books/BookCard';
 import BookList from '../components/Books/BookList';
 import CollectionCard from '../components/Collections/CollectionCard';
+import BulkActionBar from '../components/Layout/BulkActionBar';
 import QuickAddBooks from '../components/Modals/QuickAddBooks';
 import AddBookModal from '../components/Modals/AddBookModal';
 import BookDetailsModal from '../components/Modals/BookDetailsModal';
@@ -31,6 +41,7 @@ import bookService from '../services/bookService';
 import collectionService from '../services/collectionService';
 import imagePreloader from '../utils/imagePreloader';
 import { useCollections } from '../contexts/CollectionContext';
+import useSelection from '../hooks/useSelection';
 
 const Library = () => {
   const navigate = useNavigate();
@@ -44,19 +55,23 @@ const Library = () => {
   const [allBooksForGenres, setAllBooksForGenres] = useState({ books: [], collections: [] });
   const [loading, setLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem('libraryViewMode') || 'grid';
   });
+  
+  // Modal states
   const [quickAddModalOpen, setQuickAddModalOpen] = useState(false);
   const [manualAddModalOpen, setManualAddModalOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [manageCollectionsOpen, setManageCollectionsOpen] = useState(false);
   const [createCollectionOpen, setCreateCollectionOpen] = useState(false);
-  const [quickEditBook, setQuickEditBook] = useState(null);
+  const [bulkCollectionsOpen, setBulkCollectionsOpen] = useState(false);
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
   
   // Filters state
   const [filters, setFilters] = useState({
@@ -68,6 +83,20 @@ const Library = () => {
 
   const itemsPerPage = viewMode === 'grid' ? 24 : 20;
 
+  // Selection hook
+  const {
+    selectedIds,
+    selectedCount,
+    selectedItems,
+    selectionMode,
+    toggleSelection,
+    selectAll,
+    clearSelection,
+    isSelected,
+    enterSelectionMode,
+    exitSelectionMode,
+  } = useSelection(libraryItems.filter(item => item.type === 'book'));
+
   // Fetch library data
   useEffect(() => {
     fetchLibrary();
@@ -78,24 +107,27 @@ const Library = () => {
     localStorage.setItem('libraryViewMode', viewMode);
   }, [viewMode]);
 
+  // Exit selection mode when changing pages or filters
+  useEffect(() => {
+    if (selectionMode) {
+      exitSelectionMode();
+    }
+  }, [page, filters]);
+
   const fetchLibrary = async () => {
     try {
       setLoading(true);
       
-      // Fetch ALL books to calculate complete genre list
       const allBooksData = await bookService.getBooks({
         page: 1,
         limit: 1000,
         status: filters.status !== 'all' ? filters.status : undefined,
       });
       
-      // Fetch all collections
       const collectionsData = await collectionService.getCollections(true);
       
-      // Store all books for genre calculation
       setAllBooksForGenres({ books: allBooksData.books, collections: collectionsData });
       
-      // Filter books based on genre if needed
       let booksToDisplay = allBooksData.books;
       if (filters.genre !== 'all') {
         booksToDisplay = allBooksData.books.filter(book => {
@@ -105,12 +137,10 @@ const Library = () => {
         });
       }
       
-      // Status filter
       if (filters.status !== 'all') {
         booksToDisplay = booksToDisplay.filter(book => book.status === filters.status);
       }
       
-      // Get all books that are in collections
       const booksInCollections = new Set();
       (collectionsData || []).forEach(collection => {
         collection.books?.forEach(book => {
@@ -122,7 +152,6 @@ const Library = () => {
         });
       });
       
-      // Transform books to library items
       const allBookItems = booksToDisplay.map(book => ({
         type: 'book',
         sortKey: book.title.toLowerCase().replace(/^(the |a |an )/i, ''),
@@ -130,13 +159,11 @@ const Library = () => {
         inCollection: book.collections && book.collections.length > 0
       }));
       
-      // Filter books for display
       const showAllBooks = filters.search !== '' || filters.genre !== 'all' || filters.status !== 'all';
       const displayBookItems = showAllBooks 
         ? allBookItems
         : allBookItems.filter(item => !item.inCollection);
       
-      // Transform collections to library items
       let collectionItems = [];
       if (filters.genre === 'all' && filters.status === 'all') {
         collectionItems = (collectionsData || [])
@@ -148,10 +175,8 @@ const Library = () => {
           }));
       }
       
-      // Combine and sort items
       const displayItems = [...displayBookItems, ...collectionItems];
       
-      // Sort by selected criteria
       displayItems.sort((a, b) => {
         if (filters.sort === 'title' || filters.sort === '-title') {
           const multiplier = filters.sort.startsWith('-') ? -1 : 1;
@@ -177,7 +202,6 @@ const Library = () => {
       setLibraryItems(displayItems);
       setAllLibraryItems([...allBookItems, ...collectionItems]);
       
-      // Preload images for performance
       const bookImages = allBookItems
         .map(item => item.data.coverImage)
         .filter(Boolean);
@@ -209,7 +233,6 @@ const Library = () => {
     const matchedItems = [];
     const addedBookIds = new Set();
     
-    // First, filter collections
     itemsToSearch.forEach(item => {
       if (item.type === 'collection') {
         const collection = item.data;
@@ -227,7 +250,6 @@ const Library = () => {
       }
     });
     
-    // Then add matching books
     itemsToSearch.forEach(item => {
       if (item.type === 'book') {
         const book = item.data;
@@ -247,6 +269,11 @@ const Library = () => {
     setIsSearching(false);
     return matchedItems;
   }, [libraryItems, allLibraryItems, filters.search]);
+
+  // Get only book items for bulk operations
+  const bookItems = useMemo(() => {
+    return filteredItems.filter(item => item.type === 'book');
+  }, [filteredItems]);
 
   // Pagination
   const paginatedItems = useMemo(() => {
@@ -371,14 +398,15 @@ const Library = () => {
   }, [navigate]);
 
   const handleBookClick = useCallback((book) => {
-    setSelectedBook(book);
-    setDetailsModalOpen(true);
-  }, []);
+    if (!selectionMode) {
+      setSelectedBook(book);
+      setDetailsModalOpen(true);
+    }
+  }, [selectionMode]);
 
   const handleQuickEdit = useCallback((book) => {
     setSelectedBook(book);
     setDetailsModalOpen(true);
-    // You can add a flag to open in edit mode if needed
   }, []);
 
   const handleAddToCollection = useCallback((book) => {
@@ -398,6 +426,99 @@ const Library = () => {
   const handleCollectionToggle = useCallback((collectionId, expanded) => {
     toggleCollection(collectionId);
   }, [toggleCollection]);
+
+  const handleToggleSelectionMode = useCallback(() => {
+    if (selectionMode) {
+      exitSelectionMode();
+    } else {
+      enterSelectionMode();
+    }
+  }, [selectionMode, enterSelectionMode, exitSelectionMode]);
+
+  // Bulk action handlers
+  const handleBulkStatusChange = useCallback(async (newStatus) => {
+    try {
+      setIsProcessing(true);
+      const promises = selectedIds.map(id => {
+        const book = bookItems.find(item => 
+          (item.data._id === id || item.data.isbn === id)
+        )?.data;
+        if (book) {
+          return bookService.updateBook(book.isbn, { status: newStatus });
+        }
+        return Promise.resolve();
+      });
+      
+      await Promise.all(promises);
+      fetchLibrary();
+      clearSelection();
+      exitSelectionMode();
+    } catch (error) {
+      console.error('Failed to update books:', error);
+      setError('Failed to update selected books');
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [selectedIds, bookItems, clearSelection, exitSelectionMode]);
+
+  const handleBulkAddToCollection = useCallback(() => {
+    setBulkCollectionsOpen(true);
+  }, []);
+
+  const handleBulkDelete = useCallback(() => {
+    setBulkDeleteConfirmOpen(true);
+  }, []);
+
+  const confirmBulkDelete = useCallback(async () => {
+    try {
+      setIsProcessing(true);
+      const promises = selectedIds.map(id => {
+        const book = bookItems.find(item => 
+          (item.data._id === id || item.data.isbn === id)
+        )?.data;
+        if (book) {
+          return bookService.deleteBook(book.isbn);
+        }
+        return Promise.resolve();
+      });
+      
+      await Promise.all(promises);
+      fetchLibrary();
+      clearSelection();
+      exitSelectionMode();
+      setBulkDeleteConfirmOpen(false);
+    } catch (error) {
+      console.error('Failed to delete books:', error);
+      setError('Failed to delete selected books');
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [selectedIds, bookItems, clearSelection, exitSelectionMode]);
+
+  const handleBulkCollectionAdd = useCallback(async (collectionId) => {
+    try {
+      setIsProcessing(true);
+      const bookIsbns = selectedIds.map(id => {
+        const book = bookItems.find(item => 
+          (item.data._id === id || item.data.isbn === id)
+        )?.data;
+        return book?.isbn;
+      }).filter(Boolean);
+      
+      if (bookIsbns.length > 0) {
+        await collectionService.addBooksToCollection(collectionId, bookIsbns);
+        fetchLibrary();
+        clearSelection();
+        exitSelectionMode();
+        setBulkCollectionsOpen(false);
+      }
+    } catch (error) {
+      console.error('Failed to add books to collection:', error);
+      setError('Failed to add selected books to collection');
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [selectedIds, bookItems, clearSelection, exitSelectionMode]);
 
   const hasActiveFilters = filters.search !== '' || 
                           filters.status !== 'all' || 
@@ -419,9 +540,11 @@ const Library = () => {
         onFilterChange={handleFilterChange}
         genres={genres}
         bookCounts={bookCounts}
+        selectionMode={selectionMode}
+        onToggleSelectionMode={handleToggleSelectionMode}
       />
       
-      <Container maxWidth="xl" sx={{ py: 3 }}>
+      <Container maxWidth="xl" sx={{ py: 3, pb: selectionMode ? 10 : 3 }}>
         {/* Page Title and Search */}
         <Box sx={{ mb: 4 }}>
           <Typography 
@@ -568,6 +691,9 @@ const Library = () => {
                           onClick={handleBookClick}
                           onQuickEdit={() => handleQuickEdit(item.data)}
                           onAddToCollection={() => handleAddToCollection(item.data)}
+                          selectionMode={selectionMode}
+                          isSelected={isSelected(item.data._id || item.data.isbn)}
+                          onToggleSelection={toggleSelection}
                         />
                       )}
                     </Grid>
@@ -595,6 +721,9 @@ const Library = () => {
                 <BookList 
                   books={paginatedItems.filter(item => item.type === 'book').map(item => item.data)} 
                   onBookClick={handleBookClick}
+                  selectionMode={selectionMode}
+                  selectedIds={selectedIds}
+                  onToggleSelection={toggleSelection}
                 />
               </Box>
             )}
@@ -617,7 +746,77 @@ const Library = () => {
         )}
       </Container>
 
-      {/* Modals */}
+      {/* Bulk Action Bar */}
+      <BulkActionBar
+        visible={selectionMode && selectedCount > 0}
+        selectedCount={selectedCount}
+        totalCount={bookItems.length}
+        onClose={exitSelectionMode}
+        onSelectAll={() => selectAll()}
+        onClearSelection={clearSelection}
+        onBulkStatusChange={handleBulkStatusChange}
+        onBulkAddToCollection={handleBulkAddToCollection}
+        onBulkDelete={handleBulkDelete}
+        isProcessing={isProcessing}
+      />
+
+      {/* Bulk Collections Dialog */}
+      <Dialog
+        open={bulkCollectionsOpen}
+        onClose={() => setBulkCollectionsOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Add {selectedCount} Books to Collection</DialogTitle>
+        <DialogContent>
+          <List>
+            {allBooksForGenres.collections?.map((collection) => (
+              <ListItem
+                key={collection._id}
+                button
+                onClick={() => handleBulkCollectionAdd(collection._id)}
+              >
+                <ListItemText
+                  primary={collection.name}
+                  secondary={`${collection.books?.length || 0} books`}
+                />
+              </ListItem>
+            ))}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBulkCollectionsOpen(false)}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bulk Delete Confirmation */}
+      <Dialog
+        open={bulkDeleteConfirmOpen}
+        onClose={() => setBulkDeleteConfirmOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Delete {selectedCount} Books?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete {selectedCount} selected {selectedCount === 1 ? 'book' : 'books'}? 
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBulkDeleteConfirmOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={confirmBulkDelete} 
+            color="error" 
+            variant="contained"
+            disabled={isProcessing}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Other Modals */}
       <QuickAddBooks
         open={quickAddModalOpen}
         onClose={() => setQuickAddModalOpen(false)}

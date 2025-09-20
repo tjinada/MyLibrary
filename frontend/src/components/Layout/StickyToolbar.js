@@ -8,6 +8,7 @@ import {
   Paper,
   useTheme,
   useMediaQuery,
+  alpha,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -15,6 +16,7 @@ import {
   ViewList as ListIcon,
   Speed as QuickAddIcon,
   CollectionsBookmark as CollectionsIcon,
+  CheckBox as SelectIcon,
 } from '@mui/icons-material';
 import FilterPopover from '../Filters/FilterPopover';
 import { spacing } from '../../theme/theme';
@@ -29,6 +31,8 @@ const StickyToolbar = ({
   onFilterChange,
   genres,
   bookCounts,
+  selectionMode,
+  onToggleSelectionMode,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -151,6 +155,29 @@ const StickyToolbar = ({
 
         {/* Spacer */}
         <Box sx={{ flexGrow: 1 }} />
+
+        {/* Selection Mode Toggle */}
+        <Tooltip title={selectionMode ? 'Exit selection mode' : 'Select multiple items'}>
+          <Button
+            variant={selectionMode ? 'contained' : 'outlined'}
+            startIcon={<SelectIcon />}
+            onClick={onToggleSelectionMode}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 500,
+              bgcolor: selectionMode ? theme.palette.secondary.main : 'transparent',
+              color: selectionMode ? 'white' : 'text.primary',
+              borderColor: selectionMode ? theme.palette.secondary.main : 'divider',
+              '&:hover': {
+                bgcolor: selectionMode ? theme.palette.secondary.dark : alpha(theme.palette.secondary.main, 0.08),
+                borderColor: theme.palette.secondary.main,
+              },
+            }}
+          >
+            {!isMobile && 'Select'}
+          </Button>
+        </Tooltip>
 
         {/* Filters */}
         <FilterPopover

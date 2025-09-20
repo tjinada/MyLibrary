@@ -9,6 +9,7 @@ import {
   Box,
   Rating,
   Skeleton,
+  Checkbox,
   useTheme,
   alpha,
 } from '@mui/material';
@@ -23,7 +24,10 @@ const BookCard = ({
   showRemoveButton, 
   onRemove,
   onQuickEdit,
-  onAddToCollection 
+  onAddToCollection,
+  selectionMode = false,
+  isSelected = false,
+  onToggleSelection
 }) => {
   const theme = useTheme();
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -66,7 +70,9 @@ const BookCard = ({
   }, [book.coverImage, book.isbn, imageSrc]);
 
   const handleClick = () => {
-    if (onClick) {
+    if (selectionMode && onToggleSelection) {
+      onToggleSelection(book._id || book.isbn);
+    } else if (onClick) {
       onClick(book);
     }
   };
@@ -107,9 +113,10 @@ const BookCard = ({
         cursor: 'pointer',
         overflow: 'hidden',
         bgcolor: 'background.paper',
+        border: selectionMode && isSelected ? `2px solid ${theme.palette.primary.main}` : 'none',
         '&:hover': {
-          transform: 'translateY(-8px)',
-          boxShadow: theme.shadows[12],
+          transform: selectionMode ? 'none' : 'translateY(-8px)',
+          boxShadow: selectionMode ? theme.shadows[4] : theme.shadows[12],
         },
       }}
     >
@@ -124,7 +131,7 @@ const BookCard = ({
           overflow: 'hidden',
         }}
       >
-        {/* Status Chip - Top Left */}
+        {/* Selection Checkbox or Status Chip - Top Left */}
         <Box
           sx={{
             position: 'absolute',
@@ -133,7 +140,30 @@ const BookCard = ({
             zIndex: 3,
           }}
         >
-          <BookStatusChip status={book.status || 'to-read'} size="small" />
+          {selectionMode ? (
+            <Checkbox
+              checked={isSelected}
+              onChange={(e) => {
+                e.stopPropagation();
+                if (onToggleSelection) {
+                  onToggleSelection(book._id || book.isbn);
+                }
+              }}
+              sx={{
+                bgcolor: 'rgba(255, 255, 255, 0.9)',
+                borderRadius: 1,
+                p: 0.5,
+                '&:hover': {
+                  bgcolor: 'rgba(255, 255, 255, 1)',
+                },
+                '& .MuiSvgIcon-root': {
+                  fontSize: 20,
+                },
+              }}
+            />
+          ) : (
+            <BookStatusChip status={book.status || 'to-read'} size="small" />
+          )}
         </Box>
 
         {/* Quantity Badge - Top Right */}
@@ -158,15 +188,17 @@ const BookCard = ({
           />
         )}
 
-        {/* Hover Actions Overlay */}
-        <BookCardActions
-          visible={isHovered}
-          onView={() => onClick(book)}
-          onEdit={onQuickEdit}
-          onAddToCollection={onAddToCollection}
-          onRemove={showRemoveButton ? onRemove : null}
-          showRemove={showRemoveButton}
-        />
+        {/* Hover Actions Overlay - Only show when not in selection mode */}
+        {!selectionMode && (
+          <BookCardActions
+            visible={isHovered}
+            onView={() => onClick(book)}
+            onEdit={onQuickEdit}
+            onAddToCollection={onAddToCollection}
+            onRemove={showRemoveButton ? onRemove : null}
+            showRemove={showRemoveButton}
+          />
+        )}
 
         {/* Loading skeleton */}
         {!imageLoaded && hasValidCover && (

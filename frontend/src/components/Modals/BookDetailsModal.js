@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
   DialogActions,
   Button,
@@ -11,10 +10,6 @@ import {
   Chip,
   Rating,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   IconButton,
   Tabs,
   Tab,
@@ -26,6 +21,14 @@ import {
   CircularProgress,
   Card,
   CardMedia,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Fade,
+  Grow,
+  Tooltip,
+  alpha,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -45,18 +48,33 @@ import {
   Image as ImageIcon,
   CollectionsBookmark as CollectionsIcon,
   Inventory as InventoryIcon,
+  MoreVert as MoreIcon,
+  Business as PublisherIcon,
+  Numbers as IsbnIcon,
+  Star as StarIcon,
 } from '@mui/icons-material';
 import bookService from '../../services/bookService';
+import StatusPills from './StatusPills';
+import BookStatusChip from '../Books/BookStatusChip';
 
-const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, onManageCollections }) => {
+const BookDetailsModal = ({ 
+  open, 
+  onClose, 
+  book, 
+  onBookUpdated, 
+  onBookDeleted, 
+  onManageCollections 
+}) => {
   const [tabValue, setTabValue] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteQuantity, setDeleteQuantity] = useState(1);
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   
   // Edit form state
   const [editedBook, setEditedBook] = useState({
@@ -80,7 +98,6 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
   const generateCoverOptions = (bookData) => {
     const options = [];
     
-    // Current cover (if exists)
     if (bookData.coverImage) {
       let currentUrl = bookData.coverImage;
       if (currentUrl.startsWith('http://')) {
@@ -93,62 +110,39 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
       });
     }
 
-    // Google Books alternatives
     if (bookData.googleBooksId) {
-      // High quality
       options.push({
         url: `https://books.google.com/books/content?id=${bookData.googleBooksId}&printsec=frontcover&img=1&zoom=0&source=gbs_api`,
         source: 'Google Books',
         quality: 'High'
       });
       
-      // Medium quality
       options.push({
         url: `https://books.google.com/books/content?id=${bookData.googleBooksId}&printsec=frontcover&img=1&zoom=1&source=gbs_api`,
         source: 'Google Books',
         quality: 'Medium'
       });
-
-      // Thumbnail
-      options.push({
-        url: `https://books.google.com/books/content?id=${bookData.googleBooksId}&printsec=frontcover&img=1&zoom=5&source=gbs_api`,
-        source: 'Google Books',
-        quality: 'Thumbnail'
-      });
     }
 
-    // Open Library alternatives
     if (bookData.isbn) {
       const cleanIsbn = bookData.isbn.replace(/[-\s]/g, '');
       
-      // Large
       options.push({
         url: `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-L.jpg`,
         source: 'Open Library',
         quality: 'Large'
       });
       
-      // Medium
       options.push({
         url: `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg`,
         source: 'Open Library',
         quality: 'Medium'
       });
-      
-      // Small
-      options.push({
-        url: `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-S.jpg`,
-        source: 'Open Library',
-        quality: 'Small'
-      });
     }
 
-    // Remove duplicates
-    const uniqueOptions = options.filter((option, index, self) =>
+    return options.filter((option, index, self) =>
       index === self.findIndex(o => o.url === option.url)
     );
-
-    return uniqueOptions;
   };
 
   useEffect(() => {
@@ -164,15 +158,14 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
       };
       
       setEditedBook(bookData);
-      setCurrentBookData(book); // Store current book data
+      setCurrentBookData(book);
       
-      // Generate cover options
       const options = generateCoverOptions(book);
       setCoverOptions(options);
       setSelectedCoverIndex(0);
       
-      setTabValue(0); // Reset to details tab
-      setEditMode(false); // Exit edit mode
+      setTabValue(0);
+      setEditMode(false);
       setNewTag('');
       setNewGenre('');
     }
@@ -180,15 +173,34 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
 
   if (!book) return null;
   
-  // Use currentBookData for display if available (after updates), otherwise use original book
   const displayBook = currentBookData || book;
+
+  // Quick status update (no need to enter edit mode)
+  const handleQuickStatusChange = async (newStatus) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const updatedBook = await bookService.updateBook(book.isbn, { status: newStatus });
+      
+      setCurrentBookData(updatedBook);
+      setEditedBook(prev => ({ ...prev, status: newStatus }));
+      
+      if (onBookUpdated) {
+        onBookUpdated(updatedBook);
+      }
+    } catch (err) {
+      setError('Failed to update status');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Include selected cover if changed
       const updates = {
         ...editedBook,
         coverImage: coverOptions[selectedCoverIndex] 
@@ -198,7 +210,6 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
       
       const updatedBook = await bookService.updateBook(book.isbn, updates);
       
-      // Update local state immediately with the returned data
       setCurrentBookData(updatedBook);
       setEditedBook({
         status: updatedBook.status || 'to-read',
@@ -207,6 +218,7 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
         tags: updatedBook.tags || [],
         genres: updatedBook.genres || [],
         coverImage: updatedBook.coverImage || '',
+        quantity: updatedBook.quantity || 1,
       });
       
       if (onBookUpdated) {
@@ -225,15 +237,14 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
     const currentQuantity = currentBookData?.quantity || book?.quantity || 1;
     
     if (currentQuantity > 1) {
-      // Show delete dialog for multiple copies
       setDeleteQuantity(1);
       setShowDeleteDialog(true);
     } else {
-      // Single copy - show confirmation
       if (window.confirm('Are you sure you want to delete this book?')) {
         await performDelete(1);
       }
     }
+    setMenuAnchorEl(null);
   };
   
   const performDelete = async (quantityToDelete) => {
@@ -245,17 +256,13 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
       const newQuantity = currentQuantity - quantityToDelete;
       
       if (newQuantity <= 0) {
-        // Delete the entire book
         await bookService.deleteBook(book.isbn);
         if (onBookDeleted) {
           onBookDeleted();
         }
         onClose();
       } else {
-        // Update quantity
         const response = await bookService.updateQuantity(book.isbn, newQuantity);
-        
-        // Update local state
         setCurrentBookData({ ...currentBookData, quantity: newQuantity });
         setEditedBook({ ...editedBook, quantity: newQuantity });
         
@@ -270,10 +277,6 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDeleteDialogConfirm = () => {
-    performDelete(deleteQuantity);
   };
 
   const handleAddTag = () => {
@@ -322,506 +325,642 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
     );
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'to-read': return 'info';
-      case 'reading': return 'primary';
-      case 'read': return 'success';
-      case 'loaned': return 'warning';
-      default: return 'default';
-    }
-  };
-
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case 'to-read': return 'To Read';
-      case 'reading': return 'Reading';
-      case 'read': return 'Read';
-      case 'loaned': return 'Loaned';
-      default: return status;
-    }
-  };
-
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      fullScreen={isMobile}
-    >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        pb: 1,
-      }}>
-        <Typography variant="h6" component="div" sx={{ pr: 2 }}>
-          {book.title}
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          {!editMode ? (
-            <IconButton onClick={() => setEditMode(true)} size="small">
-              <EditIcon />
+    <>
+      <Dialog 
+        open={open} 
+        onClose={onClose}
+        maxWidth="lg"
+        fullWidth
+        fullScreen={isMobile}
+        PaperProps={{
+          sx: {
+            borderRadius: isMobile ? 0 : 3,
+            overflow: 'hidden',
+          }
+        }}
+      >
+        {/* Custom Dialog Header */}
+        <Box
+          sx={{
+            background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+            color: 'white',
+            p: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 600, pr: 2 }}>
+            {displayBook.title}
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            {!editMode ? (
+              <>
+                <Tooltip title="Edit">
+                  <IconButton 
+                    onClick={() => setEditMode(true)} 
+                    size="small"
+                    sx={{ color: 'white' }}
+                  >
+                    <EditIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="More options">
+                  <IconButton 
+                    onClick={(e) => setMenuAnchorEl(e.currentTarget)}
+                    size="small"
+                    sx={{ color: 'white' }}
+                  >
+                    <MoreIcon />
+                  </IconButton>
+                </Tooltip>
+              </>
+            ) : (
+              <>
+                <Button
+                  startIcon={<SaveIcon />}
+                  onClick={handleSave}
+                  size="small"
+                  disabled={loading}
+                  sx={{ 
+                    color: 'white',
+                    bgcolor: alpha(theme.palette.common.white, 0.15),
+                    '&:hover': {
+                      bgcolor: alpha(theme.palette.common.white, 0.25),
+                    }
+                  }}
+                >
+                  Save
+                </Button>
+                <Button
+                  startIcon={<CancelIcon />}
+                  onClick={() => {
+                    setEditMode(false);
+                    const resetBook = currentBookData || book;
+                    setEditedBook({
+                      status: resetBook.status || 'to-read',
+                      rating: resetBook.rating || 0,
+                      notes: resetBook.notes || '',
+                      tags: resetBook.tags || [],
+                      genres: resetBook.genres || [],
+                      coverImage: resetBook.coverImage || '',
+                      quantity: resetBook.quantity || 1,
+                    });
+                    setSelectedCoverIndex(0);
+                  }}
+                  size="small"
+                  disabled={loading}
+                  sx={{ color: 'white' }}
+                >
+                  Cancel
+                </Button>
+              </>
+            )}
+            <IconButton 
+              onClick={onClose} 
+              size="small"
+              sx={{ color: 'white', ml: 1 }}
+            >
+              <CloseIcon />
             </IconButton>
-          ) : (
-            <>
-              <IconButton onClick={handleSave} size="small" color="primary" disabled={loading}>
-                <SaveIcon />
-              </IconButton>
-              <IconButton onClick={() => {
-                setEditMode(false);
-                // Reset to current values (not original)
-                const resetBook = currentBookData || book;
-                setEditedBook({
-                  status: resetBook.status || 'to-read',
-                  rating: resetBook.rating || 0,
-                  notes: resetBook.notes || '',
-                  tags: resetBook.tags || [],
-                  genres: resetBook.genres || [],
-                  coverImage: resetBook.coverImage || '',
-                });
-                setSelectedCoverIndex(0);
-              }} size="small" disabled={loading}>
-                <CancelIcon />
-              </IconButton>
-            </>
-          )}
-          <IconButton onClick={onClose} size="small">
-            <CloseIcon />
-          </IconButton>
+          </Box>
         </Box>
-      </DialogTitle>
 
-      <DialogContent>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
+        <DialogContent sx={{ p: 0 }}>
+          {error && (
+            <Alert severity="error" sx={{ m: 2 }} onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
 
-        <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)} sx={{ mb: 2 }}>
-          <Tab label="Details" />
-          <Tab label="Description" />
-          <Tab label="Notes" />
-          <Tab label="Collections" />
-        </Tabs>
+          {/* Two Column Layout */}
+          <Grid container>
+            {/* Left Column - Book Cover & Rating */}
+            <Grid item xs={12} md={4} sx={{ 
+              bgcolor: isTablet ? 'background.paper' : 'grey.50',
+              p: 3,
+              borderRight: isTablet ? 'none' : '1px solid',
+              borderColor: 'divider',
+            }}>
+              <Fade in timeout={500}>
+                <Box>
+                  {/* Book Cover */}
+                  <Card 
+                    elevation={3}
+                    sx={{ 
+                      mb: 3,
+                      borderRadius: 2,
+                      overflow: 'hidden',
+                      position: 'relative',
+                    }}
+                  >
+                    {editMode && coverOptions.length > 0 ? (
+                      <>
+                        <CardMedia
+                          component="img"
+                          image={coverOptions[selectedCoverIndex].url}
+                          alt={book.title}
+                          sx={{ 
+                            height: 'auto',
+                            maxHeight: 500,
+                            width: '100%',
+                            objectFit: 'contain',
+                            bgcolor: 'grey.100',
+                          }}
+                          onError={(e) => {
+                            e.target.src = '/api/placeholder/300/450';
+                          }}
+                        />
+                        
+                        {coverOptions.length > 1 && (
+                          <>
+                            <IconButton
+                              onClick={handlePrevCover}
+                              sx={{
+                                position: 'absolute',
+                                left: 8,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                bgcolor: alpha(theme.palette.common.black, 0.5),
+                                color: 'white',
+                                '&:hover': { 
+                                  bgcolor: alpha(theme.palette.common.black, 0.7),
+                                },
+                              }}
+                            >
+                              <PrevIcon />
+                            </IconButton>
+                            <IconButton
+                              onClick={handleNextCover}
+                              sx={{
+                                position: 'absolute',
+                                right: 8,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                bgcolor: alpha(theme.palette.common.black, 0.5),
+                                color: 'white',
+                                '&:hover': { 
+                                  bgcolor: alpha(theme.palette.common.black, 0.7),
+                                },
+                              }}
+                            >
+                              <NextIcon />
+                            </IconButton>
+                          </>
+                        )}
+                        
+                        <Box sx={{
+                          position: 'absolute',
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          bgcolor: alpha(theme.palette.common.black, 0.7),
+                          color: 'white',
+                          p: 1,
+                        }}>
+                          <Typography variant="caption">
+                            {coverOptions[selectedCoverIndex].source} - {coverOptions[selectedCoverIndex].quality}
+                          </Typography>
+                        </Box>
+                      </>
+                    ) : (
+                      displayBook.coverImage && (
+                        <CardMedia
+                          component="img"
+                          image={displayBook.coverImage}
+                          alt={displayBook.title}
+                          sx={{ 
+                            height: 'auto',
+                            maxHeight: 500,
+                            width: '100%',
+                            objectFit: 'contain',
+                            bgcolor: 'grey.100',
+                          }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      )
+                    )}
+                  </Card>
 
-        {tabValue === 0 && (
-          <Grid container spacing={3}>
-            {/* Book Cover */}
-            <Grid item xs={12} sm={4}>
-              <Box>
-                {editMode ? (
-                  // Edit mode - show cover selection with navigation
-                  <Box>
-                    <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <ImageIcon fontSize="small" />
-                      Select Cover ({selectedCoverIndex + 1} of {coverOptions.length})
+                  {/* Rating */}
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="overline" sx={{ color: 'text.secondary' }}>
+                      Your Rating
                     </Typography>
-                    <Card sx={{ position: 'relative' }}>
-                      {coverOptions.length > 0 && (
-                        <>
-                          <CardMedia
-                            component="img"
-                            image={coverOptions[selectedCoverIndex].url}
-                            alt={book.title}
-                            sx={{ height: 'auto', maxHeight: 400 }}
-                            onError={(e) => {
-                              e.target.src = '/api/placeholder/200/300';
-                            }}
-                          />
-                          
-                          {/* Navigation buttons */}
-                          {coverOptions.length > 1 && (
-                            <>
-                              <IconButton
-                                onClick={handlePrevCover}
-                                sx={{
-                                  position: 'absolute',
-                                  left: 0,
-                                  top: '50%',
-                                  transform: 'translateY(-50%)',
-                                  bgcolor: 'rgba(0, 0, 0, 0.5)',
-                                  color: 'white',
-                                  '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.7)' },
-                                }}
-                              >
-                                <PrevIcon />
-                              </IconButton>
-                              <IconButton
-                                onClick={handleNextCover}
-                                sx={{
-                                  position: 'absolute',
-                                  right: 0,
-                                  top: '50%',
-                                  transform: 'translateY(-50%)',
-                                  bgcolor: 'rgba(0, 0, 0, 0.5)',
-                                  color: 'white',
-                                  '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.7)' },
-                                }}
-                              >
-                                <NextIcon />
-                              </IconButton>
-                            </>
-                          )}
-                          
-                          {/* Cover info overlay */}
-                          <Box sx={{
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            bgcolor: 'rgba(0, 0, 0, 0.7)',
-                            color: 'white',
-                            p: 1,
-                          }}>
-                            <Typography variant="caption">
-                              {coverOptions[selectedCoverIndex].source} - {coverOptions[selectedCoverIndex].quality}
-                            </Typography>
-                          </Box>
-                        </>
-                      )}
-                    </Card>
-                  </Box>
-                ) : (
-                  // View mode - show current cover
-                  <Box>
-                    {book.coverImage && (
-                      <img
-                        src={book.coverImage}
-                        alt={book.title}
-                        style={{
-                          maxWidth: '100%',
-                          height: 'auto',
-                          maxHeight: 400,
-                          borderRadius: 8,
-                          boxShadow: theme.shadows[4],
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
+                      <Rating 
+                        value={editMode ? editedBook.rating : displayBook.rating || 0}
+                        onChange={(e, newValue) => {
+                          if (editMode) {
+                            setEditedBook({...editedBook, rating: newValue});
+                          }
                         }}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
+                        readOnly={!editMode}
+                        size="large"
+                        precision={0.5}
+                        icon={<StarIcon fontSize="inherit" />}
+                        emptyIcon={<StarIcon fontSize="inherit" />}
+                        sx={{
+                          '& .MuiRating-iconFilled': {
+                            color: theme.palette.warning.main,
+                          },
                         }}
                       />
-                    )}
+                    </Box>
                   </Box>
-                )}
-              </Box>
-            </Grid>
 
-            {/* Book Details */}
-            <Grid item xs={12} sm={8}>
-              {/* Status and Rating */}
-              <Paper sx={{ p: 2, mb: 2 }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    {editMode ? (
-                      <FormControl fullWidth size="small">
-                        <InputLabel>Status</InputLabel>
-                        <Select
-                          value={editedBook.status}
-                          label="Status"
-                          onChange={(e) => setEditedBook({...editedBook, status: e.target.value})}
-                        >
-                          <MenuItem value="to-read">To Read</MenuItem>
-                          <MenuItem value="reading">Reading</MenuItem>
-                          <MenuItem value="read">Read</MenuItem>
-                          <MenuItem value="loaned">Loaned</MenuItem>
-                        </Select>
-                      </FormControl>
-                    ) : (
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">Status</Typography>
-                        <Chip 
-                          label={getStatusLabel(displayBook.status)} 
-                          color={getStatusColor(displayBook.status)}
-                          size="small"
-                        />
-                      </Box>
-                    )}
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Rating
-                    </Typography>
-                    <Rating 
-                      value={editMode ? editedBook.rating : displayBook.rating || 0}
-                      onChange={(e, newValue) => {
-                        if (editMode) {
-                          setEditedBook({...editedBook, rating: newValue});
-                        }
-                      }}
-                      readOnly={!editMode}
-                    />
-                  </Grid>
-                </Grid>
-              </Paper>
-
-              {/* Book Information */}
-              <Paper sx={{ p: 2 }}>
-                <Typography variant="h6" gutterBottom>Book Information</Typography>
-                <Divider sx={{ mb: 2 }} />
-                
-                <Grid container spacing={2}>
                   {/* Quantity Display */}
                   {(displayBook.quantity || 1) > 1 && (
-                    <Grid item xs={12}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <InventoryIcon fontSize="small" color="action" />
-                        <Typography variant="body2" color="text.secondary">Quantity</Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Chip 
-                          label={`${displayBook.quantity} copies in library`}
-                          color="secondary"
-                          variant="outlined"
-                          icon={<InventoryIcon />}
-                        />
-                      </Box>
-                    </Grid>
-                  )}
-                  
-                  {book.authors && (
-                    <Grid item xs={12}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <AuthorIcon fontSize="small" color="action" />
-                        <Typography variant="body2" color="text.secondary">Authors</Typography>
-                      </Box>
-                      <Typography variant="body1">{book.authors.join(', ')}</Typography>
-                    </Grid>
-                  )}
-                  
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">ISBN</Typography>
-                    <Typography variant="body1">{book.isbn}</Typography>
-                  </Grid>
-                  
-                  {book.publisher && (
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="body2" color="text.secondary">Publisher</Typography>
-                      <Typography variant="body1">{book.publisher}</Typography>
-                    </Grid>
-                  )}
-                  
-                  {book.publishedDate && (
-                    <Grid item xs={12} sm={6}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <DateIcon fontSize="small" color="action" />
-                        <Typography variant="body2" color="text.secondary">Published</Typography>
-                      </Box>
-                      <Typography variant="body1">
-                        {new Date(book.publishedDate).toLocaleDateString()}
-                      </Typography>
-                    </Grid>
-                  )}
-                  
-                  {book.pageCount > 0 && (
-                    <Grid item xs={12} sm={6}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <PagesIcon fontSize="small" color="action" />
-                        <Typography variant="body2" color="text.secondary">Pages</Typography>
-                      </Box>
-                      <Typography variant="body1">{book.pageCount}</Typography>
-                    </Grid>
-                  )}
-                  
-                  {(book.genres?.length > 0 || editMode) && (
-                    <Grid item xs={12}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <CategoryIcon fontSize="small" color="action" />
-                        <Typography variant="body2" color="text.secondary">Genres</Typography>
-                      </Box>
-                      {editMode ? (
-                        <Box>
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
-                            {editedBook.genres.map((genre, index) => (
-                              <Chip
-                                key={index}
-                                label={genre}
-                                size="small"
-                                variant="outlined"
-                                onDelete={() => handleRemoveGenre(genre)}
-                              />
-                            ))}
-                          </Box>
-                          <Box sx={{ display: 'flex', gap: 1 }}>
-                            <TextField
-                              size="small"
-                              placeholder="Add genre..."
-                              value={newGenre}
-                              onChange={(e) => setNewGenre(e.target.value)}
-                              onKeyPress={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  handleAddGenre();
-                                }
-                              }}
-                            />
-                            <IconButton size="small" onClick={handleAddGenre}>
-                              <AddIcon fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        </Box>
-                      ) : (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                          {displayBook.genres?.map((genre, index) => (
-                            <Chip 
-                              key={index} 
-                              label={genre} 
-                              size="small" 
-                              variant="outlined"
-                            />
-                          ))}
-                        </Box>
-                      )}
-                    </Grid>
-                  )}
-                  
-                  {/* Tags section */}
-                  <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <TagIcon fontSize="small" color="action" />
-                      <Typography variant="body2" color="text.secondary">Tags</Typography>
+                    <Box sx={{ mt: 3, textAlign: 'center' }}>
+                      <Chip 
+                        label={`${displayBook.quantity} copies in library`}
+                        color="secondary"
+                        icon={<InventoryIcon />}
+                        sx={{ fontWeight: 600 }}
+                      />
                     </Box>
-                    {editMode ? (
+                  )}
+                </Box>
+              </Fade>
+            </Grid>
+
+            {/* Right Column - Book Details */}
+            <Grid item xs={12} md={8} sx={{ p: 3 }}>
+              <Grow in timeout={700}>
+                <Box>
+                  {/* Status Pills - Always Visible */}
+                  <Box sx={{ mb: 3 }}>
+                    <StatusPills
+                      status={displayBook.status}
+                      onChange={handleQuickStatusChange}
+                      disabled={loading}
+                    />
+                  </Box>
+
+                  <Divider sx={{ my: 3 }} />
+
+                  {/* Tabs for organized content */}
+                  <Tabs 
+                    value={tabValue} 
+                    onChange={(e, v) => setTabValue(v)}
+                    sx={{ 
+                      mb: 3,
+                      '& .MuiTab-root': {
+                        textTransform: 'none',
+                        fontWeight: 600,
+                      }
+                    }}
+                  >
+                    <Tab label="Details" />
+                    <Tab label="Description" />
+                    <Tab label="Notes" />
+                    <Tab label="Collections" />
+                  </Tabs>
+
+                  {/* Tab Content */}
+                  {tabValue === 0 && (
+                    <Fade in timeout={300}>
                       <Box>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
-                          {editedBook.tags.map((tag, index) => (
-                            <Chip
-                              key={index}
-                              label={tag}
-                              size="small"
-                              color="secondary"
-                              onDelete={() => handleRemoveTag(tag)}
-                            />
-                          ))}
-                        </Box>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Grid container spacing={2}>
+                          {/* Authors */}
+                          {book.authors && (
+                            <Grid item xs={12}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                <AuthorIcon fontSize="small" color="action" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                  Authors
+                                </Typography>
+                              </Box>
+                              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                {book.authors.join(', ')}
+                              </Typography>
+                            </Grid>
+                          )}
+
+                          {/* ISBN */}
+                          <Grid item xs={12} sm={6}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                              <IsbnIcon fontSize="small" color="action" />
+                              <Typography variant="subtitle2" color="text.secondary">
+                                ISBN
+                              </Typography>
+                            </Box>
+                            <Typography variant="body1">{book.isbn}</Typography>
+                          </Grid>
+
+                          {/* Publisher */}
+                          {book.publisher && (
+                            <Grid item xs={12} sm={6}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                <PublisherIcon fontSize="small" color="action" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                  Publisher
+                                </Typography>
+                              </Box>
+                              <Typography variant="body1">{book.publisher}</Typography>
+                            </Grid>
+                          )}
+
+                          {/* Published Date */}
+                          {book.publishedDate && (
+                            <Grid item xs={12} sm={6}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                <DateIcon fontSize="small" color="action" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                  Published
+                                </Typography>
+                              </Box>
+                              <Typography variant="body1">
+                                {new Date(book.publishedDate).toLocaleDateString()}
+                              </Typography>
+                            </Grid>
+                          )}
+
+                          {/* Page Count */}
+                          {book.pageCount > 0 && (
+                            <Grid item xs={12} sm={6}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                <PagesIcon fontSize="small" color="action" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                  Pages
+                                </Typography>
+                              </Box>
+                              <Typography variant="body1">{book.pageCount}</Typography>
+                            </Grid>
+                          )}
+
+                          {/* Genres */}
+                          <Grid item xs={12}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                              <CategoryIcon fontSize="small" color="action" />
+                              <Typography variant="subtitle2" color="text.secondary">
+                                Genres
+                              </Typography>
+                            </Box>
+                            {editMode ? (
+                              <Box>
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                                  {editedBook.genres.map((genre, index) => (
+                                    <Chip
+                                      key={index}
+                                      label={genre}
+                                      size="small"
+                                      onDelete={() => handleRemoveGenre(genre)}
+                                      sx={{ 
+                                        bgcolor: theme.palette.primary.main,
+                                        color: 'white',
+                                        '& .MuiChip-deleteIcon': {
+                                          color: 'rgba(255, 255, 255, 0.7)',
+                                          '&:hover': {
+                                            color: 'white',
+                                          },
+                                        },
+                                      }}
+                                    />
+                                  ))}
+                                </Box>
+                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                  <TextField
+                                    size="small"
+                                    placeholder="Add genre..."
+                                    value={newGenre}
+                                    onChange={(e) => setNewGenre(e.target.value)}
+                                    onKeyPress={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleAddGenre();
+                                      }
+                                    }}
+                                    sx={{ flexGrow: 1 }}
+                                  />
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={handleAddGenre}
+                                    sx={{ 
+                                      bgcolor: theme.palette.primary.main,
+                                      color: 'white',
+                                      '&:hover': {
+                                        bgcolor: theme.palette.primary.dark,
+                                      }
+                                    }}
+                                  >
+                                    <AddIcon fontSize="small" />
+                                  </IconButton>
+                                </Box>
+                              </Box>
+                            ) : (
+                              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                {displayBook.genres && displayBook.genres.length > 0 ? (
+                                  displayBook.genres.map((genre, index) => (
+                                    <Chip 
+                                      key={index} 
+                                      label={genre} 
+                                      size="small"
+                                      sx={{ 
+                                        bgcolor: theme.palette.primary.main,
+                                        color: 'white',
+                                      }}
+                                    />
+                                  ))
+                                ) : (
+                                  <Typography variant="body2" color="text.secondary">
+                                    No genres added
+                                  </Typography>
+                                )}
+                              </Box>
+                            )}
+                          </Grid>
+
+                          {/* Tags */}
+                          <Grid item xs={12}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                              <TagIcon fontSize="small" color="action" />
+                              <Typography variant="subtitle2" color="text.secondary">
+                                Tags
+                              </Typography>
+                            </Box>
+                            {editMode ? (
+                              <Box>
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                                  {editedBook.tags.map((tag, index) => (
+                                    <Chip
+                                      key={index}
+                                      label={tag}
+                                      size="small"
+                                      color="secondary"
+                                      onDelete={() => handleRemoveTag(tag)}
+                                    />
+                                  ))}
+                                </Box>
+                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                  <TextField
+                                    size="small"
+                                    placeholder="Add tag..."
+                                    value={newTag}
+                                    onChange={(e) => setNewTag(e.target.value)}
+                                    onKeyPress={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleAddTag();
+                                      }
+                                    }}
+                                    sx={{ flexGrow: 1 }}
+                                  />
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={handleAddTag}
+                                    sx={{ 
+                                      bgcolor: theme.palette.secondary.main,
+                                      color: 'white',
+                                      '&:hover': {
+                                        bgcolor: theme.palette.secondary.dark,
+                                      }
+                                    }}
+                                  >
+                                    <AddIcon fontSize="small" />
+                                  </IconButton>
+                                </Box>
+                              </Box>
+                            ) : (
+                              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                {displayBook.tags && displayBook.tags.length > 0 ? (
+                                  displayBook.tags.map((tag, index) => (
+                                    <Chip 
+                                      key={index} 
+                                      label={tag} 
+                                      size="small" 
+                                      color="secondary" 
+                                    />
+                                  ))
+                                ) : (
+                                  <Typography variant="body2" color="text.secondary">
+                                    No tags added
+                                  </Typography>
+                                )}
+                              </Box>
+                            )}
+                          </Grid>
+                        </Grid>
+                      </Box>
+                    </Fade>
+                  )}
+
+                  {tabValue === 1 && (
+                    <Fade in timeout={300}>
+                      <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                        <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                          {book.description || 'No description available'}
+                        </Typography>
+                      </Paper>
+                    </Fade>
+                  )}
+
+                  {tabValue === 2 && (
+                    <Fade in timeout={300}>
+                      <Box>
+                        {editMode ? (
                           <TextField
-                            size="small"
-                            placeholder="Add tag..."
-                            value={newTag}
-                            onChange={(e) => setNewTag(e.target.value)}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleAddTag();
+                            fullWidth
+                            multiline
+                            rows={8}
+                            value={editedBook.notes}
+                            onChange={(e) => setEditedBook({...editedBook, notes: e.target.value})}
+                            placeholder="Add your personal notes about this book..."
+                            variant="outlined"
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                bgcolor: 'background.paper',
                               }
                             }}
                           />
-                          <IconButton size="small" onClick={handleAddTag}>
-                            <AddIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
+                        ) : (
+                          <Paper sx={{ p: 2, bgcolor: 'grey.50', minHeight: 200 }}>
+                            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                              {displayBook.notes || 'No notes yet. Click edit to add notes.'}
+                            </Typography>
+                          </Paper>
+                        )}
                       </Box>
-                    ) : (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {displayBook.tags && displayBook.tags.length > 0 ? (
-                    displayBook.tags.map((tag, index) => (
-                    <Chip key={index} label={tag} size="small" color="secondary" />
-                    ))
-                    ) : (
-                    <Typography variant="body2" color="text.secondary">
-                    No tags added
-                    </Typography>
-                    )}
-                    </Box>
-                    )}
-                  </Grid>
-                </Grid>
-              </Paper>
+                    </Fade>
+                  )}
+
+                  {tabValue === 3 && (
+                    <Fade in timeout={300}>
+                      <Box>
+                        {displayBook.collections && displayBook.collections.length > 0 ? (
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                              This book is in the following collections:
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
+                              {displayBook.collections.map((collection) => (
+                                <Chip
+                                  key={collection._id || collection}
+                                  label={collection.name || collection}
+                                  color="primary"
+                                  icon={<CollectionsIcon />}
+                                />
+                              ))}
+                            </Box>
+                          </Box>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                            This book is not in any collections yet.
+                          </Typography>
+                        )}
+                        
+                        <Button
+                          variant="contained"
+                          startIcon={<CollectionsIcon />}
+                          onClick={onManageCollections}
+                          fullWidth
+                          sx={{
+                            py: 1.5,
+                            background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                          }}
+                        >
+                          Manage Collections
+                        </Button>
+                      </Box>
+                    </Fade>
+                  )}
+                </Box>
+              </Grow>
             </Grid>
           </Grid>
-        )}
+        </DialogContent>
 
-        {tabValue === 1 && (
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>Description</Typography>
-            <Divider sx={{ mb: 2 }} />
-            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-              {book.description || 'No description available'}
-            </Typography>
-          </Paper>
-        )}
+        {/* Dialog Actions - Minimal Footer */}
+        <DialogActions sx={{ p: 2, bgcolor: 'grey.50' }}>
+          <Button onClick={onClose} sx={{ ml: 'auto' }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-        {tabValue === 2 && (
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>Personal Notes</Typography>
-            <Divider sx={{ mb: 2 }} />
-            {editMode ? (
-              <TextField
-                fullWidth
-                multiline
-                rows={6}
-                value={editedBook.notes}
-                onChange={(e) => setEditedBook({...editedBook, notes: e.target.value})}
-                placeholder="Add your personal notes about this book..."
-                variant="outlined"
-              />
-            ) : (
-            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-            {displayBook.notes || 'No notes yet. Click edit to add notes.'}
-            </Typography>
-            )}
-          </Paper>
-        )}
+      {/* More Options Menu */}
+      <Menu
+        anchorEl={menuAnchorEl}
+        open={Boolean(menuAnchorEl)}
+        onClose={() => setMenuAnchorEl(null)}
+        PaperProps={{
+          sx: {
+            width: 200,
+            borderRadius: 2,
+          }
+        }}
+      >
+        <MenuItem onClick={handleDelete}>
+          <ListItemIcon>
+            <DeleteIcon fontSize="small" color="error" />
+          </ListItemIcon>
+          <ListItemText>Delete Book</ListItemText>
+        </MenuItem>
+      </Menu>
 
-        {tabValue === 3 && (
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CollectionsIcon />
-                Collections
-              </Box>
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            
-            {displayBook.collections && displayBook.collections.length > 0 ? (
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  This book is in the following collections:
-                </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                  {displayBook.collections.map((collection) => (
-                    <Chip
-                      key={collection._id || collection}
-                      label={collection.name || collection}
-                      color="primary"
-                      variant="outlined"
-                    />
-                  ))}
-                </Box>
-              </Box>
-            ) : (
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                This book is not in any collections yet.
-              </Typography>
-            )}
-            
-            <Button
-              variant="contained"
-              startIcon={<CollectionsIcon />}
-              onClick={onManageCollections}
-              fullWidth
-            >
-              Manage Collections
-            </Button>
-          </Paper>
-        )}
-      </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button 
-          onClick={handleDelete} 
-          color="error"
-          startIcon={<DeleteIcon />}
-          disabled={loading}
-        >
-          Delete Book
-        </Button>
-        <Box sx={{ flexGrow: 1 }} />
-        <Button onClick={onClose}>Close</Button>
-      </DialogActions>
-      
       {/* Delete Quantity Dialog */}
       <Dialog
         open={showDeleteDialog}
@@ -829,18 +968,14 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle>
-          Delete Copies
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body1" gutterBottom>
-              You have <strong>{currentBookData?.quantity || book?.quantity || 1} copies</strong> of this book.
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              How many copies would you like to delete?
-            </Typography>
-          </Box>
+        <Box sx={{ p: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Delete Copies
+          </Typography>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            You have <strong>{currentBookData?.quantity || book?.quantity || 1} copies</strong> of this book.
+            How many would you like to delete?
+          </Typography>
           
           <Box sx={{ 
             display: 'flex', 
@@ -887,29 +1022,34 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
           
           <Alert 
             severity={deleteQuantity === (currentBookData?.quantity || book?.quantity || 1) ? "warning" : "info"}
-            sx={{ mt: 2 }}
           >
             {deleteQuantity === (currentBookData?.quantity || book?.quantity || 1)
               ? "This will remove the book entirely from your library."
               : `This will leave ${(currentBookData?.quantity || book?.quantity || 1) - deleteQuantity} ${((currentBookData?.quantity || book?.quantity || 1) - deleteQuantity) === 1 ? 'copy' : 'copies'} in your library.`
             }
           </Alert>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowDeleteDialog(false)}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleDeleteDialogConfirm}
-            color="error"
-            variant="contained"
-            startIcon={<DeleteIcon />}
-          >
-            Delete {deleteQuantity} {deleteQuantity === 1 ? 'Copy' : 'Copies'}
-          </Button>
-        </DialogActions>
+          
+          <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
+            <Button 
+              onClick={() => setShowDeleteDialog(false)}
+              fullWidth
+              variant="outlined"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => performDelete(deleteQuantity)}
+              color="error"
+              variant="contained"
+              fullWidth
+              startIcon={<DeleteIcon />}
+            >
+              Delete {deleteQuantity} {deleteQuantity === 1 ? 'Copy' : 'Copies'}
+            </Button>
+          </Box>
+        </Box>
       </Dialog>
-    </Dialog>
+    </>
   );
 };
 
