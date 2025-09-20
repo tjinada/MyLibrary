@@ -105,102 +105,25 @@ const ImprovedToolbar = ({
       }}>
         {/* Add Book and Collection Buttons */}
         <Box sx={{ display: 'flex', gap: 1 }}>
-          {isMobile ? (
-            // Mobile: Single button that opens quick add
-            <Button
-              variant="contained"
-              startIcon={<QuickAddIcon />}
-              onClick={handleQuickAdd}
-              size="large"
-              sx={{ 
-                minWidth: 140,
-                fontWeight: 600,
-                boxShadow: 2,
-                bgcolor: 'success.main',
-                '&:hover': {
-                  boxShadow: 4,
-                  bgcolor: 'success.dark',
-                }
-              }}
-            >
-              Quick Add
-            </Button>
-          ) : (
-            // Desktop: Split button with options
-            <Box sx={{ display: 'flex' }}>
-              <Button
-                variant="contained"
-                startIcon={<QuickAddIcon />}
-                onClick={handleQuickAdd}
-                size="large"
-                sx={{ 
-                  borderTopRightRadius: 0,
-                  borderBottomRightRadius: 0,
-                  fontWeight: 600,
-                  boxShadow: 2,
-                  bgcolor: 'success.main',
-                  '&:hover': {
-                    boxShadow: 4,
-                    bgcolor: 'success.dark',
-                  }
-                }}
-              >
-                Quick Add
-              </Button>
-              <Button
-                variant="contained"
-                size="large"
-                onClick={handleAddMenuOpen}
-                sx={{ 
-                  borderTopLeftRadius: 0,
-                  borderBottomLeftRadius: 0,
-                  borderLeft: '1px solid rgba(255,255,255,0.3)',
-                  minWidth: 'auto',
-                  px: 1,
-                  boxShadow: 2,
-                  bgcolor: 'success.main',
-                  '&:hover': {
-                    boxShadow: 4,
-                    bgcolor: 'success.dark',
-                  }
-                }}
-              >
-                <ArrowDownIcon />
-              </Button>
-              <Menu
-                anchorEl={addMenuAnchor}
-                open={Boolean(addMenuAnchor)}
-                onClose={handleAddMenuClose}
-                anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'right',
-                }}
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
-                }}
-              >
-                <MenuItem onClick={handleQuickAdd}>
-                  <ListItemIcon>
-                    <QuickAddIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Quick Add" 
-                    secondary="Fast continuous scanning"
-                  />
-                </MenuItem>
-                <MenuItem onClick={handleManualAdd}>
-                  <ListItemIcon>
-                    <ManualIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Manual Add" 
-                    secondary="Add with full details"
-                  />
-                </MenuItem>
-              </Menu>
-            </Box>
-          )}
+          {/* Single Quick Add button for both mobile and desktop */}
+          <Button
+            variant="contained"
+            startIcon={<QuickAddIcon />}
+            onClick={handleQuickAdd}
+            size="large"
+            sx={{ 
+              minWidth: 140,
+              fontWeight: 600,
+              boxShadow: 2,
+              bgcolor: 'success.main',
+              '&:hover': {
+                boxShadow: 4,
+                bgcolor: 'success.dark',
+              }
+            }}
+          >
+            Quick Add
+          </Button>
           
           {/* Create Collection Button */}
           <Button

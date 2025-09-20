@@ -316,7 +316,8 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       fullScreen={isMobile}
       PaperProps={{
         sx: { 
-          minHeight: isMobile ? '100vh' : '600px',
+          minHeight: isMobile ? '100vh' : '400px',
+          maxHeight: isMobile ? '100vh' : '500px',
         }
       }}
     >
@@ -355,149 +356,133 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       <DialogContent sx={{ p: 0 }}>
         {!confirmationMode ? (
           // Scanner Mode
-          <Box sx={{ display: 'flex', height: '100%' }}>
-            {/* Main scanning area */}
-            <Box sx={{ flex: 1, p: 2 }}>
-              {/* Progress indicator */}
-              {loading && <LinearProgress sx={{ mb: 2 }} />}
-              
-              {/* Error display */}
-              {error && (
-                <Alert 
-                  severity="error" 
-                  sx={{ mb: 2 }}
-                  onClose={() => setError(null)}
-                >
-                  {error}
-                </Alert>
-              )}
-
-              {/* Success message */}
-              {currentBook?.success && (
-                <Zoom in>
-                  <Alert severity="success" sx={{ mb: 2 }}>
-                    Book successfully added! Ready for next scan.
-                  </Alert>
-                </Zoom>
-              )}
-
-              {/* Mobile scanner */}
-              {isMobile && showScanner && (
-                <Box sx={{ mb: 2 }}>
-                  <MobileBarcodeScanner
-                    onScan={handleISBNSubmit}
-                    onError={(err) => setError(err.message)}
-                    autoStart={true}
-                  />
-                </Box>
-              )}
-
-              {/* Desktop ISBN input */}
-              {!isMobile && (
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Scan or type ISBN:
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <TextField
-                      fullWidth
-                      label="ISBN"
-                      variant="outlined"
-                      value={isbn}
-                      onChange={(e) => setIsbn(e.target.value)}
-                      placeholder="Scan with handheld scanner or type"
-                      disabled={loading || processingBook}
-                      inputRef={isbnInputRef}
-                      autoFocus
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' && !loading) {
-                          handleISBNSubmit();
-                        }
-                      }}
-                      InputProps={{
-                        sx: { 
-                          fontFamily: 'monospace',
-                          fontSize: '1.1rem',
-                          bgcolor: 'action.hover',
-                        }
-                      }}
-                    />
-                    <Button
-                      variant="contained"
-                      onClick={() => handleISBNSubmit()}
-                      disabled={loading || !isbn || processingBook}
-                    >
-                      Lookup
-                    </Button>
-                  </Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    💡 Tip: Your handheld scanner should automatically submit after scanning
-                  </Typography>
-                </Box>
-              )}
-
-              {/* Mobile manual entry option */}
-              {isMobile && (
-                <Box sx={{ mt: 3 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Or enter manually:
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="ISBN"
-                      value={isbn}
-                      onChange={(e) => setIsbn(e.target.value)}
-                      disabled={loading || processingBook}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' && !loading) {
-                          handleISBNSubmit();
-                        }
-                      }}
-                    />
-                    <Button
-                      variant="contained"
-                      size="small"
-                      onClick={() => handleISBNSubmit()}
-                      disabled={loading || !isbn || processingBook}
-                    >
-                      Lookup
-                    </Button>
-                  </Box>
-                </Box>
-              )}
-            </Box>
-
-            {/* Recently added sidebar */}
-            {!isMobile && recentlyAdded.length > 0 && (
-              <Box
-                sx={{
-                  width: 300,
-                  borderLeft: 1,
-                  borderColor: 'divider',
-                  p: 2,
-                  bgcolor: 'grey.50',
-                }}
+          <Box sx={{ p: 3 }}>
+            {/* Progress indicator */}
+            {loading && <LinearProgress sx={{ mb: 2 }} />}
+            
+            {/* Error display */}
+            {error && (
+              <Alert 
+                severity="error" 
+                sx={{ mb: 2 }}
+                onClose={() => setError(null)}
               >
+                {error}
+              </Alert>
+            )}
+
+            {/* Success message */}
+            {currentBook?.success && (
+              <Zoom in>
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  Book successfully added! Ready for next scan.
+                </Alert>
+              </Zoom>
+            )}
+
+            {/* Mobile scanner */}
+            {isMobile && showScanner && (
+              <Box sx={{ mb: 2 }}>
+                <MobileBarcodeScanner
+                  onScan={handleISBNSubmit}
+                  onError={(err) => setError(err.message)}
+                  autoStart={true}
+                />
+              </Box>
+            )}
+
+            {/* Desktop ISBN input */}
+            {!isMobile && (
+              <Box>
                 <Typography variant="subtitle2" gutterBottom>
-                  Recently Added ({recentlyAdded.length})
+                  Scan or type ISBN:
                 </Typography>
-                <Box sx={{ mt: 2 }}>
-                  {recentlyAdded.map((book, index) => (
-                    <Fade in key={book.isbn + book.timestamp}>
-                      <Card sx={{ mb: 1 }}>
-                        <CardContent sx={{ py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
-                          <Typography variant="body2" noWrap>
-                            {book.title}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" noWrap>
-                            {book.authors?.[0]}
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    </Fade>
-                  ))}
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    fullWidth
+                    label="ISBN"
+                    variant="outlined"
+                    value={isbn}
+                    onChange={(e) => setIsbn(e.target.value)}
+                    placeholder="Scan with handheld scanner or type"
+                    disabled={loading || processingBook}
+                    inputRef={isbnInputRef}
+                    autoFocus
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && !loading) {
+                        handleISBNSubmit();
+                      }
+                    }}
+                    InputProps={{
+                      sx: { 
+                        fontFamily: 'monospace',
+                        fontSize: '1.1rem',
+                      }
+                    }}
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={() => handleISBNSubmit()}
+                    disabled={loading || !isbn || processingBook}
+                  >
+                    Lookup
+                  </Button>
+                </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  💡 Tip: Your handheld scanner should automatically submit after scanning
+                </Typography>
+                
+                {/* Recently added - inline for desktop */}
+                {recentlyAdded.length > 0 && (
+                  <Box sx={{ mt: 3 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Recently Added ({recentlyAdded.length})
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      {recentlyAdded.map((book, index) => (
+                        <Chip
+                          key={book.isbn + book.timestamp}
+                          label={book.title}
+                          variant="outlined"
+                          color="success"
+                          size="small"
+                          icon={book.quantity > 1 ? <Badge badgeContent={book.quantity} color="secondary" /> : null}
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+            )}
+
+            {/* Mobile manual entry option */}
+            {isMobile && (
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Or enter manually:
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="ISBN"
+                    value={isbn}
+                    onChange={(e) => setIsbn(e.target.value)}
+                    disabled={loading || processingBook}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && !loading) {
+                        handleISBNSubmit();
+                      }
+                    }}
+                  />
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => handleISBNSubmit()}
+                    disabled={loading || !isbn || processingBook}
+                  >
+                    Lookup
+                  </Button>
                 </Box>
               </Box>
             )}
