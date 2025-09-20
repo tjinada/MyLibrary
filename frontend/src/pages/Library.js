@@ -36,6 +36,7 @@ const Library = () => {
   
   // State management
   const [libraryItems, setLibraryItems] = useState([]);
+  const [allBooksForGenres, setAllBooksForGenres] = useState({ books: [], collections: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
@@ -65,7 +66,7 @@ const Library = () => {
   // Fetch library data
   useEffect(() => {
     fetchLibrary();
-  }, [filters.status, filters.genre, filters.sort, filters.search]);
+  }, [filters.status, filters.genre, filters.sort]); // Remove filters.search from here to avoid refetching on search
 
   // Save view preferences
   useEffect(() => {
@@ -76,16 +77,29 @@ const Library = () => {
     try {
       setLoading(true);
       
-      // Fetch all books - but let backend handle filtering based on collections
-      const booksData = await bookService.getBooks({
+      // Always fetch ALL books to calculate complete genre list
+      const allBooksData = await bookService.getBooks({
         page: 1,
         limit: 1000,
         status: filters.status !== 'all' ? filters.status : undefined,
-        genre: filters.genre !== 'all' ? filters.genre : undefined,
+        // Don't filter by genre when fetching, we'll filter client-side
       });
       
       // Fetch all collections
       const collectionsData = await collectionService.getCollections(true);
+      
+      // Store all books for genre calculation
+      setAllBooksForGenres({ books: allBooksData.books, collections: collectionsData });
+      
+      // Now filter books based on genre if needed
+      let booksToDisplay = allBooksData.books;
+      if (filters.genre !== 'all') {
+        booksToDisplay = allBooksData.books.filter(book => {
+          if (book.primaryCategory === filters.genre) return true;
+          if (book.genres && book.genres.includes(filters.genre)) return true;
+          return false;
+        });
+      }
       
       // Get all books that are in collections
       const booksInCollections = new Set();
@@ -103,8 +117,8 @@ const Library = () => {
       // When searching or filtering by genre, show ALL books including those in collections
       const showAllBooks = filters.search !== '' || filters.genre !== 'all';
       const filteredBooks = showAllBooks 
-        ? booksData.books  // Show all books when searching or filtering by genre
-        : booksData.books.filter(book => 
+        ? booksToDisplay  // Show filtered books when searching or filtering by genre
+        : booksToDisplay.filter(book => 
             !book.collections || book.collections.length === 0
           );  // Only show books not in any collection when browsing
       
@@ -247,14 +261,13 @@ const Library = () => {
     setPage(1);
   }, [filteredItems.length, itemsPerPage]);
 
-  // Extract genres from ALL books (including those in collections)
+  // Extract genres from ALL books in the library (not just currently visible ones)
   const genres = useMemo(() => {
     const genreMap = new Map();
     
-    // Count genres from standalone books
-    libraryItems.forEach(item => {
-      if (item.type === 'book') {
-        const book = item.data;
+    // Count genres from ALL books
+    if (allBooksForGenres.books) {
+      allBooksForGenres.books.forEach(book => {
         if (book.primaryCategory) {
           genreMap.set(book.primaryCategory, (genreMap.get(book.primaryCategory) || 0) + 1);
         } else if (book.genres) {
@@ -262,9 +275,13 @@ const Library = () => {
             genreMap.set(genre, (genreMap.get(genre) || 0) + 1);
           });
         }
-      } else if (item.type === 'collection' && item.data.books) {
-        // Also count genres from books inside collections
-        item.data.books.forEach(book => {
+      });
+    }
+    
+    // Also include genres from books in collections (if collections are populated)
+    if (allBooksForGenres.collections) {
+      allBooksForGenres.collections.forEach(collection => {
+        collection.books?.forEach(book => {
           if (book && typeof book === 'object') {
             if (book.primaryCategory) {
               genreMap.set(book.primaryCategory, (genreMap.get(book.primaryCategory) || 0) + 1);
@@ -275,16 +292,16 @@ const Library = () => {
             }
           }
         });
-      }
-    });
+      });
+    }
     
     return Array.from(genreMap.entries())
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 15);
-  }, [libraryItems]);
+  }, [allBooksForGenres]);
 
-  // Calculate book counts - count ALL books, not just visible ones
+  // Calculate book counts - count ALL books in the library
   const bookCounts = useMemo(() => {
     const counts = {
       all: 0,
@@ -294,30 +311,19 @@ const Library = () => {
       loaned: 0,
     };
     
-    // Count books from library items (standalone books)
-    libraryItems.forEach(item => {
-      if (item.type === 'book') {
+    // Count ALL books from the complete dataset
+    if (allBooksForGenres.books) {
+      allBooksForGenres.books.forEach(book => {
         counts.all++;
-        const status = item.data.status === 'available' ? 'to-read' : item.data.status;
+        const status = book.status === 'available' ? 'to-read' : book.status;
         if (counts[status] !== undefined) {
           counts[status]++;
         }
-      } else if (item.type === 'collection' && item.data.books) {
-        // Also count books inside collections for total count
-        item.data.books.forEach(book => {
-          if (book && typeof book === 'object') {
-            counts.all++;
-            const status = book.status === 'available' ? 'to-read' : book.status;
-            if (counts[status] !== undefined) {
-              counts[status]++;
-            }
-          }
-        });
-      }
-    });
+      });
+    }
     
     return counts;
-  }, [libraryItems]);
+  }, [allBooksForGenres]);
 
   // Handler functions
   const handleSearch = useCallback((searchTerm) => {
