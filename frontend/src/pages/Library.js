@@ -116,13 +116,18 @@ const Library = () => {
       }));
       
       // Transform collections to library items
-      const collectionItems = (collectionsData || [])
-        .filter(c => c.displayInLibrary !== false)
-        .map(collection => ({
-          type: 'collection',
-          sortKey: (collection.sortName || collection.name).toLowerCase().replace(/^(the |a |an )/i, ''),
-          data: collection
-        }));
+      // When filtering by genre, don't show collections at all
+      // When searching, show collections if they match the search term
+      let collectionItems = [];
+      if (filters.genre === 'all') {
+        collectionItems = (collectionsData || [])
+          .filter(c => c.displayInLibrary !== false)
+          .map(collection => ({
+            type: 'collection',
+            sortKey: (collection.sortName || collection.name).toLowerCase().replace(/^(the |a |an )/i, ''),
+            data: collection
+          }));
+      }
       
       // Combine and sort all items
       const allItems = [...bookItems, ...collectionItems];
