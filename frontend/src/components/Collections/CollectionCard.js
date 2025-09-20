@@ -29,7 +29,8 @@ const CollectionCard = ({
   onClick,
   onEdit,
   onDelete,
-  viewMode = 'grid'
+  viewMode = 'grid',
+  compact = false
 }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [localExpanded, setLocalExpanded] = useState(expanded);
@@ -68,7 +69,6 @@ const CollectionCard = ({
     }
   };
 
-  // Generate a composite cover from book covers
   const renderCompositeCover = () => {
     const covers = collection.books?.slice(0, 4).map(book => book.coverImage).filter(Boolean) || [];
     
@@ -76,8 +76,11 @@ const CollectionCard = ({
       return (
         <Box
           sx={{
-            width: '100%',
-            height: viewMode === 'grid' ? 280 : 200,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -91,21 +94,27 @@ const CollectionCard = ({
 
     if (covers.length === 1 || collection.coverImage) {
       return (
-        <CardMedia
+        <Box
           component="img"
-          height={viewMode === 'grid' ? 280 : 200}
-          image={collection.coverImage || covers[0]}
+          src={collection.coverImage || covers[0]}
           alt={collection.name}
-          sx={{ objectFit: 'cover' }}
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+          }}
         />
       );
     }
 
     // Create 2x2 grid of covers
     return (
-      <Grid container sx={{ height: viewMode === 'grid' ? 280 : 200 }}>
+      <Grid container sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
         {[0, 1, 2, 3].map((index) => (
-          <Grid item xs={6} key={index}>
+          <Grid item xs={6} key={index} sx={{ height: '50%' }}>
             {covers[index] ? (
               <Box
                 component="img"
@@ -113,7 +122,7 @@ const CollectionCard = ({
                 alt=""
                 sx={{
                   width: '100%',
-                  height: viewMode === 'grid' ? 140 : 100,
+                  height: '100%',
                   objectFit: 'cover',
                   borderRight: index % 2 === 0 ? '1px solid white' : 'none',
                   borderBottom: index < 2 ? '1px solid white' : 'none'
@@ -123,7 +132,7 @@ const CollectionCard = ({
               <Box
                 sx={{
                   width: '100%',
-                  height: viewMode === 'grid' ? 140 : 100,
+                  height: '100%',
                   bgcolor: 'grey.200',
                   borderRight: index % 2 === 0 ? '1px solid white' : 'none',
                   borderBottom: index < 2 ? '1px solid white' : 'none'
@@ -135,6 +144,78 @@ const CollectionCard = ({
       </Grid>
     );
   };
+
+  // For compact grid view (same size as book cards)
+  if (compact && viewMode === 'grid') {
+    return (
+      <Card 
+        sx={{ 
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+          cursor: 'pointer',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            boxShadow: 6,
+            transform: 'translateY(-4px)',
+          }
+        }}
+        onClick={handleCardClick}
+      >
+        {/* Collection indicator badge */}
+        <Chip
+          icon={<CollectionsIcon />}
+          label="Collection"
+          size="small"
+          sx={{
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            zIndex: 2,
+            bgcolor: alpha('#1976d2', 0.9),
+            color: 'white',
+            fontWeight: 'bold',
+          }}
+        />
+
+        {/* Cover Image */}
+        <Box
+          sx={{
+            position: 'relative',
+            paddingTop: '150%', // 2:3 aspect ratio like book covers
+            overflow: 'hidden',
+            bgcolor: 'grey.200',
+          }}
+        >
+          {renderCompositeCover()}
+        </Box>
+        
+        {/* Title and Info */}
+        <CardContent sx={{ flexGrow: 1, p: 1 }}>
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              fontWeight: 'bold',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              minHeight: '2.5em',
+              mb: 0.5
+            }}
+          >
+            {collection.name}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {collection.bookCount || 0} books
+            {collection.collectionType === 'series' && ' • Series'}
+          </Typography>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (viewMode === 'list') {
     return (
@@ -219,7 +300,7 @@ const CollectionCard = ({
     );
   }
 
-  // Grid view
+  // Regular grid view (non-compact)
   return (
     <Card 
       sx={{ 
@@ -231,9 +312,6 @@ const CollectionCard = ({
         '&:hover': {
           boxShadow: 6,
           transform: 'translateY(-4px)',
-          '& .collection-overlay': {
-            opacity: 1
-          }
         }
       }}
     >
@@ -279,7 +357,9 @@ const CollectionCard = ({
       </IconButton>
 
       <CardActionArea onClick={handleCardClick} sx={{ flexGrow: 1 }}>
-        {renderCompositeCover()}
+        <Box sx={{ height: 280, position: 'relative', overflow: 'hidden' }}>
+          {renderCompositeCover()}
+        </Box>
         
         <CardContent sx={{ flexGrow: 0 }}>
           <Typography 
@@ -320,39 +400,6 @@ const CollectionCard = ({
             </Typography>
           )}
         </CardContent>
-
-        {/* Hover overlay with expand option */}
-        <Box
-          className="collection-overlay"
-          sx={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 40,
-            bgcolor: alpha('#000', 0.7),
-            color: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: 0,
-            transition: 'opacity 0.3s ease',
-            cursor: 'pointer'
-          }}
-          onClick={handleExpandClick}
-        >
-          <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center' }}>
-            {localExpanded ? (
-              <>
-                <ExpandLessIcon sx={{ mr: 0.5 }} /> Hide Books
-              </>
-            ) : (
-              <>
-                <ExpandMoreIcon sx={{ mr: 0.5 }} /> Show Books
-              </>
-            )}
-          </Typography>
-        </Box>
       </CardActionArea>
 
       <Menu
@@ -363,18 +410,6 @@ const CollectionCard = ({
         <MenuItem onClick={handleEdit}>Edit Collection</MenuItem>
         <MenuItem onClick={handleDelete}>Delete Collection</MenuItem>
       </Menu>
-
-      {/* Expanded books view */}
-      <Collapse in={localExpanded} timeout="auto" unmountOnExit>
-        <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider', maxHeight: 200, overflow: 'auto' }}>
-          {collection.books?.map((book, index) => (
-            <Typography key={book._id || index} variant="body2" gutterBottom>
-              {collection.collectionType === 'series' && `${index + 1}. `}
-              {book.title}
-            </Typography>
-          ))}
-        </Box>
-      </Collapse>
     </Card>
   );
 };

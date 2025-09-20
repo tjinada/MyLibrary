@@ -11,17 +11,8 @@ import {
   useTheme,
   useMediaQuery,
   Fade,
-  ToggleButtonGroup,
-  ToggleButton,
   Grid,
 } from '@mui/material';
-import {
-  ViewModule as ViewModuleIcon,
-  ViewList as ViewListIcon,
-  LibraryBooks as LibraryBooksIcon,
-  CollectionsBookmark as CollectionsIcon,
-  Add as AddIcon,
-} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Layout/Header';
 import ImprovedToolbar from '../components/Layout/ImprovedToolbar';
@@ -35,7 +26,7 @@ import BookDetailsModal from '../components/Modals/BookDetailsModal';
 import ManageCollectionsModal from '../components/Collections/ManageCollectionsModal';
 import CreateCollectionModal from '../components/Collections/CreateCollectionModal';
 import bookService from '../services/bookService';
-import libraryService from '../services/libraryService';
+import collectionService from '../services/collectionService';
 import imagePreloader from '../utils/imagePreloader';
 import { useCollections } from '../contexts/CollectionContext';
 
@@ -51,9 +42,6 @@ const Library = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem('libraryViewMode') || 'grid';
-  });
-  const [libraryView, setLibraryView] = useState(() => {
-    return localStorage.getItem('libraryDisplayMode') || 'unified';
   });
   const [quickAddModalOpen, setQuickAddModalOpen] = useState(false);
   const [manualAddModalOpen, setManualAddModalOpen] = useState(false);
@@ -77,71 +65,90 @@ const Library = () => {
   // Fetch library data
   useEffect(() => {
     fetchLibrary();
-  }, [filters.status, filters.genre, filters.sort, libraryView]);
+  }, [filters.status, filters.genre, filters.sort]);
 
   // Save view preferences
   useEffect(() => {
     localStorage.setItem('libraryViewMode', viewMode);
   }, [viewMode]);
 
-  useEffect(() => {
-    localStorage.setItem('libraryDisplayMode', libraryView);
-  }, [libraryView]);
-
   const fetchLibrary = async () => {
     try {
       setLoading(true);
       
-      if (libraryView === 'books-only') {
-        // Fetch only books
-        const data = await bookService.getBooks({
-          page: 1,
-          limit: 1000,
-          status: filters.status !== 'all' ? filters.status : undefined,
-          genre: filters.genre !== 'all' ? filters.genre : undefined,
-        });
-        
-        // Transform to library item format
-        const items = data.books.map(book => ({
-          type: 'book',
-          data: book
+      // Fetch all books
+      const booksData = await bookService.getBooks({
+        page: 1,
+        limit: 1000,
+        status: filters.status !== 'all' ? filters.status : undefined,
+        genre: filters.genre !== 'all' ? filters.genre : undefined,
+      });
+      
+      // Fetch all collections
+      const collectionsData = await collectionService.getCollections(true);
+      
+      // Transform books to library items
+      const bookItems = booksData.books.map(book => ({
+        type: 'book',
+        sortKey: book.title.toLowerCase().replace(/^(the |a |an )/i, ''),
+        data: book
+      }));
+      
+      // Transform collections to library items
+      const collectionItems = (collectionsData || [])
+        .filter(c => c.displayInLibrary !== false)
+        .map(collection => ({
+          type: 'collection',
+          sortKey: (collection.sortName || collection.name).toLowerCase().replace(/^(the |a |an )/i, ''),
+          data: collection
         }));
+      
+      // Combine and sort all items
+      const allItems = [...bookItems, ...collectionItems];
+      
+      // Sort by title/name
+      allItems.sort((a, b) => {
+        if (filters.sort === 'title' || filters.sort === '-title') {
+          const multiplier = filters.sort.startsWith('-') ? -1 : 1;
+          return multiplier * a.sortKey.localeCompare(b.sortKey);
+        }
         
-        setLibraryItems(items);
-        
-        // Preload images
-        const imageUrls = data.books
-          .map(book => book.coverImage)
-          .filter(Boolean);
-        imagePreloader.preloadMultiple(imageUrls);
-      } else {
-        // Fetch unified library view
-        const data = await libraryService.getUnifiedLibrary({
-          search: '',
-          status: filters.status,
-          genre: filters.genre,
-          sort: filters.sort,
-          viewMode: libraryView,
-          includeCollections: true,
-          expandCollections: false,
-          limit: 1000
-        });
-        
-        setLibraryItems(data.items);
-        
-        // Preload images for books and collections
-        const bookImages = data.items
-          .filter(item => item.type === 'book')
-          .map(item => item.data.coverImage)
-          .filter(Boolean);
+        // For date sorting, apply to books only
+        if (filters.sort === '-addedDate' || filters.sort === 'addedDate') {
+          const multiplier = filters.sort.startsWith('-') ? -1 : 1;
           
-        const collectionImages = data.items
-          .filter(item => item.type === 'collection')
-          .flatMap(item => item.data.books?.slice(0, 4).map(b => b.coverImage) || [])
-          .filter(Boolean);
+          // Collections go to the end
+          if (a.type === 'collection' && b.type === 'book') {
+            return 1;
+          }
+          if (a.type === 'book' && b.type === 'collection') {
+            return -1;
+          }
           
-        imagePreloader.preloadMultiple([...bookImages, ...collectionImages]);
-      }
+          // Both are books
+          if (a.type === 'book' && b.type === 'book') {
+            return multiplier * (new Date(a.data.addedDate) - new Date(b.data.addedDate));
+          }
+          
+          // Both are collections, sort by name
+          return a.sortKey.localeCompare(b.sortKey);
+        }
+        
+        return 0;
+      });
+      
+      setLibraryItems(allItems);
+      
+      // Preload images
+      const bookImages = bookItems
+        .map(item => item.data.coverImage)
+        .filter(Boolean);
+        
+      const collectionImages = collectionItems
+        .flatMap(item => item.data.books?.slice(0, 4).map(b => b.coverImage) || [])
+        .filter(Boolean);
+        
+      imagePreloader.preloadMultiple([...bookImages, ...collectionImages]);
       
       setError(null);
     } catch (err) {
@@ -232,22 +239,11 @@ const Library = () => {
         if (counts[status] !== undefined) {
           counts[status]++;
         }
-      } else if (item.type === 'collection') {
-        counts.all += item.data.bookCount || 0;
-        // Count books in collections by status if expanded
-        if (expandedCollections.has(item.data._id) && item.data.books) {
-          item.data.books.forEach(book => {
-            const status = book.status === 'available' ? 'to-read' : book.status;
-            if (counts[status] !== undefined) {
-              counts[status]++;
-            }
-          });
-        }
       }
     });
     
     return counts;
-  }, [libraryItems, expandedCollections]);
+  }, [libraryItems]);
 
   // Handler functions
   const handleSearch = useCallback((searchTerm) => {
@@ -340,25 +336,6 @@ const Library = () => {
             mb: 3,
           }}>
             <SearchBar onSearch={handleSearch} />
-          </Box>
-          
-          {/* Library View Toggle */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-            <ToggleButtonGroup
-              value={libraryView}
-              exclusive
-              onChange={(e, newView) => newView && setLibraryView(newView)}
-              size="small"
-            >
-              <ToggleButton value="unified">
-                <ViewModuleIcon sx={{ mr: 1 }} />
-                All Books & Collections
-              </ToggleButton>
-              <ToggleButton value="books-only">
-                <LibraryBooksIcon sx={{ mr: 1 }} />
-                Books Only
-              </ToggleButton>
-            </ToggleButtonGroup>
           </Box>
         </Box>
 
@@ -462,20 +439,28 @@ const Library = () => {
                 <Grid container spacing={2}>
                   {paginatedItems.map((item) => {
                     if (item.type === 'collection') {
+                      // Collection in grid - same size as books
                       return (
-                        <Grid item xs={12} sm={6} md={4} lg={3} key={item.data._id}>
+                        <Grid item xs={6} sm={4} md={3} lg={2} key={item.data._id}>
                           <CollectionCard
                             collection={item.data}
                             expanded={expandedCollections.has(item.data._id)}
                             onToggleExpand={handleCollectionToggle}
                             onClick={() => navigate(`/collections/${item.data._id}`)}
-                            viewMode={viewMode}
+                            viewMode="grid"
+                            compact={true}
                           />
                         </Grid>
                       );
                     } else {
-                      // Render book - the grid will be handled by parent
-                      return null;
+                      // Book in grid
+                      return (
+                        <Grid item xs={6} sm={4} md={3} lg={2} key={item.data._id}>
+                          <Box onClick={() => handleBookClick(item.data)} sx={{ cursor: 'pointer' }}>
+                            <BookGrid books={[item.data]} onBookClick={() => {}} />
+                          </Box>
+                        </Grid>
+                      );
                     }
                   })}
                 </Grid>
@@ -494,23 +479,17 @@ const Library = () => {
                           viewMode="list"
                         />
                       );
+                    } else {
+                      // For list view, collect all books and render with BookList
+                      return null;
                     }
-                    return null;
                   })}
+                  {/* Render all books in list */}
+                  <BookList 
+                    books={paginatedItems.filter(item => item.type === 'book').map(item => item.data)} 
+                    onBookClick={handleBookClick}
+                  />
                 </Box>
-              )}
-              
-              {/* Render books separately */}
-              {viewMode === 'grid' ? (
-                <BookGrid 
-                  books={paginatedItems.filter(item => item.type === 'book').map(item => item.data)} 
-                  onBookClick={handleBookClick}
-                />
-              ) : (
-                <BookList 
-                  books={paginatedItems.filter(item => item.type === 'book').map(item => item.data)} 
-                  onBookClick={handleBookClick}
-                />
               )}
               
               {/* Pagination */}
