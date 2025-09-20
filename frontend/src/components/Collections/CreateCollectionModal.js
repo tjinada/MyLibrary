@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -56,6 +56,8 @@ const CreateCollectionModal = ({ open, onClose, onCollectionCreated, initialBook
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [booksLoaded, setBooksLoaded] = useState(false);
+  const fetchInProgress = useRef(false);
 
   const steps = ['Collection Details', 'Add Books', 'Review & Create'];
 
@@ -78,11 +80,17 @@ const CreateCollectionModal = ({ open, onClose, onCollectionCreated, initialBook
       setSelectedBooks(initialBookIds);
       setSearchQuery('');
       setError(null);
+      // Don't reset booksLoaded here to prevent re-fetching
       
-      // Fetch all books for selection
+      // Fetch books once when dialog opens
       fetchBooks();
+    } else {
+      // Reset when dialog closes
+      setBooksLoaded(false);
+      setAllBooks([]);
+      setFilteredBooks([]);
     }
-  }, [open, initialBooks]);
+  }, [open]); // Remove initialBooks from dependencies to prevent repeated fetches
 
   useEffect(() => {
     // Filter books based on search query
@@ -100,14 +108,23 @@ const CreateCollectionModal = ({ open, onClose, onCollectionCreated, initialBook
   }, [searchQuery, allBooks]);
 
   const fetchBooks = async () => {
+    // Only fetch once per dialog open
+    if (fetchInProgress.current || booksLoaded) return;
+    
+    fetchInProgress.current = true;
+    
     try {
       const data = await bookService.getBooks({ limit: 1000 });
-      setAllBooks(data.books || []);
-      setFilteredBooks(data.books || []);
+      if (data && data.books) {
+        setAllBooks(data.books);
+        setFilteredBooks(data.books);
+      }
     } catch (err) {
-      console.error('Error fetching books:', err);
-      setAllBooks([]);
-      setFilteredBooks([]);
+      // Silently handle errors - user can still create empty collections
+      console.log('Could not load books list');
+    } finally {
+      setBooksLoaded(true);
+      fetchInProgress.current = false;
     }
   };
 
@@ -226,8 +243,8 @@ const CreateCollectionModal = ({ open, onClose, onCollectionCreated, initialBook
               autoFocus
               placeholder="e.g., Throne of Glass Series"
               disabled={loading}
-              error={!!error && !formData.name.trim()}
-              helperText={error && !formData.name.trim() ? error : ''}
+              error={!!error && !formData.name.trim() && activeStep === 0}
+              helperText={error && !formData.name.trim() && activeStep === 0 ? 'Collection name is required' : ''}
             />
 
             <TextField
