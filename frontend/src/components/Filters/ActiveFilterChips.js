@@ -22,11 +22,16 @@ const ActiveFilterChips = ({ filters, onRemoveFilter, onClearAll }) => {
   }
 
   if (filters.genre !== 'all') {
-    activeFilters.push({
-      key: 'genre',
-      label: `Genre: ${filters.genre}`,
-      value: filters.genre,
-    });
+    const genres = Array.isArray(filters.genre) ? filters.genre : [filters.genre];
+    if (genres.length > 0) {
+      activeFilters.push({
+        key: 'genre',
+        label: genres.length === 1 
+          ? `Genre: ${genres[0]}`
+          : `Genres (ALL): ${genres.join(' + ')}`,
+        value: filters.genre,
+      });
+    }
   }
 
   if (activeFilters.length === 0) return null;

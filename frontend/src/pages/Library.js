@@ -135,9 +135,12 @@ const Library = () => {
         const genreFilters = Array.isArray(filters.genre) ? filters.genre : [filters.genre];
         booksToDisplay = allBooksData.books.filter(book => {
           if (genreFilters.length === 0) return true;
-          return genreFilters.some(genre => {
+          // Changed from some (OR) to every (AND) - book must have ALL selected genres
+          return genreFilters.every(genre => {
+            // Check if the book has this genre in any of its genre fields
             if (book.primaryCategory === genre) return true;
             if (book.genres && book.genres.includes(genre)) return true;
+            if (book.categoryType === genre) return true; // For Fiction/Nonfiction
             return false;
           });
         });
@@ -298,11 +301,22 @@ const Library = () => {
   const genres = useMemo(() => {
     const genreMap = new Map();
     
+    // Initialize Fiction and Nonfiction counts
+    genreMap.set('Fiction', 0);
+    genreMap.set('Nonfiction', 0);
+    
     if (allBooksForGenres.books) {
       allBooksForGenres.books.forEach(book => {
+        // Count Fiction/Nonfiction categories
+        if (book.categoryType) {
+          genreMap.set(book.categoryType, (genreMap.get(book.categoryType) || 0) + 1);
+        }
+        
+        // Count regular genres
         if (book.primaryCategory) {
           genreMap.set(book.primaryCategory, (genreMap.get(book.primaryCategory) || 0) + 1);
-        } else if (book.genres) {
+        }
+        if (book.genres) {
           book.genres.forEach(genre => {
             genreMap.set(genre, (genreMap.get(genre) || 0) + 1);
           });
@@ -314,9 +328,15 @@ const Library = () => {
       allBooksForGenres.collections.forEach(collection => {
         collection.books?.forEach(book => {
           if (book && typeof book === 'object') {
+            // Count Fiction/Nonfiction in collections
+            if (book.categoryType) {
+              genreMap.set(book.categoryType, (genreMap.get(book.categoryType) || 0) + 1);
+            }
+            
             if (book.primaryCategory) {
               genreMap.set(book.primaryCategory, (genreMap.get(book.primaryCategory) || 0) + 1);
-            } else if (book.genres) {
+            }
+            if (book.genres) {
               book.genres.forEach(genre => {
                 genreMap.set(genre, (genreMap.get(genre) || 0) + 1);
               });
@@ -326,10 +346,18 @@ const Library = () => {
       });
     }
     
-    return Array.from(genreMap.entries())
+    // Convert to array and sort
+    const genreArray = Array.from(genreMap.entries())
       .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 15);
+      .filter(g => g.count > 0); // Only show genres with books
+    
+    // Put Fiction and Nonfiction at the top, then sort the rest by count
+    const topCategories = genreArray.filter(g => g.name === 'Fiction' || g.name === 'Nonfiction');
+    const otherGenres = genreArray
+      .filter(g => g.name !== 'Fiction' && g.name !== 'Nonfiction')
+      .sort((a, b) => b.count - a.count);
+    
+    return [...topCategories, ...otherGenres].slice(0, 20); // Increased to 20 to accommodate Fiction/Nonfiction
   }, [allBooksForGenres]);
 
   // Calculate book counts

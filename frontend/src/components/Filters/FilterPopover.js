@@ -212,9 +212,14 @@ const FilterPopover = ({
             <>
               <Box sx={{ mb: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                    Genres
-                  </Typography>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                      Genres
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      Books must have ALL selected genres
+                    </Typography>
+                  </Box>
                   {selectedGenres.length > 0 && (
                     <Button
                       size="small"
@@ -264,27 +269,55 @@ const FilterPopover = ({
                       },
                     }}
                   >
-                    {genres.map((genre) => (
+                    {/* Add a divider between Fiction/Nonfiction and other genres */}
+                    {genres.map((genre, index) => (
+                      <React.Fragment key={genre.name}>
+                        {index === 2 && genres[0].name === 'Fiction' && genres[1].name === 'Nonfiction' && (
+                          <Divider sx={{ my: 0.5 }} />
+                        )}
                       <MenuItem key={genre.name} value={genre.name}>
                         <Checkbox 
                           checked={selectedGenres.indexOf(genre.name) > -1}
                           size="small"
-                          sx={{ p: 0.5, mr: 1 }}
+                          sx={{ 
+                            p: 0.5, 
+                            mr: 1,
+                            color: (genre.name === 'Fiction' || genre.name === 'Nonfiction') 
+                              ? theme.palette.primary.main 
+                              : 'default'
+                          }}
                         />
                         <ListItemText 
-                          primary={genre.name}
+                          primary={
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              {genre.name}
+                              {(genre.name === 'Fiction' || genre.name === 'Nonfiction') && (
+                                <Chip 
+                                  label="Category" 
+                                  size="small" 
+                                  sx={{ 
+                                    height: 16, 
+                                    fontSize: '0.65rem',
+                                    bgcolor: theme.palette.primary.main,
+                                    color: 'white',
+                                  }} 
+                                />
+                              )}
+                            </Box>
+                          }
                           secondary={`${genre.count} books`}
                           primaryTypographyProps={{ fontSize: '0.9rem' }}
                           secondaryTypographyProps={{ fontSize: '0.75rem' }}
                         />
                       </MenuItem>
+                      </React.Fragment>
                     ))}
                   </Select>
                 </FormControl>
                 
                 {selectedGenres.length > 0 && (
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                    {selectedGenres.length} genre{selectedGenres.length > 1 ? 's' : ''} selected
+                  <Typography variant="caption" color="primary" sx={{ mt: 0.5, display: 'block', fontWeight: 600 }}>
+                    {selectedGenres.length} genre{selectedGenres.length > 1 ? 's' : ''} selected - Showing books with ALL genres
                   </Typography>
                 )}
               </Box>
