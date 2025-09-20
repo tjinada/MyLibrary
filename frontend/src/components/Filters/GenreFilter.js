@@ -19,10 +19,7 @@ const GenreFilter = ({ value, onChange, genres = [] }) => {
         <MenuItem value="all">All Genres</MenuItem>
         {genres.map((genre) => (
           <MenuItem key={genre.name} value={genre.name}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {genre.name}
-              <Chip label={genre.count} size="small" />
-            </div>
+            {genre.name}
           </MenuItem>
         ))}
       </Select>

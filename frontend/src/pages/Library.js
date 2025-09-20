@@ -101,6 +101,12 @@ const Library = () => {
         });
       }
       
+      // Apply status filter as well (this happens after genre filter)
+      // Status filter is already applied from backend, but we ensure consistency here
+      if (filters.status !== 'all') {
+        booksToDisplay = booksToDisplay.filter(book => book.status === filters.status);
+      }
+      
       // Get all books that are in collections
       const booksInCollections = new Set();
       (collectionsData || []).forEach(collection => {
@@ -113,9 +119,9 @@ const Library = () => {
         });
       });
       
-      // Filter books based on search/genre context
-      // When searching or filtering by genre, show ALL books including those in collections
-      const showAllBooks = filters.search !== '' || filters.genre !== 'all';
+      // Filter books based on search/genre/status context
+      // When searching, filtering by genre, or filtering by status, show ALL books including those in collections
+      const showAllBooks = filters.search !== '' || filters.genre !== 'all' || filters.status !== 'all';
       const filteredBooks = showAllBooks 
         ? booksToDisplay  // Show filtered books when searching or filtering by genre
         : booksToDisplay.filter(book => 
@@ -130,10 +136,10 @@ const Library = () => {
       }));
       
       // Transform collections to library items
-      // When filtering by genre, don't show collections at all
-      // When searching, show collections if they match the search term
+      // When filtering by genre or status (other than 'all'), don't show collections
+      // Only show collections when browsing normally or searching
       let collectionItems = [];
-      if (filters.genre === 'all') {
+      if (filters.genre === 'all' && filters.status === 'all') {
         collectionItems = (collectionsData || [])
           .filter(c => c.displayInLibrary !== false)
           .map(collection => ({
