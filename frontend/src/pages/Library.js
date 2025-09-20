@@ -65,7 +65,7 @@ const Library = () => {
   // Fetch library data
   useEffect(() => {
     fetchLibrary();
-  }, [filters.status, filters.genre, filters.sort]);
+  }, [filters.status, filters.genre, filters.sort, filters.search]);
 
   // Save view preferences
   useEffect(() => {
@@ -76,7 +76,7 @@ const Library = () => {
     try {
       setLoading(true);
       
-      // Fetch all books
+      // Fetch all books - but let backend handle filtering based on collections
       const booksData = await bookService.getBooks({
         page: 1,
         limit: 1000,
@@ -87,8 +87,29 @@ const Library = () => {
       // Fetch all collections
       const collectionsData = await collectionService.getCollections(true);
       
+      // Get all books that are in collections
+      const booksInCollections = new Set();
+      (collectionsData || []).forEach(collection => {
+        collection.books?.forEach(book => {
+          if (typeof book === 'object' && book._id) {
+            booksInCollections.add(book._id);
+          } else if (typeof book === 'string') {
+            booksInCollections.add(book);
+          }
+        });
+      });
+      
+      // Filter books based on search/genre context
+      // When searching or filtering by genre, show ALL books including those in collections
+      const showAllBooks = filters.search !== '' || filters.genre !== 'all';
+      const filteredBooks = showAllBooks 
+        ? booksData.books  // Show all books when searching or filtering by genre
+        : booksData.books.filter(book => 
+            !book.collections || book.collections.length === 0
+          );  // Only show books not in any collection when browsing
+      
       // Transform books to library items
-      const bookItems = booksData.books.map(book => ({
+      const bookItems = filteredBooks.map(book => ({
         type: 'book',
         sortKey: book.title.toLowerCase().replace(/^(the |a |an )/i, ''),
         data: book
@@ -165,27 +186,47 @@ const Library = () => {
     if (!filters.search) return libraryItems;
     
     const searchLower = filters.search.toLowerCase();
-    return libraryItems.filter(item => {
+    const matchedItems = [];
+    const addedBookIds = new Set();
+    
+    // First, filter collections and track their books
+    libraryItems.forEach(item => {
+      if (item.type === 'collection') {
+        const collection = item.data;
+        const collectionMatches = 
+          collection.name?.toLowerCase().includes(searchLower) ||
+          collection.description?.toLowerCase().includes(searchLower);
+        
+        if (collectionMatches) {
+          matchedItems.push(item);
+          // Track books in matched collections to avoid duplicates
+          collection.books?.forEach(book => {
+            const bookId = typeof book === 'object' ? book._id : book;
+            if (bookId) addedBookIds.add(bookId);
+          });
+        }
+      }
+    });
+    
+    // Then add standalone books that match
+    libraryItems.forEach(item => {
       if (item.type === 'book') {
         const book = item.data;
-        return (
-          book.title?.toLowerCase().includes(searchLower) ||
-          book.authors?.some(author => author.toLowerCase().includes(searchLower)) ||
-          book.isbn?.includes(searchLower)
-        );
-      } else if (item.type === 'collection') {
-        const collection = item.data;
-        return (
-          collection.name?.toLowerCase().includes(searchLower) ||
-          collection.description?.toLowerCase().includes(searchLower) ||
-          collection.books?.some(book => 
+        // Skip if book is already shown in a matched collection
+        if (!addedBookIds.has(book._id)) {
+          const bookMatches = 
             book.title?.toLowerCase().includes(searchLower) ||
-            book.authors?.some(author => author.toLowerCase().includes(searchLower))
-          )
-        );
+            book.authors?.some(author => author.toLowerCase().includes(searchLower)) ||
+            book.isbn?.includes(searchLower);
+          
+          if (bookMatches) {
+            matchedItems.push(item);
+          }
+        }
       }
-      return false;
     });
+    
+    return matchedItems;
   }, [libraryItems, filters.search]);
 
   // Pagination
@@ -222,7 +263,7 @@ const Library = () => {
       .slice(0, 15);
   }, [libraryItems]);
 
-  // Calculate book counts
+  // Calculate book counts - count ALL books, not just visible ones
   const bookCounts = useMemo(() => {
     const counts = {
       all: 0,
@@ -232,6 +273,7 @@ const Library = () => {
       loaned: 0,
     };
     
+    // Count books from library items (standalone books)
     libraryItems.forEach(item => {
       if (item.type === 'book') {
         counts.all++;
@@ -239,6 +281,17 @@ const Library = () => {
         if (counts[status] !== undefined) {
           counts[status]++;
         }
+      } else if (item.type === 'collection' && item.data.books) {
+        // Also count books inside collections for total count
+        item.data.books.forEach(book => {
+          if (book && typeof book === 'object') {
+            counts.all++;
+            const status = book.status === 'available' ? 'to-read' : book.status;
+            if (counts[status] !== undefined) {
+              counts[status]++;
+            }
+          }
+        });
       }
     });
     

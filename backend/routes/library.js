@@ -18,6 +18,10 @@ router.get('/unified', async (req, res) => {
       viewMode = 'unified' // unified | books-only | collections-only
     } = req.query;
 
+    // Determine if we should show books that are in collections
+    // Show them only when searching or filtering by genre
+    const showCollectionBooks = search !== '' || genre !== 'all';
+
     let items = [];
     
     if (viewMode === 'unified' || viewMode === 'collections-only') {
@@ -26,6 +30,8 @@ router.get('/unified', async (req, res) => {
       
       // Apply search to collections
       if (search) {
+        // When searching, show collections if their name matches
+        // OR if the search term matches the collection name and book name
         collectionsQuery = collectionsQuery.find({
           $or: [
             { name: new RegExp(search, 'i') },
@@ -67,20 +73,21 @@ router.get('/unified', async (req, res) => {
     }
 
     if (viewMode === 'unified' || viewMode === 'books-only') {
-      // Get IDs of books that are in displayed collections
+      // Get IDs of books that are in ANY collection (not just displayed ones)
       let booksInCollections = [];
-      if (viewMode === 'unified') {
-        const displayedCollections = await Collection.find({ displayInLibrary: true });
-        booksInCollections = displayedCollections.flatMap(c => 
+      if (viewMode === 'unified' && !showCollectionBooks) {
+        // When not searching/filtering, exclude ALL books that are in ANY collection
+        const allCollections = await Collection.find({});
+        booksInCollections = [...new Set(allCollections.flatMap(c => 
           c.books.map(bookId => bookId.toString())
-        );
+        ))];
       }
 
       // Build query for standalone books
       let bookQuery = {};
       
-      // Exclude books in collections for unified view
-      if (viewMode === 'unified' && booksInCollections.length > 0) {
+      // Exclude books in collections only when not searching/filtering
+      if (viewMode === 'unified' && booksInCollections.length > 0 && !showCollectionBooks) {
         bookQuery._id = { $nin: booksInCollections };
       }
       
@@ -172,12 +179,25 @@ router.get('/unified', async (req, res) => {
 // Get library stats including collections
 router.get('/stats', async (req, res) => {
   try {
-    const [bookCount, collectionCount, books, collections] = await Promise.all([
+    const [totalBookCount, collectionCount, books, collections] = await Promise.all([
       Book.countDocuments(),
       Collection.countDocuments(),
-      Book.find().select('status genres primaryCategory'),
-      Collection.find().select('bookCount collectionType')
+      Book.find().select('status genres primaryCategory collections'),
+      Collection.find().select('bookCount collectionType books')
     ]);
+
+    // Calculate books in collections
+    const booksInCollections = new Set();
+    collections.forEach(collection => {
+      collection.books.forEach(bookId => {
+        booksInCollections.add(bookId.toString());
+      });
+    });
+    
+    // Count standalone books (not in any collection)
+    const standaloneBookCount = books.filter(book => 
+      !book.collections || book.collections.length === 0
+    ).length;
 
     // Calculate book status counts
     const statusCounts = {
@@ -220,7 +240,9 @@ router.get('/stats', async (req, res) => {
     };
 
     res.json({
-      totalBooks: bookCount,
+      totalBooks: totalBookCount,  // All books in the system
+      standaloneBooks: standaloneBookCount,  // Books not in any collection
+      booksInCollections: booksInCollections.size,  // Unique books in collections
       statusCounts,
       topGenres,
       collections: collectionStats
