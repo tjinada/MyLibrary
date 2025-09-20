@@ -23,6 +23,9 @@ import {
   Zoom,
   LinearProgress,
   Grid,
+  FormControl,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -33,6 +36,8 @@ import {
   ArrowBack as BackIcon,
   Edit as EditIcon,
   Save as SaveIcon,
+  Diamond as DiamondIcon,
+  AutoAwesome as SpecialIcon,
 } from '@mui/icons-material';
 import MobileBarcodeScanner from '../Scanner/MobileBarcodeScanner';
 import bookService from '../../services/bookService';
@@ -55,6 +60,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
   const [newGenre, setNewGenre] = useState('');
   const [newTag, setNewTag] = useState('');
   const [bookStatus, setBookStatus] = useState('to-read');
+  const [bookEdition, setBookEdition] = useState('standard');
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -116,6 +122,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       setCustomGenres(genres);
       setCustomTags(bookData.tags || []);
       setBookStatus('to-read');
+      setBookEdition('standard');
       setConfirmationMode(true);
       
       // Clear ISBN for next entry
@@ -165,6 +172,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
         genres: customGenres,
         tags: customTags,
         status: bookStatus,
+        edition: bookEdition,
       };
       
       const response = await bookService.addBook(bookToAdd);
@@ -221,6 +229,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     setNewGenre('');
     setNewTag('');
     setBookStatus('to-read');
+    setBookEdition('standard');
     
     // Refocus ISBN input
     if (!isMobile && isbnInputRef.current) {
@@ -576,6 +585,33 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                       <option value="read">Read</option>
                       <option value="loaned">Loaned</option>
                     </TextField>
+                  </Box>
+
+                  {/* Edition Selection - Add after Status */}
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Edition Type
+                    </Typography>
+                    <FormControl size="small" sx={{ minWidth: 200 }}>
+                      <Select
+                        value={bookEdition}
+                        onChange={(e) => setBookEdition(e.target.value)}
+                      >
+                        <MenuItem value="standard">Standard Edition</MenuItem>
+                        <MenuItem value="special">
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <SpecialIcon fontSize="small" sx={{ color: theme.palette.warning.main }} />
+                            Special Edition
+                          </Box>
+                        </MenuItem>
+                        <MenuItem value="deluxe">
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <DiamondIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
+                            Deluxe Edition
+                          </Box>
+                        </MenuItem>
+                      </Select>
+                    </FormControl>
                   </Box>
 
                   {/* Genres */}

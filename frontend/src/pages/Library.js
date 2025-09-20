@@ -587,7 +587,6 @@ const Library = () => {
           
           {/* Library Stats */}
         <LibraryStats 
-          bookCount={libraryStats.uniqueTitles}
           totalQuantity={libraryStats.totalBooks}
           collectionCount={libraryStats.totalCollections}
         />

@@ -345,6 +345,18 @@ const BookCard = ({
           title={book.title}
         >
           {book.title}
+          {book.quantity && book.quantity > 1 && (
+            <Typography 
+              component="span" 
+              sx={{ 
+                ml: 0.5,
+                color: theme.palette.secondary.main,
+                fontWeight: 700,
+              }}
+            >
+              ({book.quantity})
+            </Typography>
+          )}
         </Typography>
         
         {book.authors && book.authors.length > 0 && (
