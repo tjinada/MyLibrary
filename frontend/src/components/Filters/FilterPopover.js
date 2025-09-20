@@ -10,11 +10,15 @@ import {
   Divider,
   IconButton,
   Badge,
+  Chip,
+  Checkbox,
+  ListItemText,
   useTheme,
 } from '@mui/material';
 import {
   FilterList as FilterIcon,
   Close as CloseIcon,
+  Clear as ClearIcon,
 } from '@mui/icons-material';
 import { statusColors } from '../../theme/theme';
 
@@ -27,6 +31,9 @@ const FilterPopover = ({
 }) => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedGenres, setSelectedGenres] = useState(
+    filters.genre === 'all' ? [] : Array.isArray(filters.genre) ? filters.genre : [filters.genre]
+  );
 
   const handleOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -39,7 +46,23 @@ const FilterPopover = ({
   const open = Boolean(anchorEl);
 
   const handleFilterUpdate = (filterType, value) => {
-    onFilterChange({ ...filters, [filterType]: value });
+    if (filterType === 'genre') {
+      setSelectedGenres(value);
+      onFilterChange({ ...filters, genre: value.length === 0 ? 'all' : value });
+    } else {
+      onFilterChange({ ...filters, [filterType]: value });
+    }
+  };
+
+  const handleGenreChange = (event) => {
+    const value = event.target.value;
+    setSelectedGenres(value);
+    onFilterChange({ ...filters, genre: value.length === 0 ? 'all' : value });
+  };
+
+  const clearGenres = () => {
+    setSelectedGenres([]);
+    onFilterChange({ ...filters, genre: 'all' });
   };
 
   return (
@@ -184,32 +207,86 @@ const FilterPopover = ({
 
           <Divider sx={{ my: 2 }} />
 
-          {/* Genre Filter */}
+          {/* Genre Filter - Multiple Selection */}
           {genres && genres.length > 0 && (
             <>
               <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'text.secondary' }}>
-                  Genre
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                    Genres
+                  </Typography>
+                  {selectedGenres.length > 0 && (
+                    <Button
+                      size="small"
+                      startIcon={<ClearIcon />}
+                      onClick={clearGenres}
+                      sx={{ textTransform: 'none' }}
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </Box>
+                
                 <FormControl fullWidth size="small">
                   <Select
-                    value={filters.genre}
-                    onChange={(e) => handleFilterUpdate('genre', e.target.value)}
+                    multiple
+                    value={selectedGenres}
+                    onChange={handleGenreChange}
+                    renderValue={(selected) => (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {selected.length === 0 ? (
+                          <Typography variant="body2" color="text.secondary">
+                            All Genres
+                          </Typography>
+                        ) : (
+                          selected.map((value) => (
+                            <Chip 
+                              key={value} 
+                              label={value} 
+                              size="small"
+                              sx={{ 
+                                height: 20,
+                                fontSize: '0.75rem',
+                                bgcolor: theme.palette.primary.main,
+                                color: 'white',
+                              }}
+                            />
+                          ))
+                        )}
+                      </Box>
+                    )}
                     sx={{ borderRadius: 1.5 }}
+                    MenuProps={{
+                      PaperProps: {
+                        style: {
+                          maxHeight: 250,
+                        },
+                      },
+                    }}
                   >
-                    <MenuItem value="all">All Genres</MenuItem>
                     {genres.map((genre) => (
                       <MenuItem key={genre.name} value={genre.name}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                          <Box sx={{ flexGrow: 1 }}>{genre.name}</Box>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {genre.count}
-                          </Typography>
-                        </Box>
+                        <Checkbox 
+                          checked={selectedGenres.indexOf(genre.name) > -1}
+                          size="small"
+                          sx={{ p: 0.5, mr: 1 }}
+                        />
+                        <ListItemText 
+                          primary={genre.name}
+                          secondary={`${genre.count} books`}
+                          primaryTypographyProps={{ fontSize: '0.9rem' }}
+                          secondaryTypographyProps={{ fontSize: '0.75rem' }}
+                        />
                       </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
+                
+                {selectedGenres.length > 0 && (
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                    {selectedGenres.length} genre{selectedGenres.length > 1 ? 's' : ''} selected
+                  </Typography>
+                )}
               </Box>
               <Divider sx={{ my: 2 }} />
             </>
@@ -235,7 +312,7 @@ const FilterPopover = ({
           </Box>
 
           {/* Clear Filters Button */}
-          {activeFilterCount > 0 && (
+          {(activeFilterCount > 0 || selectedGenres.length > 0) && (
             <>
               <Divider sx={{ my: 2 }} />
               <Button
@@ -243,6 +320,7 @@ const FilterPopover = ({
                 variant="outlined"
                 color="error"
                 onClick={() => {
+                  setSelectedGenres([]);
                   onFilterChange({
                     search: '',
                     status: 'all',

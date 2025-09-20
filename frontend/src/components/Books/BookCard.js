@@ -14,7 +14,7 @@ import {
   alpha,
 } from '@mui/material';
 import { MenuBook as BookIcon } from '@mui/icons-material';
-import BookStatusChip from './BookStatusChip';
+import BookStatusChip, { BookEditionBadge } from './BookStatusChip';
 import BookCardActions from './BookCardActions';
 import { dimensions } from '../../theme/theme';
 
@@ -44,7 +44,6 @@ const BookCard = ({
       setImageSrc(book.coverImage);
       setImageError(false);
       
-      // Check if image is already cached/loaded
       if (book.coverImage) {
         const img = new Image();
         img.src = book.coverImage;
@@ -85,7 +84,6 @@ const BookCard = ({
   const handleImageError = (e) => {
     console.log(`Failed to load cover for "${book.title}": ${book.coverImage}`);
     
-    // Try to reload with HTTPS if it was HTTP
     if (imageSrc && imageSrc.startsWith('http://')) {
       const httpsSrc = imageSrc.replace('http://', 'https://');
       console.log(`Retrying with HTTPS: ${httpsSrc}`);
@@ -115,8 +113,8 @@ const BookCard = ({
         bgcolor: 'background.paper',
         border: selectionMode && isSelected ? `2px solid ${theme.palette.primary.main}` : 'none',
         '&:hover': {
-          transform: selectionMode ? 'none' : 'translateY(-8px)',
-          boxShadow: selectionMode ? theme.shadows[4] : theme.shadows[12],
+          transform: selectionMode ? 'none' : 'translateY(-4px)',
+          boxShadow: selectionMode ? theme.shadows[4] : theme.shadows[8],
         },
       }}
     >
@@ -135,8 +133,8 @@ const BookCard = ({
         <Box
           sx={{
             position: 'absolute',
-            top: 8,
-            left: 8,
+            top: 6,
+            left: 6,
             zIndex: 3,
           }}
         >
@@ -152,12 +150,12 @@ const BookCard = ({
               sx={{
                 bgcolor: 'rgba(255, 255, 255, 0.9)',
                 borderRadius: 1,
-                p: 0.5,
+                p: 0.25,
                 '&:hover': {
                   bgcolor: 'rgba(255, 255, 255, 1)',
                 },
                 '& .MuiSvgIcon-root': {
-                  fontSize: 20,
+                  fontSize: 18,
                 },
               }}
             />
@@ -166,26 +164,47 @@ const BookCard = ({
           )}
         </Box>
 
-        {/* Quantity Badge - Top Right */}
-        {book.quantity && book.quantity > 1 && (
-          <Chip
-            label={`×${book.quantity}`}
-            size="small"
+        {/* Edition Badge - Top Right */}
+        {book.edition && book.edition !== 'standard' && (
+          <Box
             sx={{
               position: 'absolute',
-              top: 8,
-              right: 8,
+              top: 6,
+              right: 6,
               zIndex: 3,
-              bgcolor: alpha(theme.palette.secondary.main, 0.9),
-              color: 'white',
-              fontWeight: 'bold',
-              fontSize: '0.7rem',
-              height: 20,
-              '& .MuiChip-label': {
-                px: 0.75,
-              },
             }}
-          />
+          >
+            <BookEditionBadge edition={book.edition} size="small" />
+          </Box>
+        )}
+
+        {/* Quantity Display - Bottom Center of Cover (More Visible) */}
+        {book.quantity && book.quantity > 1 && (
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: 8,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 3,
+              bgcolor: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: 2,
+              px: 1.5,
+              py: 0.5,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            }}
+          >
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                fontWeight: 'bold',
+                color: theme.palette.secondary.main,
+                fontSize: '0.75rem',
+              }}
+            >
+              {book.quantity} copies
+            </Typography>
+          </Box>
         )}
 
         {/* Hover Actions Overlay - Only show when not in selection mode */}
@@ -251,24 +270,24 @@ const BookCard = ({
               alignItems: 'center',
               justifyContent: 'center',
               background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-              p: 2,
+              p: 1.5,
             }}
           >
             <BookIcon 
               sx={{ 
-                fontSize: 48,
+                fontSize: 36,
                 color: 'white',
                 opacity: 0.9,
-                mb: 1,
+                mb: 0.5,
               }} 
             />
             <Typography 
-              variant="body2" 
+              variant="caption" 
               sx={{ 
                 color: 'white',
                 textAlign: 'center',
                 fontWeight: 600,
-                fontSize: '0.8rem',
+                fontSize: '0.7rem',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 display: '-webkit-box',
@@ -285,8 +304,8 @@ const BookCard = ({
                   color: 'white',
                   opacity: 0.8,
                   textAlign: 'center',
-                  fontSize: '0.65rem',
-                  mt: 0.5,
+                  fontSize: '0.6rem',
+                  mt: 0.25,
                 }}
               >
                 {book.authors[0]}
@@ -296,19 +315,20 @@ const BookCard = ({
         )}
       </Box>
 
-      {/* Book Info Section - Fixed Height */}
+      {/* Book Info Section - Smaller Height */}
       <CardContent 
         sx={{ 
           flexGrow: 1, 
           display: 'flex', 
           flexDirection: 'column',
-          p: 1.5,
-          pb: '12px !important',
-          minHeight: 90,
+          p: 1,
+          pb: '8px !important',
+          minHeight: 60,
+          maxHeight: 80,
         }}
       >
         <Typography 
-          variant="subtitle2" 
+          variant="caption" 
           component="h3"
           sx={{
             overflow: 'hidden',
@@ -316,12 +336,11 @@ const BookCard = ({
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
-            minHeight: '2.4em',
             fontWeight: 600,
             lineHeight: 1.2,
-            fontSize: '0.875rem',
+            fontSize: '0.75rem',
             color: 'text.primary',
-            mb: 0.5,
+            mb: 0.25,
           }}
           title={book.title}
         >
@@ -336,7 +355,7 @@ const BookCard = ({
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
               color: 'text.secondary',
-              fontSize: '0.75rem',
+              fontSize: '0.65rem',
               mb: 'auto',
             }}
             title={book.authors?.join(', ')}
@@ -345,16 +364,16 @@ const BookCard = ({
           </Typography>
         )}
 
-        {/* Rating at the bottom */}
+        {/* Rating at the bottom - Smaller */}
         {book.rating > 0 && (
-          <Box sx={{ mt: 0.5 }}>
+          <Box sx={{ mt: 0.25 }}>
             <Rating 
               value={book.rating} 
               readOnly 
               size="small"
               precision={0.5}
               sx={{ 
-                fontSize: '1rem',
+                fontSize: '0.75rem',
                 color: theme.palette.warning.main,
               }}
             />

@@ -28,6 +28,8 @@ import {
   Fade,
   Grow,
   Tooltip,
+  FormControl,
+  Select,
   alpha,
 } from '@mui/material';
 import {
@@ -52,10 +54,12 @@ import {
   Business as PublisherIcon,
   Numbers as IsbnIcon,
   Star as StarIcon,
+  Diamond as DiamondIcon,
+  AutoAwesome as SpecialIcon,
 } from '@mui/icons-material';
 import bookService from '../../services/bookService';
 import StatusPills from './StatusPills';
-import BookStatusChip from '../Books/BookStatusChip';
+import BookStatusChip, { BookEditionBadge } from '../Books/BookStatusChip';
 
 const BookDetailsModal = ({ 
   open, 
@@ -63,10 +67,11 @@ const BookDetailsModal = ({
   book, 
   onBookUpdated, 
   onBookDeleted, 
-  onManageCollections 
+  onManageCollections,
+  openInEditMode = false 
 }) => {
   const [tabValue, setTabValue] = useState(0);
-  const [editMode, setEditMode] = useState(false);
+  const [editMode, setEditMode] = useState(openInEditMode);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -85,6 +90,7 @@ const BookDetailsModal = ({
     genres: [],
     coverImage: '',
     quantity: 1,
+    edition: 'standard',
   });
   const [newTag, setNewTag] = useState('');
   const [newGenre, setNewGenre] = useState('');
@@ -155,6 +161,7 @@ const BookDetailsModal = ({
         genres: book.genres || [],
         coverImage: book.coverImage || '',
         quantity: book.quantity || 1,
+        edition: book.edition || 'standard',
       };
       
       setEditedBook(bookData);
@@ -165,11 +172,11 @@ const BookDetailsModal = ({
       setSelectedCoverIndex(0);
       
       setTabValue(0);
-      setEditMode(false);
+      setEditMode(openInEditMode);
       setNewTag('');
       setNewGenre('');
     }
-  }, [book]);
+  }, [book, openInEditMode]);
 
   if (!book) return null;
   
@@ -678,6 +685,45 @@ const BookDetailsModal = ({
                               </Typography>
                             </Grid>
                           )}
+
+                          {/* Edition Type */}
+                          <Grid item xs={12} sm={6}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                              {book.edition === 'deluxe' ? <DiamondIcon fontSize="small" color="action" /> : <SpecialIcon fontSize="small" color="action" />}
+                              <Typography variant="subtitle2" color="text.secondary">
+                                Edition
+                              </Typography>
+                            </Box>
+                            {editMode ? (
+                              <FormControl fullWidth size="small">
+                                <Select
+                                  value={editedBook.edition || 'standard'}
+                                  onChange={(e) => setEditedBook({...editedBook, edition: e.target.value})}
+                                >
+                                  <MenuItem value="standard">Standard Edition</MenuItem>
+                                  <MenuItem value="special">
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      <SpecialIcon fontSize="small" sx={{ color: theme.palette.warning.main }} />
+                                      Special Edition
+                                    </Box>
+                                  </MenuItem>
+                                  <MenuItem value="deluxe">
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      <DiamondIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
+                                      Deluxe Edition
+                                    </Box>
+                                  </MenuItem>
+                                </Select>
+                              </FormControl>
+                            ) : (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <BookEditionBadge edition={displayBook.edition} />
+                                {!displayBook.edition || displayBook.edition === 'standard' ? (
+                                  <Typography variant="body1">Standard Edition</Typography>
+                                ) : null}
+                              </Box>
+                            )}
+                          </Grid>
 
                           {/* Page Count */}
                           {book.pageCount > 0 && (

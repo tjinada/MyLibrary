@@ -72,6 +72,7 @@ const Library = () => {
   const [createCollectionOpen, setCreateCollectionOpen] = useState(false);
   const [bulkCollectionsOpen, setBulkCollectionsOpen] = useState(false);
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
+  const [openInEditMode, setOpenInEditMode] = useState(false);
   
   // Filters state
   const [filters, setFilters] = useState({
@@ -130,10 +131,14 @@ const Library = () => {
       
       let booksToDisplay = allBooksData.books;
       if (filters.genre !== 'all') {
+        const genreFilters = Array.isArray(filters.genre) ? filters.genre : [filters.genre];
         booksToDisplay = allBooksData.books.filter(book => {
-          if (book.primaryCategory === filters.genre) return true;
-          if (book.genres && book.genres.includes(filters.genre)) return true;
-          return false;
+          if (genreFilters.length === 0) return true;
+          return genreFilters.some(genre => {
+            if (book.primaryCategory === genre) return true;
+            if (book.genres && book.genres.includes(genre)) return true;
+            return false;
+          });
         });
       }
       
@@ -407,6 +412,8 @@ const Library = () => {
   const handleQuickEdit = useCallback((book) => {
     setSelectedBook(book);
     setDetailsModalOpen(true);
+    // Set a flag to open in edit mode
+    setOpenInEditMode(true);
   }, []);
 
   const handleAddToCollection = useCallback((book) => {
@@ -595,10 +602,20 @@ const Library = () => {
             mb: 3,
           }}>
             <Typography variant="body2" color="text.secondary">
-              {filteredItems.length === 0 
-                ? 'No items found'
-                : `Showing ${Math.min((page - 1) * itemsPerPage + 1, filteredItems.length)}-${Math.min(page * itemsPerPage, filteredItems.length)} of ${filteredItems.length} items`
-              }
+              {(() => {
+                const bookCount = filteredItems.filter(item => item.type === 'book')
+                  .reduce((sum, item) => sum + (item.data.quantity || 1), 0);
+                const collectionCount = filteredItems.filter(item => item.type === 'collection').length;
+                
+                if (filteredItems.length === 0) return 'No items found';
+                
+                const itemRange = `${Math.min((page - 1) * itemsPerPage + 1, filteredItems.length)}-${Math.min(page * itemsPerPage, filteredItems.length)} of ${filteredItems.length}`;
+                const bookText = bookCount > 0 ? `${bookCount} book${bookCount !== 1 ? 's' : ''}` : '';
+                const collectionText = collectionCount > 0 ? `${collectionCount} collection${collectionCount !== 1 ? 's' : ''}` : '';
+                
+                const countText = [bookText, collectionText].filter(Boolean).join(' and ');
+                return `Showing ${itemRange} items (${countText})`;
+              })()}
             </Typography>
             {totalPages > 1 && !isMobile && (
               <Pagination
@@ -834,6 +851,7 @@ const Library = () => {
         onClose={() => {
           setDetailsModalOpen(false);
           setSelectedBook(null);
+          setOpenInEditMode(false);
         }}
         book={selectedBook}
         onBookUpdated={handleBookUpdated}
@@ -841,6 +859,7 @@ const Library = () => {
         onManageCollections={() => {
           setManageCollectionsOpen(true);
         }}
+        openInEditMode={openInEditMode}
       />
 
       {selectedBook && (
