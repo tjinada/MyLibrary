@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const Book = require('../models/Book');
+const Collection = require('../models/Collection');
 const googleBooksService = require('../services/googleBooksService');
 const bookMetadataService = require('../services/bookMetadataService');
 
-// Search local library
+// Search local library (including books in collections)
 router.get('/', async (req, res) => {
   try {
     const { q, type = 'all' } = req.query;
@@ -41,11 +42,49 @@ router.get('/', async (req, res) => {
         };
     }
 
+    // Search for books (this includes ALL books, even those in collections)
     const books = await Book.find(query)
       .sort('-addedDate')
-      .limit(50);
+      .limit(100); // Increased limit since we're including all books
+    
+    // Also search for collections by name and description
+    const collectionQuery = {
+      $or: [
+        { name: new RegExp(q, 'i') },
+        { description: new RegExp(q, 'i') }
+      ]
+    };
+    
+    const collections = await Collection.find(collectionQuery)
+      .populate('books')
+      .sort('-createdAt')
+      .limit(20);
+    
+    // Combine results - books from direct search plus books from matched collections
+    const bookIds = new Set(books.map(b => b._id.toString()));
+    const allBooks = [...books];
+    
+    // Add books from matched collections that weren't in the direct search
+    collections.forEach(collection => {
+      if (collection.books) {
+        collection.books.forEach(book => {
+          if (!bookIds.has(book._id.toString())) {
+            allBooks.push(book);
+            bookIds.add(book._id.toString());
+          }
+        });
+      }
+    });
 
-    res.json(books);
+    res.json({
+      books: allBooks,
+      collections: collections.map(c => ({
+        _id: c._id,
+        name: c.name,
+        description: c.description,
+        bookCount: c.bookCount
+      }))
+    });
   } catch (error) {
     console.error('Search error:', error);
     res.status(500).json({ message: 'Search failed' });

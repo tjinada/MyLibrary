@@ -36,6 +36,7 @@ const Library = () => {
   
   // State management
   const [libraryItems, setLibraryItems] = useState([]);
+  const [allLibraryItems, setAllLibraryItems] = useState([]); // All items including hidden books
   const [allBooksForGenres, setAllBooksForGenres] = useState({ books: [], collections: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -119,21 +120,21 @@ const Library = () => {
         });
       });
       
-      // Filter books based on search/genre/status context
-      // When searching, filtering by genre, or filtering by status, show ALL books including those in collections
-      const showAllBooks = filters.search !== '' || filters.genre !== 'all' || filters.status !== 'all';
-      const filteredBooks = showAllBooks 
-        ? booksToDisplay  // Show filtered books when searching or filtering by genre
-        : booksToDisplay.filter(book => 
-            !book.collections || book.collections.length === 0
-          );  // Only show books not in any collection when browsing
-      
-      // Transform books to library items
-      const bookItems = filteredBooks.map(book => ({
+      // Store ALL books and collections for searching
+      // We always keep all books in memory for client-side search
+      const allBookItems = booksToDisplay.map(book => ({
         type: 'book',
         sortKey: book.title.toLowerCase().replace(/^(the |a |an )/i, ''),
-        data: book
+        data: book,
+        inCollection: book.collections && book.collections.length > 0
       }));
+      
+      // Filter books for display based on context
+      // When searching, filtering by genre, or filtering by status, show ALL books including those in collections
+      const showAllBooks = filters.search !== '' || filters.genre !== 'all' || filters.status !== 'all';
+      const displayBookItems = showAllBooks 
+        ? allBookItems  // Show all books when searching or filtering
+        : allBookItems.filter(item => !item.inCollection);  // Only show standalone books when browsing
       
       // Transform collections to library items
       // When filtering by genre or status (other than 'all'), don't show collections
@@ -149,11 +150,11 @@ const Library = () => {
           }));
       }
       
-      // Combine and sort all items
-      const allItems = [...bookItems, ...collectionItems];
+      // Combine and sort items for display
+      const displayItems = [...displayBookItems, ...collectionItems];
       
       // Sort by title/name
-      allItems.sort((a, b) => {
+      displayItems.sort((a, b) => {
         if (filters.sort === 'title' || filters.sort === '-title') {
           const multiplier = filters.sort.startsWith('-') ? -1 : 1;
           return multiplier * a.sortKey.localeCompare(b.sortKey);
@@ -183,10 +184,12 @@ const Library = () => {
         return 0;
       });
       
-      setLibraryItems(allItems);
+      // Store both display items and all items (for searching)
+      setLibraryItems(displayItems);
+      setAllLibraryItems([...allBookItems, ...collectionItems]); // Keep all items for search
       
       // Preload images
-      const bookImages = bookItems
+      const bookImages = allBookItems
         .map(item => item.data.coverImage)
         .filter(Boolean);
         
@@ -208,6 +211,9 @@ const Library = () => {
 
   // Filter items (client-side for search)
   const filteredItems = useMemo(() => {
+    // Use allLibraryItems for search to include books in collections
+    const itemsToSearch = filters.search ? allLibraryItems : libraryItems;
+    
     if (!filters.search) return libraryItems;
     
     const searchLower = filters.search.toLowerCase();
@@ -215,7 +221,7 @@ const Library = () => {
     const addedBookIds = new Set();
     
     // First, filter collections and track their books
-    libraryItems.forEach(item => {
+    itemsToSearch.forEach(item => {
       if (item.type === 'collection') {
         const collection = item.data;
         const collectionMatches = 
@@ -233,26 +239,26 @@ const Library = () => {
       }
     });
     
-    // Then add standalone books that match
-    libraryItems.forEach(item => {
+    // Then add books that match
+    itemsToSearch.forEach(item => {
       if (item.type === 'book') {
         const book = item.data;
-        // Skip if book is already shown in a matched collection
-        if (!addedBookIds.has(book._id)) {
-          const bookMatches = 
-            book.title?.toLowerCase().includes(searchLower) ||
-            book.authors?.some(author => author.toLowerCase().includes(searchLower)) ||
-            book.isbn?.includes(searchLower);
-          
-          if (bookMatches) {
-            matchedItems.push(item);
-          }
+        const bookMatches = 
+          book.title?.toLowerCase().includes(searchLower) ||
+          book.authors?.some(author => author.toLowerCase().includes(searchLower)) ||
+          book.isbn?.includes(searchLower) ||
+          book.genres?.some(genre => genre.toLowerCase().includes(searchLower)) ||
+          book.tags?.some(tag => tag.toLowerCase().includes(searchLower));
+        
+        if (bookMatches) {
+          // Always show matched books when searching, even if they're in collections
+          matchedItems.push(item);
         }
       }
     });
     
     return matchedItems;
-  }, [libraryItems, filters.search]);
+  }, [libraryItems, allLibraryItems, filters.search]);
 
   // Pagination
   const paginatedItems = useMemo(() => {
