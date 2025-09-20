@@ -307,7 +307,7 @@ const Library = () => {
       .slice(0, 15);
   }, [allBooksForGenres]);
 
-  // Calculate book counts - count ALL books in the library
+  // Calculate book counts - count ALL books in the library including quantities
   const bookCounts = useMemo(() => {
     const counts = {
       all: 0,
@@ -317,13 +317,14 @@ const Library = () => {
       loaned: 0,
     };
     
-    // Count ALL books from the complete dataset
+    // Count ALL books from the complete dataset, accounting for quantities
     if (allBooksForGenres.books) {
       allBooksForGenres.books.forEach(book => {
-        counts.all++;
+        const quantity = book.quantity || 1;
+        counts.all += quantity;
         const status = book.status === 'available' ? 'to-read' : book.status;
         if (counts[status] !== undefined) {
-          counts[status]++;
+          counts[status] += quantity;
         }
       });
     }

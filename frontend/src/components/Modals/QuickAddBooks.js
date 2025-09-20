@@ -4,6 +4,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  DialogContentText,
   Box,
   Typography,
   TextField,
@@ -45,6 +46,8 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
   const [currentBook, setCurrentBook] = useState(null);
   const [processingBook, setProcessingBook] = useState(false);
   const [confirmationMode, setConfirmationMode] = useState(false);
+  const [duplicateBook, setDuplicateBook] = useState(null);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   
   // Book editing fields
   const [customGenres, setCustomGenres] = useState([]);
@@ -164,12 +167,16 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
         status: bookStatus,
       };
       
-      await bookService.addBook(bookToAdd);
+      const response = await bookService.addBook(bookToAdd);
+      
+      // Check if this was a duplicate that was added
+      const finalBook = response.isDuplicate ? response.book : bookToAdd;
       
       // Add to recently added list
       setRecentlyAdded(prev => [{
-        ...bookToAdd,
-        timestamp: Date.now()
+        ...finalBook,
+        timestamp: Date.now(),
+        quantity: response.newQuantity || finalBook.quantity || 1
       }, ...prev.slice(0, 4)]); // Keep last 5 books
       
       // Show success animation
@@ -193,7 +200,11 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       
     } catch (err) {
       if (err.response?.status === 409) {
-        setError('This book already exists in your library');
+        // Book already exists - show duplicate dialog
+        setDuplicateBook(err.response.data.existingBook);
+        setShowDuplicateDialog(true);
+        setProcessingBook(false);
+        return;
       } else {
         setError(err.response?.data?.message || 'Failed to add book');
       }
@@ -220,6 +231,62 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     }
   };
 
+  const handleAddDuplicate = async () => {
+    if (!currentBook || !duplicateBook) return;
+    
+    setShowDuplicateDialog(false);
+    setProcessingBook(true);
+    
+    try {
+      // Add the book with allowDuplicate flag
+      const bookToAdd = {
+        ...currentBook,
+        genres: customGenres,
+        tags: customTags,
+        status: bookStatus,
+        allowDuplicate: true,
+      };
+      
+      const response = await bookService.addBook(bookToAdd);
+      
+      // Add to recently added list with updated quantity
+      setRecentlyAdded(prev => [{
+        ...response.book,
+        timestamp: Date.now(),
+        quantity: response.newQuantity
+      }, ...prev.slice(0, 4)]);
+      
+      // Show success
+      setCurrentBook({ ...response.book, success: true });
+      setConfirmationMode(false);
+      setDuplicateBook(null);
+      
+      // Clear after animation
+      successTimeoutRef.current = setTimeout(() => {
+        setCurrentBook(null);
+        if (!isMobile && isbnInputRef.current) {
+          isbnInputRef.current.focus();
+          isbnInputRef.current.select();
+        }
+      }, 1500);
+      
+      if (onBooksAdded) {
+        onBooksAdded();
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to add duplicate book');
+    } finally {
+      setProcessingBook(false);
+    }
+  };
+
+  const handleCancelDuplicate = () => {
+    setShowDuplicateDialog(false);
+    setDuplicateBook(null);
+    setProcessingBook(false);
+    // Go back to confirmation mode
+  };
+
   const handleClose = () => {
     setIsbn('');
     setError(null);
@@ -232,6 +299,8 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     setNewGenre('');
     setNewTag('');
     setBookStatus('to-read');
+    setDuplicateBook(null);
+    setShowDuplicateDialog(false);
     if (successTimeoutRef.current) {
       clearTimeout(successTimeoutRef.current);
     }
@@ -632,6 +701,50 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
           </Button>
         </DialogActions>
       )}
+      
+      {/* Duplicate Book Dialog */}
+      <Dialog
+        open={showDuplicateDialog}
+        onClose={handleCancelDuplicate}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Alert severity="warning" icon={false} sx={{ p: 0, bgcolor: 'transparent' }}>
+              ⚠️
+            </Alert>
+            Book Already Exists
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            <strong>"{duplicateBook?.title}"</strong> by {duplicateBook?.authors?.join(', ')} 
+            is already in your library.
+          </DialogContentText>
+          {duplicateBook?.quantity && duplicateBook.quantity > 1 && (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              You currently have {duplicateBook.quantity} {duplicateBook.quantity === 1 ? 'copy' : 'copies'} of this book.
+            </Alert>
+          )}
+          <DialogContentText sx={{ mt: 2 }}>
+            Would you like to add another copy?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDuplicate}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleAddDuplicate} 
+            variant="contained" 
+            color="primary"
+            startIcon={<AddIcon />}
+          >
+            Add Another Copy
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 };

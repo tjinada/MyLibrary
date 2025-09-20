@@ -156,6 +156,24 @@ const BookCard = ({ book, onClick, showRemoveButton, onRemove }) => {
           bgcolor: 'grey.100',
           overflow: 'hidden',
         }}>
+          {/* Quantity Badge */}
+          {book.quantity && book.quantity > 1 && (
+            <Chip
+              label={`${book.quantity} copies`}
+              size="small"
+              sx={{
+                position: 'absolute',
+                top: 8,
+                left: 8,
+                zIndex: 2,
+                bgcolor: 'secondary.main',
+                color: 'white',
+                fontWeight: 'bold',
+                fontSize: '0.75rem',
+                boxShadow: 2,
+              }}
+            />
+          )}
           {/* Remove Button */}
           {showRemoveButton && onRemove && (
             <Tooltip title="Remove from collection">

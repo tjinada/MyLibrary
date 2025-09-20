@@ -74,7 +74,33 @@ router.post('/', auth, [
     // Check if book already exists
     const existingBook = await Book.findOne({ isbn: req.body.isbn });
     if (existingBook) {
-      return res.status(409).json({ message: 'Book already exists in library' });
+      // If allowDuplicate flag is set, increment quantity
+      if (req.body.allowDuplicate) {
+        existingBook.quantity = (existingBook.quantity || 1) + 1;
+        existingBook.lastModified = Date.now();
+        await existingBook.save();
+        
+        console.log(`Incremented quantity for book ${existingBook.isbn} to ${existingBook.quantity}`);
+        return res.status(200).json({ 
+          book: existingBook,
+          message: `Added another copy. Total: ${existingBook.quantity} copies`,
+          isDuplicate: true,
+          newQuantity: existingBook.quantity
+        });
+      }
+      
+      // Return 409 with existing book data so frontend can prompt user
+      return res.status(409).json({ 
+        message: 'Book already exists in library',
+        existingBook: {
+          _id: existingBook._id,
+          isbn: existingBook.isbn,
+          title: existingBook.title,
+          authors: existingBook.authors,
+          quantity: existingBook.quantity || 1,
+          coverImage: existingBook.coverImage
+        }
+      });
     }
 
     // Ensure cover image URL is properly formatted

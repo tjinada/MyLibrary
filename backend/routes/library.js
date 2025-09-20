@@ -182,7 +182,7 @@ router.get('/stats', async (req, res) => {
     const [totalBookCount, collectionCount, books, collections] = await Promise.all([
       Book.countDocuments(),
       Collection.countDocuments(),
-      Book.find().select('status genres primaryCategory collections'),
+      Book.find().select('status genres primaryCategory collections quantity'),
       Collection.find().select('bookCount collectionType books')
     ]);
 
@@ -198,6 +198,11 @@ router.get('/stats', async (req, res) => {
     const standaloneBookCount = books.filter(book => 
       !book.collections || book.collections.length === 0
     ).length;
+    
+    // Calculate total book count including quantities
+    const totalBooksWithQuantity = books.reduce((sum, book) => {
+      return sum + (book.quantity || 1);
+    }, 0);
 
     // Calculate book status counts
     const statusCounts = {
@@ -240,7 +245,8 @@ router.get('/stats', async (req, res) => {
     };
 
     res.json({
-      totalBooks: totalBookCount,  // All books in the system
+      totalBooks: totalBookCount,  // Unique books in the system
+      totalBooksWithQuantity: totalBooksWithQuantity,  // Total including quantities
       standaloneBooks: standaloneBookCount,  // Books not in any collection
       booksInCollections: booksInCollections.size,  // Unique books in collections
       statusCounts,
