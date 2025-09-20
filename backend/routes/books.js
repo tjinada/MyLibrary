@@ -110,9 +110,33 @@ router.post('/', auth, [
 // Update book (requires auth)
 router.put('/:isbn', auth, async (req, res) => {
   try {
+    // Clean up the update data
+    const updateData = { ...req.body };
+    
+    // Remove rating if it's 0 or null (unset it instead of setting to 0)
+    if (updateData.rating === 0 || updateData.rating === null) {
+      delete updateData.rating;
+      // Use $unset to remove the rating field
+      const book = await Book.findOneAndUpdate(
+        { isbn: req.params.isbn },
+        { 
+          $set: { ...updateData, lastModified: Date.now() },
+          $unset: { rating: "" }
+        },
+        { new: true, runValidators: true }
+      );
+      
+      if (!book) {
+        return res.status(404).json({ message: 'Book not found' });
+      }
+      
+      return res.json(book);
+    }
+    
+    // Normal update with rating included
     const book = await Book.findOneAndUpdate(
       { isbn: req.params.isbn },
-      { ...req.body, lastModified: Date.now() },
+      { ...updateData, lastModified: Date.now() },
       { new: true, runValidators: true }
     );
 

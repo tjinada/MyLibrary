@@ -51,7 +51,6 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
   const [customTags, setCustomTags] = useState([]);
   const [newGenre, setNewGenre] = useState('');
   const [newTag, setNewTag] = useState('');
-  const [bookLocation, setBookLocation] = useState('');
   const [bookStatus, setBookStatus] = useState('to-read');
   
   const theme = useTheme();
@@ -105,7 +104,6 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       setCurrentBook(bookData);
       setCustomGenres(bookData.genres || []);
       setCustomTags(bookData.tags || []);
-      setBookLocation('');
       setBookStatus('to-read');
       setConfirmationMode(true);
       
@@ -155,7 +153,6 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
         ...currentBook,
         genres: customGenres,
         tags: customTags,
-        location: bookLocation,
         status: bookStatus,
       };
       
@@ -204,7 +201,6 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     setCustomTags([]);
     setNewGenre('');
     setNewTag('');
-    setBookLocation('');
     setBookStatus('to-read');
     
     // Refocus ISBN input
@@ -227,7 +223,6 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     setCustomTags([]);
     setNewGenre('');
     setNewTag('');
-    setBookLocation('');
     setBookStatus('to-read');
     if (successTimeoutRef.current) {
       clearTimeout(successTimeoutRef.current);
@@ -492,15 +487,15 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                     </Grid>
                   </Box>
 
-                  {/* Status and Location */}
-                  <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+                  {/* Status */}
+                  <Box sx={{ mt: 3 }}>
                     <TextField
                       select
                       label="Status"
                       value={bookStatus}
                       onChange={(e) => setBookStatus(e.target.value)}
                       size="small"
-                      sx={{ minWidth: 120 }}
+                      sx={{ minWidth: 150 }}
                       SelectProps={{ native: true }}
                     >
                       <option value="to-read">To Read</option>
@@ -508,15 +503,6 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                       <option value="read">Read</option>
                       <option value="loaned">Loaned</option>
                     </TextField>
-                    
-                    <TextField
-                      label="Location"
-                      value={bookLocation}
-                      onChange={(e) => setBookLocation(e.target.value)}
-                      size="small"
-                      placeholder="e.g., Living Room, Shelf A"
-                      fullWidth
-                    />
                   </Box>
 
                   {/* Genres */}
