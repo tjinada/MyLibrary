@@ -62,9 +62,11 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
     tags: [],
     genres: [],
     coverImage: '',
+    categoryType: 'Fiction', // Add Fiction/Nonfiction
   });
   const [newTag, setNewTag] = useState('');
   const [newGenre, setNewGenre] = useState('');
+  const [currentBookData, setCurrentBookData] = useState(null);
   
   // Cover selection state
   const [coverOptions, setCoverOptions] = useState([]);
@@ -147,14 +149,18 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
 
   useEffect(() => {
     if (book) {
-      setEditedBook({
+      const bookData = {
         status: book.status || 'to-read',
         rating: book.rating || 0,
         notes: book.notes || '',
         tags: book.tags || [],
         genres: book.genres || [],
         coverImage: book.coverImage || '',
-      });
+        categoryType: book.categoryType || 'Fiction',
+      };
+      
+      setEditedBook(bookData);
+      setCurrentBookData(book); // Store current book data
       
       // Generate cover options
       const options = generateCoverOptions(book);
@@ -169,6 +175,9 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
   }, [book]);
 
   if (!book) return null;
+  
+  // Use currentBookData for display if available (after updates), otherwise use original book
+  const displayBook = currentBookData || book;
 
   const handleSave = async () => {
     try {
@@ -183,10 +192,22 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
           : editedBook.coverImage
       };
       
-      await bookService.updateBook(book.isbn, updates);
+      const updatedBook = await bookService.updateBook(book.isbn, updates);
+      
+      // Update local state immediately with the returned data
+      setCurrentBookData(updatedBook);
+      setEditedBook({
+        status: updatedBook.status || 'to-read',
+        rating: updatedBook.rating || 0,
+        notes: updatedBook.notes || '',
+        tags: updatedBook.tags || [],
+        genres: updatedBook.genres || [],
+        coverImage: updatedBook.coverImage || '',
+        categoryType: updatedBook.categoryType || 'Fiction',
+      });
       
       if (onBookUpdated) {
-        onBookUpdated();
+        onBookUpdated(updatedBook);
       }
       
       setEditMode(false);
@@ -456,6 +477,31 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
               {/* Status and Rating */}
               <Paper sx={{ p: 2, mb: 2 }}>
                 <Grid container spacing={2}>
+                  {/* Fiction/Nonfiction Category */}
+                  <Grid item xs={12}>
+                    {editMode ? (
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Category Type</InputLabel>
+                        <Select
+                          value={editedBook.categoryType}
+                          label="Category Type"
+                          onChange={(e) => setEditedBook({...editedBook, categoryType: e.target.value})}
+                        >
+                          <MenuItem value="Fiction">Fiction</MenuItem>
+                          <MenuItem value="Nonfiction">Nonfiction</MenuItem>
+                        </Select>
+                      </FormControl>
+                    ) : (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">Category</Typography>
+                        <Chip 
+                          label={displayBook.categoryType || 'Fiction'} 
+                          color={displayBook.categoryType === 'Fiction' ? 'primary' : 'secondary'}
+                          sx={{ mt: 0.5 }}
+                        />
+                      </Box>
+                    )}
+                  </Grid>
                   <Grid item xs={12} sm={6}>
                     {editMode ? (
                       <FormControl fullWidth size="small">

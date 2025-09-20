@@ -52,6 +52,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
   const [newGenre, setNewGenre] = useState('');
   const [newTag, setNewTag] = useState('');
   const [bookStatus, setBookStatus] = useState('to-read');
+  const [categoryType, setCategoryType] = useState('Fiction');
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -105,6 +106,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       setCustomGenres(bookData.genres || []);
       setCustomTags(bookData.tags || []);
       setBookStatus('to-read');
+      setCategoryType(bookData.categoryType || 'Fiction');
       setConfirmationMode(true);
       
       // Clear ISBN for next entry
@@ -154,6 +156,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
         genres: customGenres,
         tags: customTags,
         status: bookStatus,
+        categoryType: categoryType,
       };
       
       await bookService.addBook(bookToAdd);
@@ -487,15 +490,28 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                     </Grid>
                   </Box>
 
-                  {/* Status */}
-                  <Box sx={{ mt: 3 }}>
+                  {/* Category Type and Status */}
+                  <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+                    <TextField
+                      select
+                      label="Category"
+                      value={categoryType}
+                      onChange={(e) => setCategoryType(e.target.value)}
+                      size="small"
+                      sx={{ minWidth: 120 }}
+                      SelectProps={{ native: true }}
+                    >
+                      <option value="Fiction">Fiction</option>
+                      <option value="Nonfiction">Nonfiction</option>
+                    </TextField>
+                    
                     <TextField
                       select
                       label="Status"
                       value={bookStatus}
                       onChange={(e) => setBookStatus(e.target.value)}
                       size="small"
-                      sx={{ minWidth: 150 }}
+                      sx={{ minWidth: 120 }}
                       SelectProps={{ native: true }}
                     >
                       <option value="to-read">To Read</option>

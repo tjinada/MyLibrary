@@ -56,6 +56,7 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
   const [customTags, setCustomTags] = useState([]);
   const [newGenre, setNewGenre] = useState('');
   const [newTag, setNewTag] = useState('');
+  const [categoryType, setCategoryType] = useState('Fiction');
 
   const steps = ['Enter ISBN', 'Review Details', 'Complete'];
 
@@ -156,9 +157,10 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
       setCoverOptions(options);
       setSelectedCoverIndex(0);
       
-      // Initialize custom fields with existing genres
+      // Initialize custom fields with existing data
       setCustomGenres(data.genres || []);
       setCustomTags(data.tags || []);
+      setCategoryType(data.categoryType || 'Fiction');
       
       setActiveStep(1);
     } catch (err) {
@@ -211,6 +213,7 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
         coverImage: selectedCoverUrl,
         genres: customGenres,
         tags: customTags,
+        categoryType: categoryType,
       };
       
       console.log('Sending book data:', bookToAdd);
@@ -468,6 +471,21 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
                     </Grid>
                   )}
                 </Grid>
+              </Box>
+
+              {/* Category Type Selection */}
+              <Box sx={{ mt: 3 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Category Type</InputLabel>
+                  <Select
+                    value={categoryType}
+                    label="Category Type"
+                    onChange={(e) => setCategoryType(e.target.value)}
+                  >
+                    <MenuItem value="Fiction">Fiction</MenuItem>
+                    <MenuItem value="Nonfiction">Nonfiction</MenuItem>
+                  </Select>
+                </FormControl>
               </Box>
 
               {/* Genres with ability to add custom */}

@@ -22,7 +22,7 @@ const bookService = {
   // Update book
   async updateBook(isbn, updates) {
     const response = await api.put(`/books/${isbn}`, updates);
-    return response.data;
+    return response.data; // Returns the updated book
   },
 
   // Delete book
