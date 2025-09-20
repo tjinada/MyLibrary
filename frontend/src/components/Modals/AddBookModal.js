@@ -157,10 +157,11 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
       setSelectedCoverIndex(0);
       
       // Initialize custom fields with existing data
-      // Ensure Fiction or Nonfiction is present
+      // Add Fiction or Nonfiction to genres based on categoryType
       let genres = data.genres || [];
-      if (!genres.includes('Fiction') && !genres.includes('Nonfiction')) {
-        genres = ['Fiction', ...genres];
+      const categoryGenre = data.categoryType === 'Nonfiction' ? 'Nonfiction' : 'Fiction';
+      if (!genres.includes(categoryGenre)) {
+        genres = [categoryGenre, ...genres];
       }
       setCustomGenres(genres);
       setCustomTags(data.tags || []);
@@ -181,21 +182,7 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
   };
 
   const handleRemoveGenre = (genreToRemove) => {
-    // Don't allow removing Fiction/Nonfiction if it's the only one
-    if ((genreToRemove === 'Fiction' || genreToRemove === 'Nonfiction')) {
-      const hasOtherCategory = customGenres.includes(genreToRemove === 'Fiction' ? 'Nonfiction' : 'Fiction');
-      if (!hasOtherCategory) {
-        setError('You must have either Fiction or Nonfiction as a genre');
-        return;
-      }
-    }
     setCustomGenres(customGenres.filter(g => g !== genreToRemove));
-  };
-
-  const handleToggleFictionNonfiction = (type) => {
-    let newGenres = customGenres.filter(g => g !== 'Fiction' && g !== 'Nonfiction');
-    newGenres = [type, ...newGenres];
-    setCustomGenres(newGenres);
   };
 
   const handleAddTag = () => {
@@ -495,35 +482,13 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
                   Genres
                 </Typography>
                 
-                {/* Fiction/Nonfiction Toggle */}
-                <Box sx={{ mb: 2 }}>
-                  <Button
-                    variant={customGenres.includes('Fiction') ? 'contained' : 'outlined'}
-                    size="small"
-                    onClick={() => handleToggleFictionNonfiction('Fiction')}
-                    sx={{ mr: 1 }}
-                  >
-                    Fiction
-                  </Button>
-                  <Button
-                    variant={customGenres.includes('Nonfiction') ? 'contained' : 'outlined'}
-                    size="small"
-                    onClick={() => handleToggleFictionNonfiction('Nonfiction')}
-                  >
-                    Nonfiction
-                  </Button>
-                </Box>
-                
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
                   {customGenres.map((genre, index) => (
                     <Chip
                       key={index}
                       label={genre}
                       size="small"
-                      color={(genre === 'Fiction' || genre === 'Nonfiction') ? 'primary' : 'default'}
-                      onDelete={(genre !== 'Fiction' && genre !== 'Nonfiction') || 
-                               (customGenres.includes('Fiction') && customGenres.includes('Nonfiction')) 
-                               ? () => handleRemoveGenre(genre) : undefined}
+                      onDelete={() => handleRemoveGenre(genre)}
                     />
                   ))}
                 </Box>
