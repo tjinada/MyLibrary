@@ -34,6 +34,7 @@ import {
 import Header from '../components/Layout/Header';
 import BookGrid from '../components/Books/BookGrid';
 import BookList from '../components/Books/BookList';
+import BookDetailsModal from '../components/Modals/BookDetailsModal';
 import { useCollections } from '../contexts/CollectionContext';
 import { useAuth } from '../contexts/AuthContext';
 import collectionService from '../services/collectionService';
@@ -51,6 +52,8 @@ const CollectionDetails = () => {
   const [viewMode, setViewMode] = useState('grid');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [debugDialogOpen, setDebugDialogOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [selectedBook, setSelectedBook] = useState(null);
   const [editData, setEditData] = useState({
     name: '',
     description: '',
@@ -105,20 +108,23 @@ const CollectionDetails = () => {
     if (window.confirm('Remove this book from the collection?')) {
       try {
         await removeBookFromCollection(id, bookId);
+        // Update local state
         setCollection(prev => ({
           ...prev,
           books: prev.books.filter(b => b._id !== bookId),
+          bookOrder: prev.bookOrder ? prev.bookOrder.filter(b => b._id !== bookId) : [],
           bookCount: prev.bookCount - 1
         }));
       } catch (error) {
         console.error('Error removing book:', error);
+        alert('Failed to remove book. Please try again.');
       }
     }
   };
 
   const handleBookClick = (book) => {
-    // Navigate to book details or open book modal
-    console.log('Book clicked:', book);
+    setSelectedBook(book);
+    setDetailsModalOpen(true);
   };
 
   const handleReorderBooks = async (newOrder) => {
@@ -279,6 +285,23 @@ const CollectionDetails = () => {
             <Typography variant="h6" sx={{ mb: 2 }}>
               Books in Collection ({displayBooks.length} {displayBooks.length === 1 ? 'book' : 'books'})
             </Typography>
+            {/* View Mode Toggle */}
+            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <Button
+                size="small"
+                variant={viewMode === 'grid' ? 'contained' : 'outlined'}
+                onClick={() => setViewMode('grid')}
+              >
+                Grid View
+              </Button>
+              <Button
+                size="small"
+                variant={viewMode === 'list' ? 'contained' : 'outlined'}
+                onClick={() => setViewMode('list')}
+              >
+                List View
+              </Button>
+            </Box>
             {viewMode === 'grid' ? (
               <BookGrid 
                 books={displayBooks} 
@@ -373,6 +396,25 @@ const CollectionDetails = () => {
           <Button onClick={handleEditCollection} variant="contained">Save</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Book Details Modal */}
+      <BookDetailsModal
+        open={detailsModalOpen}
+        onClose={() => {
+          setDetailsModalOpen(false);
+          setSelectedBook(null);
+        }}
+        book={selectedBook}
+        onBookUpdated={() => {
+          // Refresh collection to get updated book info
+          fetchCollection();
+        }}
+        onBookDeleted={() => {
+          // Refresh collection if book was deleted
+          fetchCollection();
+          setDetailsModalOpen(false);
+        }}
+      />
     </Box>
   );
 };

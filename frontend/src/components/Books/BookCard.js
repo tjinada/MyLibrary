@@ -9,10 +9,15 @@ import {
   Box,
   Rating,
   Skeleton,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
-import { MenuBook as BookIcon } from '@mui/icons-material';
+import { 
+  MenuBook as BookIcon,
+  RemoveCircle as RemoveIcon 
+} from '@mui/icons-material';
 
-const BookCard = ({ book, onClick }) => {
+const BookCard = ({ book, onClick, showRemoveButton, onRemove }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
@@ -49,6 +54,13 @@ const BookCard = ({ book, onClick }) => {
   const handleClick = () => {
     if (onClick) {
       onClick(book);
+    }
+  };
+
+  const handleRemove = (e) => {
+    e.stopPropagation();
+    if (onRemove) {
+      onRemove();
     }
   };
 
@@ -95,6 +107,28 @@ const BookCard = ({ book, onClick }) => {
           bgcolor: 'grey.100',
           overflow: 'hidden',
         }}>
+          {/* Remove Button */}
+          {showRemoveButton && onRemove && (
+            <Tooltip title="Remove from collection">
+              <IconButton
+                size="small"
+                onClick={handleRemove}
+                sx={{
+                  position: 'absolute',
+                  top: 4,
+                  right: 4,
+                  zIndex: 1,
+                  bgcolor: 'background.paper',
+                  '&:hover': {
+                    bgcolor: 'error.light',
+                    color: 'white',
+                  },
+                }}
+              >
+                <RemoveIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
           {/* Loading skeleton */}
           {!imageLoaded && hasValidCover && (
             <Skeleton 

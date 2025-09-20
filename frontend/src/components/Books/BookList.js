@@ -13,9 +13,12 @@ import {
   Rating,
   useTheme,
   useMediaQuery,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
+import { RemoveCircle as RemoveIcon } from '@mui/icons-material';
 
-const BookList = ({ books, onBookClick }) => {
+const BookList = ({ books, onBookClick, showRemoveButton, onRemoveBook }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -127,6 +130,27 @@ const BookList = ({ books, onBookClick }) => {
                         <Typography variant="caption" color="text.secondary">
                           {new Date(book.publishedDate).getFullYear()}
                         </Typography>
+                      )}
+                      
+                      {showRemoveButton && onRemoveBook && (
+                        <Tooltip title="Remove from collection">
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRemoveBook(book._id);
+                            }}
+                            sx={{
+                              ml: 'auto',
+                              '&:hover': {
+                                bgcolor: 'error.light',
+                                color: 'white',
+                              },
+                            }}
+                          >
+                            <RemoveIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
                       )}
                     </Box>
                     
