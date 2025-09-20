@@ -311,13 +311,13 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     <Dialog
       open={open}
       onClose={handleClose}
-      maxWidth="md"
+      maxWidth={confirmationMode ? "lg" : "md"}
       fullWidth
       fullScreen={isMobile}
       PaperProps={{
         sx: { 
-          minHeight: isMobile ? '100vh' : '400px',
-          maxHeight: isMobile ? '100vh' : '500px',
+          minHeight: isMobile ? '100vh' : confirmationMode ? '600px' : '400px',
+          maxHeight: isMobile ? '100vh' : confirmationMode ? '90vh' : '500px',
         }
       }}
     >
@@ -502,19 +502,24 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
             
             {currentBook && (
               <Grid container spacing={3}>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={12} md={4}>
                   {/* Book cover */}
-                  <Card>
+                  <Card sx={{ height: '100%' }}>
                     {currentBook.coverImage ? (
                       <CardMedia
                         component="img"
                         image={currentBook.coverImage}
                         alt={currentBook.title}
-                        sx={{ height: 'auto', maxHeight: 400 }}
+                        sx={{ 
+                          height: 'auto', 
+                          maxHeight: isMobile ? 300 : 450,
+                          width: '100%',
+                          objectFit: 'contain'
+                        }}
                       />
                     ) : (
                       <Box sx={{ 
-                        height: 300, 
+                        height: isMobile ? 300 : 400, 
                         display: 'flex', 
                         alignItems: 'center', 
                         justifyContent: 'center',
@@ -526,34 +531,40 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                   </Card>
                 </Grid>
                 
-                <Grid item xs={12} sm={8}>
-                  <Typography variant="h5" gutterBottom>
+                <Grid item xs={12} md={8}>
+                  <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
                     {currentBook.title}
                   </Typography>
-                  <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+                  <Typography variant="h6" color="text.secondary" gutterBottom>
                     by {currentBook.authors?.join(', ')}
                   </Typography>
                   
-                  <Box sx={{ mt: 2 }}>
-                    <Grid container spacing={1}>
-                      <Grid item xs={6}>
+                  <Box sx={{ mt: 3, mb: 3 }}>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
                         <Typography variant="body2" color="text.secondary">ISBN</Typography>
-                        <Typography variant="body1">{currentBook.isbn}</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                          {currentBook.isbn}
+                        </Typography>
                       </Grid>
                       {currentBook.publisher && (
-                        <Grid item xs={6}>
+                        <Grid item xs={12} sm={6}>
                           <Typography variant="body2" color="text.secondary">Publisher</Typography>
-                          <Typography variant="body1">{currentBook.publisher}</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                            {currentBook.publisher}
+                          </Typography>
                         </Grid>
                       )}
                     </Grid>
                   </Box>
 
                   {/* Status */}
-                  <Box sx={{ mt: 3 }}>
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Status
+                    </Typography>
                     <TextField
                       select
-                      label="Status"
                       value={bookStatus}
                       onChange={(e) => setBookStatus(e.target.value)}
                       size="small"
@@ -568,22 +579,24 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                   </Box>
 
                   {/* Genres */}
-                  <Box sx={{ mt: 3 }}>
+                  <Box sx={{ mb: 3 }}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       Genres
                     </Typography>
                     
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
                       {customGenres.map((genre, index) => (
                         <Chip
                           key={index}
                           label={genre}
                           size="small"
                           onDelete={() => handleRemoveGenre(genre)}
+                          color="primary"
+                          variant="outlined"
                         />
                       ))}
                     </Box>
-                    <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
                       <TextField
                         size="small"
                         placeholder="Add genre..."
@@ -595,6 +608,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                             handleAddGenre();
                           }
                         }}
+                        sx={{ flex: 1, maxWidth: 300 }}
                       />
                       <Button
                         size="small"
@@ -607,22 +621,28 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                   </Box>
 
                   {/* Tags */}
-                  <Box sx={{ mt: 3 }}>
+                  <Box>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       Tags
                     </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
                       {customTags.map((tag, index) => (
                         <Chip
                           key={index}
                           label={tag}
                           size="small"
                           color="secondary"
+                          variant="outlined"
                           onDelete={() => handleRemoveTag(tag)}
                         />
                       ))}
+                      {customTags.length === 0 && (
+                        <Typography variant="body2" color="text.disabled">
+                          No tags added
+                        </Typography>
+                      )}
                     </Box>
-                    <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
                       <TextField
                         size="small"
                         placeholder="Add tag..."
@@ -634,6 +654,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                             handleAddTag();
                           }
                         }}
+                        sx={{ flex: 1, maxWidth: 300 }}
                       />
                       <Button
                         size="small"
