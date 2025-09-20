@@ -91,11 +91,8 @@ const BookCard = ({ book, onClick }) => {
         {/* Book Cover */}
         <Box sx={{ 
           position: 'relative',
-          height: 280,
+          paddingTop: '150%', // 2:3 aspect ratio to match collection cards
           bgcolor: 'grey.100',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
           overflow: 'hidden',
         }}>
           {/* Loading skeleton */}
@@ -105,6 +102,8 @@ const BookCard = ({ book, onClick }) => {
               animation="wave"
               sx={{ 
                 position: 'absolute',
+                top: 0,
+                left: 0,
                 width: '100%', 
                 height: '100%',
               }} 
@@ -117,11 +116,12 @@ const BookCard = ({ book, onClick }) => {
               src={book.coverImage}
               alt={book.title}
               style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
                 height: '100%',
                 width: '100%',
-                objectFit: 'contain',
-                backgroundColor: '#f5f5f5',
-                padding: '8px',
+                objectFit: 'cover',
                 display: imageLoaded ? 'block' : 'none',
               }}
               onLoad={handleImageLoad}
@@ -134,12 +134,15 @@ const BookCard = ({ book, onClick }) => {
           {(!hasValidCover || imageError) && (
             <Box
               sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                height: '100%',
-                width: '100%',
                 bgcolor: 'primary.light',
                 background: `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`,
                 p: 2,
@@ -183,28 +186,14 @@ const BookCard = ({ book, onClick }) => {
                   {book.authors[0]}
                 </Typography>
               )}
-              {/* Show quality indicator in development */}
-              {process.env.NODE_ENV === 'development' && book.coverQualityScore !== undefined && (
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    color: 'white',
-                    opacity: 0.6,
-                    mt: 1,
-                    fontSize: '0.6rem',
-                  }}
-                >
-                  Cover Score: {book.coverQualityScore}
-                </Typography>
-              )}
             </Box>
           )}
         </Box>
 
-        <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+        <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 1 }}>
           <Typography 
             gutterBottom 
-            variant="subtitle1" 
+            variant="body2" 
             component="h3"
             sx={{
               overflow: 'hidden',
@@ -212,36 +201,40 @@ const BookCard = ({ book, onClick }) => {
               display: '-webkit-box',
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
-              minHeight: '3em',
-              fontWeight: 500,
-              lineHeight: 1.5,
+              minHeight: '2.5em',
+              fontWeight: 600,
+              lineHeight: 1.3,
+              fontSize: '0.875rem',
             }}
             title={book.title}
           >
             {book.title}
           </Typography>
           
-          <Typography 
-            variant="body2" 
-            color="text.secondary"
-            sx={{
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              mb: 1,
-            }}
-            title={book.authors?.join(', ')}
-          >
-            {book.authors?.join(', ') || 'Unknown Author'}
-          </Typography>
+          {book.authors && book.authors.length > 0 && (
+            <Typography 
+              variant="caption" 
+              color="text.secondary"
+              sx={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                mb: 0.5,
+                fontSize: '0.75rem',
+              }}
+              title={book.authors?.join(', ')}
+            >
+              {book.authors?.join(', ')}
+            </Typography>
+          )}
 
-          <Box sx={{ mt: 'auto', pt: 1 }}>
+          <Box sx={{ mt: 'auto' }}>
             {book.rating ? (
               <Rating 
                 value={book.rating} 
                 readOnly 
                 size="small" 
-                sx={{ mb: 1 }}
+                sx={{ mb: 0.5 }}
               />
             ) : null}
             
@@ -249,7 +242,7 @@ const BookCard = ({ book, onClick }) => {
               label={getStatusLabel(book.status)} 
               size="small" 
               color={getStatusColor(book.status)}
-              sx={{ fontWeight: 500 }}
+              sx={{ fontWeight: 500, fontSize: '0.7rem' }}
             />
           </Box>
         </CardContent>

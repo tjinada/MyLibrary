@@ -17,7 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../components/Layout/Header';
 import ImprovedToolbar from '../components/Layout/ImprovedToolbar';
 import SearchBar from '../components/Search/SearchBar';
-import BookGrid from '../components/Books/BookGrid';
+import BookCard from '../components/Books/BookCard';
 import BookList from '../components/Books/BookList';
 import CollectionCard from '../components/Collections/CollectionCard';
 import QuickAddBooks from '../components/Modals/QuickAddBooks';
@@ -455,10 +455,8 @@ const Library = () => {
                     } else {
                       // Book in grid
                       return (
-                        <Grid item xs={6} sm={4} md={3} lg={2} key={item.data._id}>
-                          <Box onClick={() => handleBookClick(item.data)} sx={{ cursor: 'pointer' }}>
-                            <BookGrid books={[item.data]} onBookClick={() => {}} />
-                          </Box>
+                        <Grid item xs={6} sm={4} md={3} lg={2} key={item.data._id || item.data.isbn}>
+                          <BookCard book={item.data} onClick={handleBookClick} />
                         </Grid>
                       );
                     }
