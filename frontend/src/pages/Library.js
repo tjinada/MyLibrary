@@ -120,7 +120,7 @@ const Library = () => {
     try {
       setLoading(true);
       
-      const allBooksData = await bookService.getBooks({
+      const booksResponse = await bookService.getBooks({
         page: 1,
         limit: 1000,
         status: filters.status !== 'all' ? filters.status : undefined,
@@ -128,12 +128,15 @@ const Library = () => {
       
       const collectionsData = await collectionService.getCollections(true);
       
-      setAllBooksForGenres({ books: allBooksData.books, collections: collectionsData });
+      // Extract books array from response
+      const allBooksData = booksResponse.books || [];
       
-      let booksToDisplay = allBooksData.books;
+      setAllBooksForGenres({ books: allBooksData, collections: collectionsData });
+      
+      let booksToDisplay = allBooksData;
       if (filters.genre !== 'all') {
         const genreFilters = Array.isArray(filters.genre) ? filters.genre : [filters.genre];
-        booksToDisplay = allBooksData.books.filter(book => {
+        booksToDisplay = allBooksData.filter(book => {
           if (genreFilters.length === 0) return true;
           // Changed from some (OR) to every (AND) - book must have ALL selected genres
           return genreFilters.every(genre => {

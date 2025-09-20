@@ -1,4 +1,4 @@
-import React, { useState, Fragment } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -31,12 +31,10 @@ const FilterPopover = ({
 }) => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState(null);
-  const [selectedGenres, setSelectedGenres] = useState(
-    filters.genre === 'all' ? [] : Array.isArray(filters.genre) ? filters.genre : [filters.genre]
-  );
+  const [selectedGenres, setSelectedGenres] = useState([]);
 
-  React.useEffect(() => {
-    // Sync selected genres with filters
+  // Initialize selected genres from filters
+  useEffect(() => {
     if (filters.genre === 'all') {
       setSelectedGenres([]);
     } else if (Array.isArray(filters.genre)) {
@@ -57,17 +55,12 @@ const FilterPopover = ({
   const open = Boolean(anchorEl);
 
   const handleFilterUpdate = (filterType, value) => {
-    if (filterType === 'genre') {
-      setSelectedGenres(value);
-      onFilterChange({ ...filters, genre: value.length === 0 ? 'all' : value });
-    } else {
-      onFilterChange({ ...filters, [filterType]: value });
-    }
+    onFilterChange({ ...filters, [filterType]: value });
   };
 
   const handleGenreChange = (event) => {
     const value = event.target.value;
-    // Ensure we're getting an array
+    // MUI Select with multiple returns an array
     const newGenres = typeof value === 'string' ? value.split(',') : value;
     setSelectedGenres(newGenres);
     onFilterChange({ ...filters, genre: newGenres.length === 0 ? 'all' : newGenres });
@@ -282,49 +275,45 @@ const FilterPopover = ({
                       },
                     }}
                   >
-                    {/* Add a divider between Fiction/Nonfiction and other genres */}
-                    {genres.map((genre, index) => (
-                      <React.Fragment key={genre.name}>
-                        {index === 2 && genres[0].name === 'Fiction' && genres[1].name === 'Nonfiction' && (
-                          <Divider sx={{ my: 0.5 }} />
-                        )}
-                        <MenuItem value={genre.name}>
-                        <Checkbox 
-                          checked={selectedGenres.indexOf(genre.name) > -1}
-                          size="small"
-                          sx={{ 
-                            p: 0.5, 
-                            mr: 1,
-                            color: (genre.name === 'Fiction' || genre.name === 'Nonfiction') 
-                              ? theme.palette.primary.main 
-                              : 'default'
-                          }}
-                        />
-                        <ListItemText 
-                          primary={
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              {genre.name}
-                              {(genre.name === 'Fiction' || genre.name === 'Nonfiction') && (
-                                <Chip 
-                                  label="Category" 
-                                  size="small" 
-                                  sx={{ 
-                                    height: 16, 
-                                    fontSize: '0.65rem',
-                                    bgcolor: theme.palette.primary.main,
-                                    color: 'white',
-                                  }} 
-                                />
-                              )}
-                            </Box>
-                          }
-                          secondary={`${genre.count} books`}
-                          primaryTypographyProps={{ fontSize: '0.9rem' }}
-                          secondaryTypographyProps={{ fontSize: '0.75rem' }}
-                        />
-                      </MenuItem>
-                      </React.Fragment>
-                    ))}
+                    {genres.map((genre, index) => {
+                      const isCategory = genre.name === 'Fiction' || genre.name === 'Nonfiction';
+                      
+                      return (
+                        <MenuItem key={genre.name} value={genre.name}>
+                          <Checkbox 
+                            checked={selectedGenres.indexOf(genre.name) > -1}
+                            size="small"
+                            sx={{ 
+                              p: 0.5, 
+                              mr: 1,
+                              color: isCategory ? theme.palette.primary.main : 'default'
+                            }}
+                          />
+                          <ListItemText 
+                            primary={
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                {genre.name}
+                                {isCategory && (
+                                  <Chip 
+                                    label="Category" 
+                                    size="small" 
+                                    sx={{ 
+                                      height: 16, 
+                                      fontSize: '0.65rem',
+                                      bgcolor: theme.palette.primary.main,
+                                      color: 'white',
+                                    }} 
+                                  />
+                                )}
+                              </Box>
+                            }
+                            secondary={`${genre.count} ${genre.count === 1 ? 'book' : 'books'}`}
+                            primaryTypographyProps={{ fontSize: '0.9rem' }}
+                            secondaryTypographyProps={{ fontSize: '0.75rem' }}
+                          />
+                        </MenuItem>
+                      );
+                    })}
                   </Select>
                 </FormControl>
                 
