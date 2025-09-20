@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Fragment } from 'react';
 import {
   Box,
   Button,
@@ -35,6 +35,17 @@ const FilterPopover = ({
     filters.genre === 'all' ? [] : Array.isArray(filters.genre) ? filters.genre : [filters.genre]
   );
 
+  React.useEffect(() => {
+    // Sync selected genres with filters
+    if (filters.genre === 'all') {
+      setSelectedGenres([]);
+    } else if (Array.isArray(filters.genre)) {
+      setSelectedGenres(filters.genre);
+    } else if (filters.genre) {
+      setSelectedGenres([filters.genre]);
+    }
+  }, [filters.genre]);
+
   const handleOpen = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -56,8 +67,10 @@ const FilterPopover = ({
 
   const handleGenreChange = (event) => {
     const value = event.target.value;
-    setSelectedGenres(value);
-    onFilterChange({ ...filters, genre: value.length === 0 ? 'all' : value });
+    // Ensure we're getting an array
+    const newGenres = typeof value === 'string' ? value.split(',') : value;
+    setSelectedGenres(newGenres);
+    onFilterChange({ ...filters, genre: newGenres.length === 0 ? 'all' : newGenres });
   };
 
   const clearGenres = () => {
@@ -275,7 +288,7 @@ const FilterPopover = ({
                         {index === 2 && genres[0].name === 'Fiction' && genres[1].name === 'Nonfiction' && (
                           <Divider sx={{ my: 0.5 }} />
                         )}
-                      <MenuItem key={genre.name} value={genre.name}>
+                        <MenuItem value={genre.name}>
                         <Checkbox 
                           checked={selectedGenres.indexOf(genre.name) > -1}
                           size="small"
