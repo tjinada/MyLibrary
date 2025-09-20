@@ -53,6 +53,8 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteQuantity, setDeleteQuantity] = useState(1);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
@@ -219,27 +221,40 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
     }
   };
 
-  const handleQuantityChange = async (newQuantity) => {
-    if (newQuantity < 0) return;
+  const handleDelete = async () => {
+    const currentQuantity = currentBookData?.quantity || book?.quantity || 1;
     
-    if (newQuantity === 0) {
-      if (!window.confirm('Setting quantity to 0 will remove this book from your library. Continue?')) {
-        return;
+    if (currentQuantity > 1) {
+      // Show delete dialog for multiple copies
+      setDeleteQuantity(1);
+      setShowDeleteDialog(true);
+    } else {
+      // Single copy - show confirmation
+      if (window.confirm('Are you sure you want to delete this book?')) {
+        await performDelete(1);
       }
     }
-    
+  };
+  
+  const performDelete = async (quantityToDelete) => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await bookService.updateQuantity(book.isbn, newQuantity);
+      const currentQuantity = currentBookData?.quantity || book?.quantity || 1;
+      const newQuantity = currentQuantity - quantityToDelete;
       
-      if (response.deleted) {
+      if (newQuantity <= 0) {
+        // Delete the entire book
+        await bookService.deleteBook(book.isbn);
         if (onBookDeleted) {
           onBookDeleted();
         }
         onClose();
       } else {
+        // Update quantity
+        const response = await bookService.updateQuantity(book.isbn, newQuantity);
+        
         // Update local state
         setCurrentBookData({ ...currentBookData, quantity: newQuantity });
         setEditedBook({ ...editedBook, quantity: newQuantity });
@@ -248,34 +263,17 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
           onBookUpdated({ ...book, quantity: newQuantity });
         }
       }
-    } catch (err) {
-      setError('Failed to update quantity');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this book?')) {
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
       
-      await bookService.deleteBook(book.isbn);
-      
-      if (onBookDeleted) {
-        onBookDeleted();
-      }
-      
-      onClose();
+      setShowDeleteDialog(false);
     } catch (err) {
       setError('Failed to delete book');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeleteDialogConfirm = () => {
+    performDelete(deleteQuantity);
   };
 
   const handleAddTag = () => {
@@ -555,71 +553,6 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
                       readOnly={!editMode}
                     />
                   </Grid>
-                  
-                  {/* Quantity Controls */}
-                  <Grid item xs={12}>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: 1,
-                      p: 1,
-                      bgcolor: 'grey.50',
-                      borderRadius: 1,
-                    }}>
-                      <InventoryIcon fontSize="small" color="action" />
-                      <Typography variant="body2" color="text.secondary">
-                        Quantity:
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <IconButton 
-                          size="small" 
-                          onClick={() => handleQuantityChange((displayBook.quantity || 1) - 1)}
-                          disabled={loading || (displayBook.quantity || 1) <= 1}
-                          color="primary"
-                        >
-                          <RemoveIcon fontSize="small" />
-                        </IconButton>
-                        <Typography 
-                          variant="h6" 
-                          sx={{ 
-                            minWidth: 40, 
-                            textAlign: 'center',
-                            fontWeight: 'bold',
-                          }}
-                        >
-                          {displayBook.quantity || 1}
-                        </Typography>
-                        <IconButton 
-                          size="small" 
-                          onClick={() => handleQuantityChange((displayBook.quantity || 1) + 1)}
-                          disabled={loading}
-                          color="primary"
-                        >
-                          <AddIcon fontSize="small" />
-                        </IconButton>
-                      </Box>
-                      <Typography 
-                        variant="body2" 
-                        color="text.secondary"
-                        sx={{ ml: 1 }}
-                      >
-                        {(displayBook.quantity || 1) === 1 ? 'copy' : 'copies'}
-                      </Typography>
-                      
-                      {(displayBook.quantity || 1) > 1 && (
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="error"
-                          onClick={() => handleQuantityChange(0)}
-                          disabled={loading}
-                          sx={{ ml: 'auto' }}
-                        >
-                          Remove All
-                        </Button>
-                      )}
-                    </Box>
-                  </Grid>
                 </Grid>
               </Paper>
 
@@ -629,6 +562,24 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
                 <Divider sx={{ mb: 2 }} />
                 
                 <Grid container spacing={2}>
+                  {/* Quantity Display */}
+                  {(displayBook.quantity || 1) > 1 && (
+                    <Grid item xs={12}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <InventoryIcon fontSize="small" color="action" />
+                        <Typography variant="body2" color="text.secondary">Quantity</Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Chip 
+                          label={`${displayBook.quantity} copies in library`}
+                          color="secondary"
+                          variant="outlined"
+                          icon={<InventoryIcon />}
+                        />
+                      </Box>
+                    </Grid>
+                  )}
+                  
                   {book.authors && (
                     <Grid item xs={12}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -865,11 +816,99 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
           startIcon={<DeleteIcon />}
           disabled={loading}
         >
-          Delete {(displayBook.quantity || 1) > 1 ? 'All Copies' : 'Book'}
+          Delete Book
         </Button>
         <Box sx={{ flexGrow: 1 }} />
         <Button onClick={onClose}>Close</Button>
       </DialogActions>
+      
+      {/* Delete Quantity Dialog */}
+      <Dialog
+        open={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>
+          Delete Copies
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body1" gutterBottom>
+              You have <strong>{currentBookData?.quantity || book?.quantity || 1} copies</strong> of this book.
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              How many copies would you like to delete?
+            </Typography>
+          </Box>
+          
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: 2,
+            my: 3
+          }}>
+            <IconButton 
+              onClick={() => setDeleteQuantity(Math.max(1, deleteQuantity - 1))}
+              disabled={deleteQuantity <= 1}
+              color="primary"
+            >
+              <RemoveIcon />
+            </IconButton>
+            
+            <TextField
+              type="number"
+              value={deleteQuantity}
+              onChange={(e) => {
+                const val = parseInt(e.target.value) || 1;
+                const max = currentBookData?.quantity || book?.quantity || 1;
+                setDeleteQuantity(Math.min(Math.max(1, val), max));
+              }}
+              inputProps={{ 
+                min: 1, 
+                max: currentBookData?.quantity || book?.quantity || 1,
+                style: { textAlign: 'center' }
+              }}
+              sx={{ width: 100 }}
+            />
+            
+            <IconButton 
+              onClick={() => {
+                const max = currentBookData?.quantity || book?.quantity || 1;
+                setDeleteQuantity(Math.min(deleteQuantity + 1, max));
+              }}
+              disabled={deleteQuantity >= (currentBookData?.quantity || book?.quantity || 1)}
+              color="primary"
+            >
+              <AddIcon />
+            </IconButton>
+          </Box>
+          
+          <Alert 
+            severity={deleteQuantity === (currentBookData?.quantity || book?.quantity || 1) ? "warning" : "info"}
+            sx={{ mt: 2 }}
+          >
+            {deleteQuantity === (currentBookData?.quantity || book?.quantity || 1)
+              ? "This will remove the book entirely from your library."
+              : `This will leave ${(currentBookData?.quantity || book?.quantity || 1) - deleteQuantity} ${((currentBookData?.quantity || book?.quantity || 1) - deleteQuantity) === 1 ? 'copy' : 'copies'} in your library.`
+            }
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowDeleteDialog(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDeleteDialogConfirm}
+            color="error"
+            variant="contained"
+            startIcon={<DeleteIcon />}
+          >
+            Delete {deleteQuantity} {deleteQuantity === 1 ? 'Copy' : 'Copies'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 };
