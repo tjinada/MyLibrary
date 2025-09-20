@@ -20,6 +20,16 @@ import {
 const BookCard = ({ book, onClick, showRemoveButton, onRemove }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [imageSrc, setImageSrc] = useState(book.coverImage);
+
+  // Update image source when book prop changes
+  React.useEffect(() => {
+    if (book.coverImage && book.coverImage !== imageSrc) {
+      setImageSrc(book.coverImage);
+      setImageLoaded(false);
+      setImageError(false);
+    }
+  }, [book.coverImage]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -69,8 +79,18 @@ const BookCard = ({ book, onClick, showRemoveButton, onRemove }) => {
     setImageError(false);
   };
 
-  const handleImageError = () => {
-    console.log(`Failed to load cover for "${book.title}"`);
+  const handleImageError = (e) => {
+    console.log(`Failed to load cover for "${book.title}": ${book.coverImage}`);
+    
+    // Try to reload with HTTPS if it was HTTP
+    if (imageSrc && imageSrc.startsWith('http://')) {
+      const httpsSrc = imageSrc.replace('http://', 'https://');
+      console.log(`Retrying with HTTPS: ${httpsSrc}`);
+      setImageSrc(httpsSrc);
+      setImageError(false);
+      return;
+    }
+    
     setImageError(true);
     setImageLoaded(true);
   };
@@ -145,9 +165,10 @@ const BookCard = ({ book, onClick, showRemoveButton, onRemove }) => {
           )}
           
           {/* Show cover image if we have a validated one and no error */}
-          {hasValidCover && !imageError && (
+          {hasValidCover && !imageError && imageSrc && (
             <img
-              src={book.coverImage}
+              key={imageSrc} // Force re-render when src changes
+              src={imageSrc}
               alt={book.title}
               style={{
                 position: 'absolute',

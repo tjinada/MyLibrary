@@ -35,6 +35,8 @@ import Header from '../components/Layout/Header';
 import BookGrid from '../components/Books/BookGrid';
 import BookList from '../components/Books/BookList';
 import BookDetailsModal from '../components/Modals/BookDetailsModal';
+import ManageCollectionsModal from '../components/Collections/ManageCollectionsModal';
+import AddBooksToCollectionModal from '../components/Collections/AddBooksToCollectionModal';
 import { useCollections } from '../contexts/CollectionContext';
 import { useAuth } from '../contexts/AuthContext';
 import collectionService from '../services/collectionService';
@@ -54,6 +56,8 @@ const CollectionDetails = () => {
   const [debugDialogOpen, setDebugDialogOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState(null);
+  const [manageCollectionsOpen, setManageCollectionsOpen] = useState(false);
+  const [addBooksModalOpen, setAddBooksModalOpen] = useState(false);
   const [editData, setEditData] = useState({
     name: '',
     description: '',
@@ -251,6 +255,14 @@ const CollectionDetails = () => {
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <Button
                     size="small"
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => setAddBooksModalOpen(true)}
+                  >
+                    Add Books
+                  </Button>
+                  <Button
+                    size="small"
                     startIcon={<EditIcon />}
                     onClick={() => setEditDialogOpen(true)}
                   >
@@ -414,7 +426,36 @@ const CollectionDetails = () => {
           fetchCollection();
           setDetailsModalOpen(false);
         }}
+        onManageCollections={() => {
+          setManageCollectionsOpen(true);
+        }}
       />
+
+      {/* Manage Collections Modal */}
+      {selectedBook && (
+        <ManageCollectionsModal
+          open={manageCollectionsOpen}
+          onClose={() => setManageCollectionsOpen(false)}
+          book={selectedBook}
+          onCollectionsUpdated={() => {
+            fetchCollection();
+            setManageCollectionsOpen(false);
+          }}
+        />
+      )}
+
+      {/* Add Books to Collection Modal */}
+      {collection && (
+        <AddBooksToCollectionModal
+          open={addBooksModalOpen}
+          onClose={() => setAddBooksModalOpen(false)}
+          collection={collection}
+          onBooksAdded={() => {
+            fetchCollection();
+            setAddBooksModalOpen(false);
+          }}
+        />
+      )}
     </Box>
   );
 };
