@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -130,33 +130,6 @@ const CollectionDetails = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-        <Header />
-        <MuiToolbar />
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
-          <CircularProgress size={60} />
-        </Box>
-      </Box>
-    );
-  }
-
-  if (error || !collection) {
-    return (
-      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-        <Header />
-        <MuiToolbar />
-        <Container maxWidth="xl" sx={{ py: 3 }}>
-          <Alert severity="error">{error || 'Collection not found'}</Alert>
-          <Button sx={{ mt: 2 }} onClick={() => navigate('/collections')}>
-            Back to Collections
-          </Button>
-        </Container>
-      </Box>
-    );
-  }
-
   // Get books in proper order for series
   // Ensure we're displaying ALL books in the collection
   const displayBooks = useMemo(() => {
@@ -184,6 +157,33 @@ const CollectionDetails = () => {
       });
     }
   }, [collection, displayBooks]);
+
+  if (loading) {
+    return (
+      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+        <Header />
+        <MuiToolbar />
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+          <CircularProgress size={60} />
+        </Box>
+      </Box>
+    );
+  }
+
+  if (error || !collection) {
+    return (
+      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+        <Header />
+        <MuiToolbar />
+        <Container maxWidth="xl" sx={{ py: 3 }}>
+          <Alert severity="error">{error || 'Collection not found'}</Alert>
+          <Button sx={{ mt: 2 }} onClick={() => navigate('/collections')}>
+            Back to Collections
+          </Button>
+        </Container>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
