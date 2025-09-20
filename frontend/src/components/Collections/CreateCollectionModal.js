@@ -50,7 +50,7 @@ const CreateCollectionModal = ({ open, onClose, onCollectionCreated, initialBook
     collectionType: 'custom',
     displayInLibrary: true
   });
-  const [selectedBooks, setSelectedBooks] = useState(initialBooks.map(b => b._id || b));
+  const [selectedBooks, setSelectedBooks] = useState([]);
   const [allBooks, setAllBooks] = useState([]);
   const [filteredBooks, setFilteredBooks] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,14 +69,20 @@ const CreateCollectionModal = ({ open, onClose, onCollectionCreated, initialBook
         collectionType: 'custom',
         displayInLibrary: true
       });
-      setSelectedBooks(initialBooks.map(b => b._id || b));
+      // Properly initialize selected books from initialBooks
+      const initialBookIds = initialBooks.map(b => {
+        if (typeof b === 'string') return b;
+        if (b && b._id) return b._id;
+        return null;
+      }).filter(Boolean);
+      setSelectedBooks(initialBookIds);
       setSearchQuery('');
       setError(null);
       
       // Fetch all books for selection
       fetchBooks();
     }
-  }, [open]);
+  }, [open, initialBooks]);
 
   useEffect(() => {
     // Filter books based on search query
@@ -145,17 +151,48 @@ const CreateCollectionModal = ({ open, onClose, onCollectionCreated, initialBook
     setError(null);
 
     try {
-      // Create the collection
+      // Create the collection first without books
       const newCollection = await collectionService.createCollection(formData);
 
-      // If books were selected, add them to the collection
+      // Add ALL selected books to the collection
+      // Ensure we're not skipping any books
       if (selectedBooks.length > 0) {
-        await collectionService.bulkAddBooks(newCollection._id, selectedBooks);
-      }
-
-      // Notify parent component
-      if (onCollectionCreated) {
-        onCollectionCreated(newCollection);
+        console.log('Adding books to collection:', selectedBooks);
+        
+        // Make sure we're passing all book IDs
+        const bookIdsToAdd = selectedBooks.filter(id => {
+          // Validate that these are valid MongoDB ObjectIds
+          return id && id.match(/^[0-9a-fA-F]{24}$/);
+        });
+        
+        if (bookIdsToAdd.length > 0) {
+          const updatedCollection = await collectionService.bulkAddBooks(
+            newCollection._id, 
+            bookIdsToAdd
+          );
+          
+          // Verify all books were added
+          console.log('Collection after adding books:', {
+            id: updatedCollection._id,
+            bookCount: updatedCollection.bookCount,
+            actualBooks: updatedCollection.books?.length
+          });
+          
+          // Use the updated collection with books
+          if (onCollectionCreated) {
+            onCollectionCreated(updatedCollection);
+          }
+        } else {
+          // No valid books to add, use original collection
+          if (onCollectionCreated) {
+            onCollectionCreated(newCollection);
+          }
+        }
+      } else {
+        // No books selected
+        if (onCollectionCreated) {
+          onCollectionCreated(newCollection);
+        }
       }
 
       onClose();

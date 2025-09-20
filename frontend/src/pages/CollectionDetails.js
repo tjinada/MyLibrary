@@ -37,6 +37,7 @@ import BookList from '../components/Books/BookList';
 import { useCollections } from '../contexts/CollectionContext';
 import { useAuth } from '../contexts/AuthContext';
 import collectionService from '../services/collectionService';
+import CollectionDebugDialog from '../components/Debug/CollectionDebugDialog';
 
 const CollectionDetails = () => {
   const { id } = useParams();
@@ -49,6 +50,7 @@ const CollectionDetails = () => {
   const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [debugDialogOpen, setDebugDialogOpen] = useState(false);
   const [editData, setEditData] = useState({
     name: '',
     description: '',
@@ -88,12 +90,13 @@ const CollectionDetails = () => {
   };
 
   const handleDeleteCollection = async () => {
-    if (window.confirm(`Are you sure you want to delete "${collection.name}"? Books will not be deleted.`)) {
+    if (window.confirm(`Are you sure you want to delete the collection "${collection.name}"?\n\nIMPORTANT: Only the collection will be deleted. All books will remain in your library.`)) {
       try {
         await deleteCollection(id);
         navigate('/collections');
       } catch (error) {
         console.error('Error deleting collection:', error);
+        alert('Failed to delete collection. Please try again.');
       }
     }
   };
@@ -155,9 +158,32 @@ const CollectionDetails = () => {
   }
 
   // Get books in proper order for series
-  const displayBooks = collection.collectionType === 'series' && collection.bookOrder?.length > 0
-    ? collection.bookOrder
-    : collection.books;
+  // Ensure we're displaying ALL books in the collection
+  const displayBooks = useMemo(() => {
+    if (!collection) return [];
+    
+    // For series with defined order, use bookOrder
+    if (collection.collectionType === 'series' && collection.bookOrder?.length > 0) {
+      return collection.bookOrder;
+    }
+    
+    // Otherwise use all books in the collection
+    return collection.books || [];
+  }, [collection]);
+  
+  // Debug logging
+  useEffect(() => {
+    if (collection) {
+      console.log('Collection details:', {
+        id: collection._id,
+        name: collection.name,
+        bookCount: collection.bookCount,
+        actualBooksLength: collection.books?.length,
+        bookOrderLength: collection.bookOrder?.length,
+        displayBooksLength: displayBooks.length
+      });
+    }
+  }, [collection, displayBooks]);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -232,6 +258,15 @@ const CollectionDetails = () => {
                   >
                     Delete
                   </Button>
+                  {process.env.NODE_ENV === 'development' && (
+                    <Button
+                      size="small"
+                      onClick={() => setDebugDialogOpen(true)}
+                      color="warning"
+                    >
+                      Debug
+                    </Button>
+                  )}
                 </Box>
               )}
             </Box>
@@ -242,7 +277,7 @@ const CollectionDetails = () => {
         {displayBooks && displayBooks.length > 0 ? (
           <Box>
             <Typography variant="h6" sx={{ mb: 2 }}>
-              Books in Collection
+              Books in Collection ({displayBooks.length} {displayBooks.length === 1 ? 'book' : 'books'})
             </Typography>
             {viewMode === 'grid' ? (
               <BookGrid 
@@ -289,6 +324,15 @@ const CollectionDetails = () => {
           </Paper>
         )}
       </Container>
+
+      {/* Debug Dialog (Development Only) */}
+      {process.env.NODE_ENV === 'development' && (
+        <CollectionDebugDialog
+          open={debugDialogOpen}
+          onClose={() => setDebugDialogOpen(false)}
+          collectionId={id}
+        />
+      )}
 
       {/* Edit Collection Dialog */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>

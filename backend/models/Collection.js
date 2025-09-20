@@ -18,6 +18,11 @@ const CollectionSchema = new mongoose.Schema({
   coverImage: {
     type: String
   },
+  coverBookId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Book',
+    default: null
+  },
   
   // For library integration
   sortName: {
@@ -106,17 +111,25 @@ CollectionSchema.methods.reorderBooks = async function(orderedBookIds) {
 
 // Method to generate cover image from book covers
 CollectionSchema.methods.generateCoverImage = async function() {
-  if (this.books.length > 0) {
+  // Use coverBookId if set, otherwise use first book
+  if (this.coverBookId) {
+    await this.populate('coverBookId', 'coverImage');
+    if (this.coverBookId && this.coverBookId.coverImage) {
+      this.coverImage = this.coverBookId.coverImage;
+    }
+  } else if (this.books.length > 0) {
     await this.populate('books', 'coverImage');
     const covers = this.books
       .slice(0, 4)
       .map(book => book.coverImage)
       .filter(Boolean);
     
-    // For now, we'll just use the first book's cover
-    // In a real implementation, you might create a composite image
     if (covers.length > 0) {
       this.coverImage = covers[0];
+      // Set the first book as cover if not set
+      if (!this.coverBookId) {
+        this.coverBookId = this.books[0];
+      }
     }
   }
   return this.coverImage;

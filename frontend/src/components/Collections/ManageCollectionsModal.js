@@ -89,13 +89,22 @@ const ManageCollectionsModal = ({
       const toAdd = bookCollections.filter(id => !originalCollections.includes(id));
       const toRemove = originalCollections.filter(id => !bookCollections.includes(id));
 
+      console.log('Collections update:', {
+        original: originalCollections,
+        selected: bookCollections,
+        toAdd,
+        toRemove
+      });
+
       // Process additions
       for (const collectionId of toAdd) {
+        console.log(`Adding book ${book._id} to collection ${collectionId}`);
         await collectionService.addBookToCollection(collectionId, book._id);
       }
 
       // Process removals
       for (const collectionId of toRemove) {
+        console.log(`Removing book ${book._id} from collection ${collectionId}`);
         await collectionService.removeBookFromCollection(collectionId, book._id);
       }
 
@@ -106,16 +115,22 @@ const ManageCollectionsModal = ({
       onClose();
     } catch (err) {
       console.error('Error updating collections:', err);
-      setError('Failed to update collections');
+      setError(err.response?.data?.message || 'Failed to update collections');
     } finally {
       setSaving(false);
     }
   };
 
   const handleCollectionCreated = async (newCollection) => {
-    // Add book to the newly created collection
+    // The collection was already created with this book if it was in initialBooks
+    // Just update the local state
     setCollections(prev => [...prev, newCollection]);
-    setBookCollections(prev => [...prev, newCollection._id]);
+    
+    // Check if this book was added to the new collection
+    if (newCollection.books?.some(b => (b._id || b) === book._id)) {
+      setBookCollections(prev => [...prev, newCollection._id]);
+    }
+    
     setCreateModalOpen(false);
   };
 

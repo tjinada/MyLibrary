@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Collection = require('../models/Collection');
 const Book = require('../models/Book');
+const CollectionBookService = require('../services/collectionBookService');
 const auth = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 
@@ -128,24 +129,13 @@ router.put('/:id', auth, async (req, res) => {
 // Delete collection (requires auth)
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const collection = await Collection.findById(req.params.id);
-    
-    if (!collection) {
-      return res.status(404).json({ message: 'Collection not found' });
-    }
-
-    // Remove collection reference from all books
-    if (collection.books.length > 0) {
-      await Book.updateMany(
-        { _id: { $in: collection.books } },
-        { $pull: { collections: collection._id } }
-      );
-    }
-
-    await collection.deleteOne();
-    res.json({ message: 'Collection deleted successfully' });
+    await CollectionBookService.deleteCollection(req.params.id);
+    res.json({ message: 'Collection deleted successfully - books preserved' });
   } catch (error) {
     console.error('Error deleting collection:', error);
+    if (error.message === 'Collection not found') {
+      return res.status(404).json({ message: error.message });
+    }
     res.status(500).json({ message: 'Failed to delete collection' });
   }
 });
@@ -153,36 +143,23 @@ router.delete('/:id', auth, async (req, res) => {
 // Add book to collection (requires auth)
 router.post('/:id/books/:bookId', auth, async (req, res) => {
   try {
-    const collection = await Collection.findById(req.params.id);
-    const book = await Book.findById(req.params.bookId);
+    const result = await CollectionBookService.addBookToCollection(
+      req.params.id,
+      req.params.bookId
+    );
     
-    if (!collection) {
-      return res.status(404).json({ message: 'Collection not found' });
-    }
-    
-    if (!book) {
-      return res.status(404).json({ message: 'Book not found' });
-    }
-
-    // Add book to collection
-    await collection.addBook(book._id);
-    
-    // Add collection to book
-    if (!book.collections.includes(collection._id)) {
-      book.collections.push(collection._id);
-      await book.save();
-    }
-
     // Generate cover image if needed
-    if (!collection.coverImage) {
-      await collection.generateCoverImage();
-      await collection.save();
+    if (!result.collection.coverImage) {
+      await result.collection.generateCoverImage();
+      await result.collection.save();
     }
-
-    await collection.populate('books');
-    res.json(collection);
+    
+    res.json(result.collection);
   } catch (error) {
     console.error('Error adding book to collection:', error);
+    if (error.message === 'Collection not found' || error.message === 'Book not found') {
+      return res.status(404).json({ message: error.message });
+    }
     res.status(500).json({ message: 'Failed to add book to collection' });
   }
 });
@@ -190,28 +167,17 @@ router.post('/:id/books/:bookId', auth, async (req, res) => {
 // Remove book from collection (requires auth)
 router.delete('/:id/books/:bookId', auth, async (req, res) => {
   try {
-    const collection = await Collection.findById(req.params.id);
-    const book = await Book.findById(req.params.bookId);
+    const result = await CollectionBookService.removeBookFromCollection(
+      req.params.id,
+      req.params.bookId
+    );
     
-    if (!collection) {
-      return res.status(404).json({ message: 'Collection not found' });
-    }
-
-    if (book) {
-      // Remove collection from book
-      book.collections = book.collections.filter(
-        colId => !colId.equals(collection._id)
-      );
-      await book.save();
-    }
-
-    // Remove book from collection
-    await collection.removeBook(req.params.bookId);
-    
-    await collection.populate('books');
-    res.json(collection);
+    res.json(result.collection);
   } catch (error) {
     console.error('Error removing book from collection:', error);
+    if (error.message === 'Collection not found') {
+      return res.status(404).json({ message: error.message });
+    }
     res.status(500).json({ message: 'Failed to remove book from collection' });
   }
 });
@@ -227,43 +193,24 @@ router.post('/:id/books', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const collection = await Collection.findById(req.params.id);
-    
-    if (!collection) {
-      return res.status(404).json({ message: 'Collection not found' });
-    }
-
     const { bookIds } = req.body;
-    
-    // Add books to collection
-    for (const bookId of bookIds) {
-      if (!collection.books.includes(bookId)) {
-        collection.books.push(bookId);
-        if (collection.collectionType === 'series') {
-          collection.bookOrder.push(bookId);
-        }
-      }
-    }
-    
-    collection.bookCount = collection.books.length;
-    await collection.save();
-
-    // Update books to include this collection
-    await Book.updateMany(
-      { _id: { $in: bookIds } },
-      { $addToSet: { collections: collection._id } }
+    const collection = await CollectionBookService.bulkAddBooks(
+      req.params.id,
+      bookIds
     );
-
+    
     // Generate cover image if needed
     if (!collection.coverImage) {
       await collection.generateCoverImage();
       await collection.save();
     }
-
-    await collection.populate('books');
+    
     res.json(collection);
   } catch (error) {
     console.error('Error adding books to collection:', error);
+    if (error.message === 'Collection not found' || error.message === 'Some books not found') {
+      return res.status(404).json({ message: error.message });
+    }
     res.status(500).json({ message: 'Failed to add books to collection' });
   }
 });
@@ -321,6 +268,37 @@ router.get('/:id/books', async (req, res) => {
   } catch (error) {
     console.error('Error fetching collection books:', error);
     res.status(500).json({ message: 'Failed to fetch collection books' });
+  }
+});
+
+// Validate collection data integrity
+router.get('/:id/validate', async (req, res) => {
+  try {
+    const validation = await CollectionBookService.validateCollection(req.params.id);
+    res.json(validation);
+  } catch (error) {
+    console.error('Error validating collection:', error);
+    if (error.message === 'Collection not found') {
+      return res.status(404).json({ message: error.message });
+    }
+    res.status(500).json({ message: 'Failed to validate collection' });
+  }
+});
+
+// Fix collection data integrity (requires auth)
+router.post('/:id/fix', auth, async (req, res) => {
+  try {
+    const collection = await CollectionBookService.fixCollectionIntegrity(req.params.id);
+    res.json({
+      message: 'Collection integrity fixed',
+      collection
+    });
+  } catch (error) {
+    console.error('Error fixing collection:', error);
+    if (error.message === 'Collection not found') {
+      return res.status(404).json({ message: error.message });
+    }
+    res.status(500).json({ message: 'Failed to fix collection' });
   }
 });
 
