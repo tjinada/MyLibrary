@@ -25,6 +25,12 @@ const bookService = {
     return response.data; // Returns the updated book
   },
 
+  // Update book quantity
+  async updateQuantity(isbn, quantity) {
+    const response = await api.patch(`/books/${isbn}/quantity`, { quantity });
+    return response.data;
+  },
+
   // Delete book
   async deleteBook(isbn) {
     const response = await api.delete(`/books/${isbn}`);

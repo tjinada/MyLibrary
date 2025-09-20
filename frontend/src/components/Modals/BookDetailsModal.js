@@ -38,11 +38,13 @@ import {
   Category as CategoryIcon,
   Person as AuthorIcon,
   Add as AddIcon,
+  Remove as RemoveIcon,
   LocalOffer as TagIcon,
   ArrowBackIos as PrevIcon,
   ArrowForwardIos as NextIcon,
   Image as ImageIcon,
   CollectionsBookmark as CollectionsIcon,
+  Inventory as InventoryIcon,
 } from '@mui/icons-material';
 import bookService from '../../services/bookService';
 
@@ -62,6 +64,7 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
     tags: [],
     genres: [],
     coverImage: '',
+    quantity: 1,
   });
   const [newTag, setNewTag] = useState('');
   const [newGenre, setNewGenre] = useState('');
@@ -155,6 +158,7 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
         tags: book.tags || [],
         genres: book.genres || [],
         coverImage: book.coverImage || '',
+        quantity: book.quantity || 1,
       };
       
       setEditedBook(bookData);
@@ -210,6 +214,42 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
       setEditMode(false);
     } catch (err) {
       setError('Failed to update book');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuantityChange = async (newQuantity) => {
+    if (newQuantity < 0) return;
+    
+    if (newQuantity === 0) {
+      if (!window.confirm('Setting quantity to 0 will remove this book from your library. Continue?')) {
+        return;
+      }
+    }
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await bookService.updateQuantity(book.isbn, newQuantity);
+      
+      if (response.deleted) {
+        if (onBookDeleted) {
+          onBookDeleted();
+        }
+        onClose();
+      } else {
+        // Update local state
+        setCurrentBookData({ ...currentBookData, quantity: newQuantity });
+        setEditedBook({ ...editedBook, quantity: newQuantity });
+        
+        if (onBookUpdated) {
+          onBookUpdated({ ...book, quantity: newQuantity });
+        }
+      }
+    } catch (err) {
+      setError('Failed to update quantity');
     } finally {
       setLoading(false);
     }
@@ -491,14 +531,14 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
                         </Select>
                       </FormControl>
                     ) : (
-                    <Box>
-                    <Typography variant="body2" color="text.secondary">Status</Typography>
-                    <Chip 
-                    label={getStatusLabel(displayBook.status)} 
-                    color={getStatusColor(displayBook.status)}
-                    size="small"
-                    />
-                    </Box>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">Status</Typography>
+                        <Chip 
+                          label={getStatusLabel(displayBook.status)} 
+                          color={getStatusColor(displayBook.status)}
+                          size="small"
+                        />
+                      </Box>
                     )}
                   </Grid>
                   <Grid item xs={12} sm={6}>
@@ -514,6 +554,71 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
                       }}
                       readOnly={!editMode}
                     />
+                  </Grid>
+                  
+                  {/* Quantity Controls */}
+                  <Grid item xs={12}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 1,
+                      p: 1,
+                      bgcolor: 'grey.50',
+                      borderRadius: 1,
+                    }}>
+                      <InventoryIcon fontSize="small" color="action" />
+                      <Typography variant="body2" color="text.secondary">
+                        Quantity:
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleQuantityChange((displayBook.quantity || 1) - 1)}
+                          disabled={loading || (displayBook.quantity || 1) <= 1}
+                          color="primary"
+                        >
+                          <RemoveIcon fontSize="small" />
+                        </IconButton>
+                        <Typography 
+                          variant="h6" 
+                          sx={{ 
+                            minWidth: 40, 
+                            textAlign: 'center',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          {displayBook.quantity || 1}
+                        </Typography>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleQuantityChange((displayBook.quantity || 1) + 1)}
+                          disabled={loading}
+                          color="primary"
+                        >
+                          <AddIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary"
+                        sx={{ ml: 1 }}
+                      >
+                        {(displayBook.quantity || 1) === 1 ? 'copy' : 'copies'}
+                      </Typography>
+                      
+                      {(displayBook.quantity || 1) > 1 && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          onClick={() => handleQuantityChange(0)}
+                          disabled={loading}
+                          sx={{ ml: 'auto' }}
+                        >
+                          Remove All
+                        </Button>
+                      )}
+                    </Box>
                   </Grid>
                 </Grid>
               </Paper>
@@ -760,7 +865,7 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
           startIcon={<DeleteIcon />}
           disabled={loading}
         >
-          Delete Book
+          Delete {(displayBook.quantity || 1) > 1 ? 'All Copies' : 'Book'}
         </Button>
         <Box sx={{ flexGrow: 1 }} />
         <Button onClick={onClose}>Close</Button>

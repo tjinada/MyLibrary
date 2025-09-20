@@ -177,6 +177,42 @@ router.put('/:isbn', auth, async (req, res) => {
   }
 });
 
+// Update book quantity (requires auth)
+router.patch('/:isbn/quantity', auth, async (req, res) => {
+  try {
+    const { quantity } = req.body;
+    
+    if (quantity < 0) {
+      return res.status(400).json({ message: 'Quantity cannot be negative' });
+    }
+    
+    const book = await Book.findOne({ isbn: req.params.isbn });
+    
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+    
+    if (quantity === 0) {
+      // Delete the book if quantity is set to 0
+      await book.deleteOne();
+      return res.json({ message: 'Book removed from library', deleted: true });
+    }
+    
+    // Update quantity
+    book.quantity = quantity;
+    book.lastModified = Date.now();
+    await book.save();
+    
+    res.json({ 
+      message: `Quantity updated to ${quantity}`,
+      book 
+    });
+  } catch (error) {
+    console.error('Error updating book quantity:', error);
+    res.status(500).json({ message: 'Failed to update book quantity' });
+  }
+});
+
 // Delete book (requires auth)
 router.delete('/:isbn', auth, async (req, res) => {
   try {
