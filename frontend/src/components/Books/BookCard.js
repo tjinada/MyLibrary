@@ -21,15 +21,44 @@ const BookCard = ({ book, onClick, showRemoveButton, onRemove }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [imageSrc, setImageSrc] = useState(book.coverImage);
+  const imageRef = React.useRef(null);
 
   // Update image source when book prop changes
   React.useEffect(() => {
-    if (book.coverImage && book.coverImage !== imageSrc) {
+    let timeoutId;
+    
+    if (book.coverImage !== imageSrc) {
       setImageSrc(book.coverImage);
-      setImageLoaded(false);
       setImageError(false);
+      
+      // Check if image is already cached/loaded
+      if (book.coverImage) {
+        const img = new Image();
+        img.src = book.coverImage;
+        
+        // If image is already cached, it will have naturalWidth > 0
+        if (img.complete && img.naturalWidth > 0) {
+          setImageLoaded(true);
+        } else {
+          setImageLoaded(false);
+          
+          // Fallback: Force show image after 500ms even if onLoad hasn't fired
+          // This handles the case where cached images don't trigger onLoad
+          timeoutId = setTimeout(() => {
+            if (imageRef.current && imageRef.current.complete) {
+              setImageLoaded(true);
+            }
+          }, 500);
+        }
+      } else {
+        setImageLoaded(false);
+      }
     }
-  }, [book.coverImage]);
+    
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [book.coverImage, book.isbn, imageSrc]); // Include all dependencies
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -167,7 +196,8 @@ const BookCard = ({ book, onClick, showRemoveButton, onRemove }) => {
           {/* Show cover image if we have a validated one and no error */}
           {hasValidCover && !imageError && imageSrc && (
             <img
-              key={imageSrc} // Force re-render when src changes
+              ref={imageRef}
+              key={`${book.isbn}-${imageSrc}`} // Use ISBN + src as key for uniqueness
               src={imageSrc}
               alt={book.title}
               style={{
@@ -181,7 +211,7 @@ const BookCard = ({ book, onClick, showRemoveButton, onRemove }) => {
               }}
               onLoad={handleImageLoad}
               onError={handleImageError}
-              loading="lazy"
+              loading="eager" // Change to eager for better reliability
             />
           )}
           
