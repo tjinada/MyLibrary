@@ -242,9 +242,11 @@ const Library = () => {
     setPage(1);
   }, [filteredItems.length, itemsPerPage]);
 
-  // Extract genres from items
+  // Extract genres from ALL books (including those in collections)
   const genres = useMemo(() => {
     const genreMap = new Map();
+    
+    // Count genres from standalone books
     libraryItems.forEach(item => {
       if (item.type === 'book') {
         const book = item.data;
@@ -255,8 +257,22 @@ const Library = () => {
             genreMap.set(genre, (genreMap.get(genre) || 0) + 1);
           });
         }
+      } else if (item.type === 'collection' && item.data.books) {
+        // Also count genres from books inside collections
+        item.data.books.forEach(book => {
+          if (book && typeof book === 'object') {
+            if (book.primaryCategory) {
+              genreMap.set(book.primaryCategory, (genreMap.get(book.primaryCategory) || 0) + 1);
+            } else if (book.genres) {
+              book.genres.forEach(genre => {
+                genreMap.set(genre, (genreMap.get(genre) || 0) + 1);
+              });
+            }
+          }
+        });
       }
     });
+    
     return Array.from(genreMap.entries())
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)

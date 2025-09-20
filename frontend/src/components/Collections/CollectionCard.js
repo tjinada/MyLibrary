@@ -156,26 +156,41 @@ const CollectionCard = ({
           position: 'relative',
           cursor: 'pointer',
           transition: 'all 0.3s ease',
+          border: '2px solid',
+          borderColor: 'primary.main',
+          bgcolor: alpha('#1976d2', 0.02),
           '&:hover': {
             boxShadow: 6,
             transform: 'translateY(-4px)',
+            borderColor: 'primary.dark',
+            bgcolor: alpha('#1976d2', 0.05),
           }
         }}
         onClick={handleCardClick}
       >
-        {/* Collection indicator badge */}
+        {/* Collection indicator badge - More prominent */}
         <Chip
           icon={<CollectionsIcon />}
           label="Collection"
-          size="small"
+          size="medium"
           sx={{
             position: 'absolute',
             top: 8,
             left: 8,
             zIndex: 2,
-            bgcolor: alpha('#1976d2', 0.9),
+            bgcolor: 'primary.main',
             color: 'white',
             fontWeight: 'bold',
+            fontSize: '0.85rem',
+            padding: '2px 6px',
+            boxShadow: 3,
+            '& .MuiChip-icon': {
+              color: 'white',
+              fontSize: '1.2rem'
+            },
+            '&:hover': {
+              bgcolor: 'primary.dark',
+            }
           }}
         />
 
@@ -233,7 +248,19 @@ const CollectionCard = ({
           <CardContent>
             <Box display="flex" alignItems="center" justifyContent="space-between">
               <Box display="flex" alignItems="center" flex={1}>
-                <CollectionsIcon sx={{ mr: 2, color: 'primary.main' }} />
+                <Box sx={{ mr: 2 }}>
+                  <Chip
+                    icon={<CollectionsIcon />}
+                    label="COLLECTION"
+                    color="primary"
+                    size="medium"
+                    sx={{
+                      fontWeight: 'bold',
+                      fontSize: '0.85rem',
+                      letterSpacing: '0.5px',
+                    }}
+                  />
+                </Box>
                 <Box flex={1}>
                   <Typography variant="h6" component="div" gutterBottom>
                     {collection.name}
@@ -309,13 +336,18 @@ const CollectionCard = ({
         flexDirection: 'column',
         position: 'relative',
         transition: 'all 0.3s ease',
+        border: '2px solid',
+        borderColor: 'primary.main',
+        bgcolor: alpha('#1976d2', 0.02),
         '&:hover': {
           boxShadow: 6,
           transform: 'translateY(-4px)',
+          borderColor: 'primary.dark',
+          bgcolor: alpha('#1976d2', 0.05),
         }
       }}
     >
-      {/* Collection indicator badge */}
+      {/* Collection indicator badge - More prominent */}
       <Box
         sx={{
           position: 'absolute',
@@ -328,12 +360,23 @@ const CollectionCard = ({
       >
         <Chip
           icon={<CollectionsIcon />}
-          label="Collection"
-          size="small"
+          label="COLLECTION"
+          size="medium"
           sx={{
-            bgcolor: alpha('#1976d2', 0.9),
+            bgcolor: 'primary.main',
             color: 'white',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            fontSize: '0.9rem',
+            letterSpacing: '0.5px',
+            padding: '4px 8px',
+            boxShadow: 3,
+            '& .MuiChip-icon': {
+              color: 'white',
+              fontSize: '1.3rem'
+            },
+            '&:hover': {
+              bgcolor: 'primary.dark',
+            }
           }}
         />
       </Box>
