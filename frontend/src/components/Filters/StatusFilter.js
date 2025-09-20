@@ -16,11 +16,10 @@ const StatusFilter = ({ value, onChange, bookCounts = {} }) => {
     { value: 'loaned', label: 'Loaned', color: 'warning' },
   ];
 
-  // Map old status values to new ones for count display
+  // Get count only for 'All Books'
   const getCount = (status) => {
     if (status === 'all') return bookCounts.all;
-    if (status === 'to-read') return bookCounts['to-read'] || bookCounts.available || 0;
-    return bookCounts[status] || 0;
+    return null; // Don't show count for individual statuses
   };
 
   return (
@@ -31,20 +30,23 @@ const StatusFilter = ({ value, onChange, bookCounts = {} }) => {
         label="Status"
         onChange={(e) => onChange(e.target.value)}
       >
-        {statuses.map((status) => (
-          <MenuItem key={status.value} value={status.value}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {status.label}
-              {bookCounts && (
-                <Chip 
-                  label={getCount(status.value)} 
-                  size="small" 
-                  color={status.color}
-                />
-              )}
-            </div>
-          </MenuItem>
-        ))}
+        {statuses.map((status) => {
+          const count = getCount(status.value);
+          return (
+            <MenuItem key={status.value} value={status.value}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {status.label}
+                {count !== null && (
+                  <Chip 
+                    label={count} 
+                    size="small" 
+                    color={status.color}
+                  />
+                )}
+              </div>
+            </MenuItem>
+          );
+        })}
       </Select>
     </FormControl>
   );
