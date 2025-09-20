@@ -47,7 +47,6 @@ const CreateCollectionModal = ({ open, onClose, onCollectionCreated, initialBook
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    collectionType: 'custom',
     displayInLibrary: true
   });
   const [selectedBooks, setSelectedBooks] = useState([]);
@@ -68,7 +67,6 @@ const CreateCollectionModal = ({ open, onClose, onCollectionCreated, initialBook
       setFormData({
         name: '',
         description: '',
-        collectionType: 'custom',
         displayInLibrary: true
       });
       // Properly initialize selected books from initialBooks
@@ -259,21 +257,6 @@ const CreateCollectionModal = ({ open, onClose, onCollectionCreated, initialBook
               disabled={loading}
             />
 
-            <FormControl fullWidth>
-              <InputLabel>Collection Type</InputLabel>
-              <Select
-                name="collectionType"
-                value={formData.collectionType}
-                onChange={(e) => setFormData({ ...formData, collectionType: e.target.value })}
-                label="Collection Type"
-                disabled={loading}
-              >
-                <MenuItem value="custom">Custom Collection</MenuItem>
-                <MenuItem value="series">Book Series (Ordered)</MenuItem>
-                <MenuItem value="theme">Theme/Topic</MenuItem>
-              </Select>
-            </FormControl>
-
             <FormControlLabel
               control={
                 <Switch
@@ -397,15 +380,6 @@ const CreateCollectionModal = ({ open, onClose, onCollectionCreated, initialBook
                     <Typography variant="body1" gutterBottom>{formData.description}</Typography>
                   </>
                 )}
-                
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Type</Typography>
-                <Chip 
-                  label={formData.collectionType} 
-                  size="small" 
-                  color="primary" 
-                  variant="outlined"
-                  sx={{ mb: 1 }}
-                />
                 
                 <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>
                   Books to Add
