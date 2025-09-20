@@ -12,11 +12,13 @@ import {
   useMediaQuery,
   Fade,
   Grid,
+  Grow,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Layout/Header';
-import ImprovedToolbar from '../components/Layout/ImprovedToolbar';
+import StickyToolbar from '../components/Layout/StickyToolbar';
 import SearchBar from '../components/Search/SearchBar';
+import ActiveFilterChips from '../components/Filters/ActiveFilterChips';
 import BookCard from '../components/Books/BookCard';
 import BookList from '../components/Books/BookList';
 import CollectionCard from '../components/Collections/CollectionCard';
@@ -33,12 +35,15 @@ import { useCollections } from '../contexts/CollectionContext';
 const Library = () => {
   const navigate = useNavigate();
   const { expandedCollections, toggleCollection } = useCollections();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // State management
   const [libraryItems, setLibraryItems] = useState([]);
-  const [allLibraryItems, setAllLibraryItems] = useState([]); // All items including hidden books
+  const [allLibraryItems, setAllLibraryItems] = useState([]);
   const [allBooksForGenres, setAllBooksForGenres] = useState({ books: [], collections: [] });
   const [loading, setLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -51,6 +56,7 @@ const Library = () => {
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [manageCollectionsOpen, setManageCollectionsOpen] = useState(false);
   const [createCollectionOpen, setCreateCollectionOpen] = useState(false);
+  const [quickEditBook, setQuickEditBook] = useState(null);
   
   // Filters state
   const [filters, setFilters] = useState({
@@ -60,14 +66,12 @@ const Library = () => {
     sort: 'title',
   });
 
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const itemsPerPage = viewMode === 'grid' ? 24 : 20;
 
   // Fetch library data
   useEffect(() => {
     fetchLibrary();
-  }, [filters.status, filters.genre, filters.sort]); // Remove filters.search from here to avoid refetching on search
+  }, [filters.status, filters.genre, filters.sort]);
 
   // Save view preferences
   useEffect(() => {
@@ -78,12 +82,11 @@ const Library = () => {
     try {
       setLoading(true);
       
-      // Always fetch ALL books to calculate complete genre list
+      // Fetch ALL books to calculate complete genre list
       const allBooksData = await bookService.getBooks({
         page: 1,
         limit: 1000,
         status: filters.status !== 'all' ? filters.status : undefined,
-        // Don't filter by genre when fetching, we'll filter client-side
       });
       
       // Fetch all collections
@@ -92,7 +95,7 @@ const Library = () => {
       // Store all books for genre calculation
       setAllBooksForGenres({ books: allBooksData.books, collections: collectionsData });
       
-      // Now filter books based on genre if needed
+      // Filter books based on genre if needed
       let booksToDisplay = allBooksData.books;
       if (filters.genre !== 'all') {
         booksToDisplay = allBooksData.books.filter(book => {
@@ -102,8 +105,7 @@ const Library = () => {
         });
       }
       
-      // Apply status filter as well (this happens after genre filter)
-      // Status filter is already applied from backend, but we ensure consistency here
+      // Status filter
       if (filters.status !== 'all') {
         booksToDisplay = booksToDisplay.filter(book => book.status === filters.status);
       }
@@ -120,8 +122,7 @@ const Library = () => {
         });
       });
       
-      // Store ALL books and collections for searching
-      // We always keep all books in memory for client-side search
+      // Transform books to library items
       const allBookItems = booksToDisplay.map(book => ({
         type: 'book',
         sortKey: book.title.toLowerCase().replace(/^(the |a |an )/i, ''),
@@ -129,16 +130,13 @@ const Library = () => {
         inCollection: book.collections && book.collections.length > 0
       }));
       
-      // Filter books for display based on context
-      // When searching, filtering by genre, or filtering by status, show ALL books including those in collections
+      // Filter books for display
       const showAllBooks = filters.search !== '' || filters.genre !== 'all' || filters.status !== 'all';
       const displayBookItems = showAllBooks 
-        ? allBookItems  // Show all books when searching or filtering
-        : allBookItems.filter(item => !item.inCollection);  // Only show standalone books when browsing
+        ? allBookItems
+        : allBookItems.filter(item => !item.inCollection);
       
       // Transform collections to library items
-      // When filtering by genre or status (other than 'all'), don't show collections
-      // Only show collections when browsing normally or searching
       let collectionItems = [];
       if (filters.genre === 'all' && filters.status === 'all') {
         collectionItems = (collectionsData || [])
@@ -150,45 +148,36 @@ const Library = () => {
           }));
       }
       
-      // Combine and sort items for display
+      // Combine and sort items
       const displayItems = [...displayBookItems, ...collectionItems];
       
-      // Sort by title/name
+      // Sort by selected criteria
       displayItems.sort((a, b) => {
         if (filters.sort === 'title' || filters.sort === '-title') {
           const multiplier = filters.sort.startsWith('-') ? -1 : 1;
           return multiplier * a.sortKey.localeCompare(b.sortKey);
         }
         
-        // For date sorting, apply to books only
         if (filters.sort === '-addedDate' || filters.sort === 'addedDate') {
           const multiplier = filters.sort.startsWith('-') ? -1 : 1;
           
-          // Collections go to the end
-          if (a.type === 'collection' && b.type === 'book') {
-            return 1;
-          }
-          if (a.type === 'book' && b.type === 'collection') {
-            return -1;
-          }
+          if (a.type === 'collection' && b.type === 'book') return 1;
+          if (a.type === 'book' && b.type === 'collection') return -1;
           
-          // Both are books
           if (a.type === 'book' && b.type === 'book') {
             return multiplier * (new Date(a.data.addedDate) - new Date(b.data.addedDate));
           }
           
-          // Both are collections, sort by name
           return a.sortKey.localeCompare(b.sortKey);
         }
         
         return 0;
       });
       
-      // Store both display items and all items (for searching)
       setLibraryItems(displayItems);
-      setAllLibraryItems([...allBookItems, ...collectionItems]); // Keep all items for search
+      setAllLibraryItems([...allBookItems, ...collectionItems]);
       
-      // Preload images
+      // Preload images for performance
       const bookImages = allBookItems
         .map(item => item.data.coverImage)
         .filter(Boolean);
@@ -211,16 +200,16 @@ const Library = () => {
 
   // Filter items (client-side for search)
   const filteredItems = useMemo(() => {
-    // Use allLibraryItems for search to include books in collections
     const itemsToSearch = filters.search ? allLibraryItems : libraryItems;
     
     if (!filters.search) return libraryItems;
     
+    setIsSearching(true);
     const searchLower = filters.search.toLowerCase();
     const matchedItems = [];
     const addedBookIds = new Set();
     
-    // First, filter collections and track their books
+    // First, filter collections
     itemsToSearch.forEach(item => {
       if (item.type === 'collection') {
         const collection = item.data;
@@ -230,7 +219,6 @@ const Library = () => {
         
         if (collectionMatches) {
           matchedItems.push(item);
-          // Track books in matched collections to avoid duplicates
           collection.books?.forEach(book => {
             const bookId = typeof book === 'object' ? book._id : book;
             if (bookId) addedBookIds.add(bookId);
@@ -239,7 +227,7 @@ const Library = () => {
       }
     });
     
-    // Then add books that match
+    // Then add matching books
     itemsToSearch.forEach(item => {
       if (item.type === 'book') {
         const book = item.data;
@@ -251,12 +239,12 @@ const Library = () => {
           book.tags?.some(tag => tag.toLowerCase().includes(searchLower));
         
         if (bookMatches) {
-          // Always show matched books when searching, even if they're in collections
           matchedItems.push(item);
         }
       }
     });
     
+    setIsSearching(false);
     return matchedItems;
   }, [libraryItems, allLibraryItems, filters.search]);
 
@@ -273,11 +261,10 @@ const Library = () => {
     setPage(1);
   }, [filteredItems.length, itemsPerPage]);
 
-  // Extract genres from ALL books in the library (not just currently visible ones)
+  // Extract genres from ALL books
   const genres = useMemo(() => {
     const genreMap = new Map();
     
-    // Count genres from ALL books
     if (allBooksForGenres.books) {
       allBooksForGenres.books.forEach(book => {
         if (book.primaryCategory) {
@@ -290,7 +277,6 @@ const Library = () => {
       });
     }
     
-    // Also include genres from books in collections (if collections are populated)
     if (allBooksForGenres.collections) {
       allBooksForGenres.collections.forEach(collection => {
         collection.books?.forEach(book => {
@@ -313,7 +299,7 @@ const Library = () => {
       .slice(0, 15);
   }, [allBooksForGenres]);
 
-  // Calculate book counts - count ALL books in the library including quantities
+  // Calculate book counts
   const bookCounts = useMemo(() => {
     const counts = {
       all: 0,
@@ -323,7 +309,6 @@ const Library = () => {
       loaned: 0,
     };
     
-    // Count ALL books from the complete dataset, accounting for quantities
     if (allBooksForGenres.books) {
       allBooksForGenres.books.forEach(book => {
         const quantity = book.quantity || 1;
@@ -345,6 +330,13 @@ const Library = () => {
 
   const handleFilterChange = useCallback((newFilters) => {
     setFilters(newFilters);
+  }, []);
+
+  const handleRemoveFilter = useCallback((filterKey) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterKey]: filterKey === 'search' ? '' : 'all'
+    }));
   }, []);
 
   const handleClearFilters = useCallback(() => {
@@ -383,6 +375,17 @@ const Library = () => {
     setDetailsModalOpen(true);
   }, []);
 
+  const handleQuickEdit = useCallback((book) => {
+    setSelectedBook(book);
+    setDetailsModalOpen(true);
+    // You can add a flag to open in edit mode if needed
+  }, []);
+
+  const handleAddToCollection = useCallback((book) => {
+    setSelectedBook(book);
+    setManageCollectionsOpen(true);
+  }, []);
+
   const handleBookUpdated = useCallback(() => {
     fetchLibrary();
   }, []);
@@ -405,18 +408,34 @@ const Library = () => {
       <Header />
       <MuiToolbar />
       
+      {/* Sticky Toolbar */}
+      <StickyToolbar
+        onAddBook={handleOpenAddModal}
+        onQuickAdd={() => setQuickAddModalOpen(true)}
+        onCreateCollection={() => setCreateCollectionOpen(true)}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        genres={genres}
+        bookCounts={bookCounts}
+      />
+      
       <Container maxWidth="xl" sx={{ py: 3 }}>
         {/* Page Title and Search */}
         <Box sx={{ mb: 4 }}>
           <Typography 
-            variant="h4" 
+            variant="h3" 
             component="h1" 
             gutterBottom
             sx={{ 
-              fontWeight: 600,
+              fontWeight: 700,
               textAlign: 'center',
               mb: 3,
-              color: 'text.primary',
+              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
             }}
           >
             My Book Collection
@@ -428,24 +447,21 @@ const Library = () => {
             justifyContent: 'center',
             mb: 3,
           }}>
-            <SearchBar onSearch={handleSearch} />
+            <SearchBar 
+              onSearch={handleSearch} 
+              isSearching={isSearching}
+            />
           </Box>
         </Box>
 
-        {/* Toolbar with filters */}
-        <ImprovedToolbar
-          onAddBook={handleOpenAddModal}
-          onQuickAdd={() => setQuickAddModalOpen(true)}
-          onCreateCollection={() => setCreateCollectionOpen(true)}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          genres={genres}
-          bookCounts={bookCounts}
-          hasActiveFilters={hasActiveFilters}
-          onClearFilters={handleClearFilters}
-        />
+        {/* Active Filter Chips */}
+        {hasActiveFilters && (
+          <ActiveFilterChips
+            filters={filters}
+            onRemoveFilter={handleRemoveFilter}
+            onClearAll={handleClearFilters}
+          />
+        )}
 
         {/* Results summary */}
         {!loading && (
@@ -478,7 +494,7 @@ const Library = () => {
         {/* Content area */}
         {loading ? (
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
-            <CircularProgress size={60} />
+            <CircularProgress size={60} thickness={4} />
           </Box>
         ) : error ? (
           <Alert severity="error" sx={{ borderRadius: 2 }}>
@@ -491,15 +507,15 @@ const Library = () => {
               sx={{ 
                 p: 8, 
                 textAlign: 'center',
-                borderRadius: 2,
-                bgcolor: 'background.paper',
+                borderRadius: 3,
+                background: `linear-gradient(135deg, ${theme.palette.grey[50]} 0%, white 100%)`,
               }}
             >
               <Typography 
                 variant="h5" 
                 color="text.secondary" 
                 gutterBottom
-                sx={{ fontWeight: 500 }}
+                sx={{ fontWeight: 600 }}
               >
                 {hasActiveFilters ? 'No items match your filters' : 'Your library is empty'}
               </Typography>
@@ -515,7 +531,7 @@ const Library = () => {
                     variant="h1" 
                     sx={{ 
                       fontSize: 80,
-                      color: 'text.disabled',
+                      opacity: 0.3,
                       mb: 2,
                     }}
                   >
@@ -526,97 +542,94 @@ const Library = () => {
             </Paper>
           </Fade>
         ) : (
-          <Fade in timeout={500}>
-            <Box>
-              {viewMode === 'grid' ? (
-                <Grid container spacing={2}>
-                  {paginatedItems.map((item) => {
-                    if (item.type === 'collection') {
-                      // Collection in grid - same size as books
-                      return (
-                        <Grid item xs={6} sm={4} md={3} lg={2} key={item.data._id}>
-                          <CollectionCard
-                            collection={item.data}
-                            expanded={expandedCollections.has(item.data._id)}
-                            onToggleExpand={handleCollectionToggle}
-                            onClick={() => navigate(`/collections/${item.data._id}`)}
-                            viewMode="grid"
-                            compact={true}
-                          />
-                        </Grid>
-                      );
-                    } else {
-                      // Book in grid
-                      return (
-                        <Grid item xs={6} sm={4} md={3} lg={2} key={item.data._id || item.data.isbn}>
-                          <BookCard book={item.data} onClick={handleBookClick} />
-                        </Grid>
-                      );
-                    }
-                  })}
-                </Grid>
-              ) : (
-                // List view
-                <Box>
-                  {paginatedItems.map((item) => {
-                    if (item.type === 'collection') {
-                      return (
+          <Box>
+            {viewMode === 'grid' ? (
+              <Grid container spacing={2}>
+                {paginatedItems.map((item, index) => (
+                  <Grow
+                    in
+                    key={item.data._id || item.data.isbn}
+                    timeout={300 + index * 50}
+                    style={{ transformOrigin: '0 0 0' }}
+                  >
+                    <Grid item xs={6} sm={4} md={3} lg={2}>
+                      {item.type === 'collection' ? (
                         <CollectionCard
-                          key={item.data._id}
                           collection={item.data}
                           expanded={expandedCollections.has(item.data._id)}
                           onToggleExpand={handleCollectionToggle}
                           onClick={() => navigate(`/collections/${item.data._id}`)}
-                          viewMode="list"
+                          viewMode="grid"
+                          compact={true}
                         />
-                      );
-                    } else {
-                      // For list view, collect all books and render with BookList
-                      return null;
-                    }
-                  })}
-                  {/* Render all books in list */}
-                  <BookList 
-                    books={paginatedItems.filter(item => item.type === 'book').map(item => item.data)} 
-                    onBookClick={handleBookClick}
-                  />
-                </Box>
-              )}
-              
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                  <Pagination
-                    count={totalPages}
-                    page={page}
-                    onChange={(e, value) => setPage(value)}
-                    color="primary"
-                    size={isMobile ? 'medium' : 'large'}
-                    showFirstButton
-                    showLastButton
-                  />
-                </Box>
-              )}
-            </Box>
-          </Fade>
+                      ) : (
+                        <BookCard 
+                          book={item.data} 
+                          onClick={handleBookClick}
+                          onQuickEdit={() => handleQuickEdit(item.data)}
+                          onAddToCollection={() => handleAddToCollection(item.data)}
+                        />
+                      )}
+                    </Grid>
+                  </Grow>
+                ))}
+              </Grid>
+            ) : (
+              <Box>
+                {paginatedItems.map((item) => {
+                  if (item.type === 'collection') {
+                    return (
+                      <CollectionCard
+                        key={item.data._id}
+                        collection={item.data}
+                        expanded={expandedCollections.has(item.data._id)}
+                        onToggleExpand={handleCollectionToggle}
+                        onClick={() => navigate(`/collections/${item.data._id}`)}
+                        viewMode="list"
+                      />
+                    );
+                  } else {
+                    return null;
+                  }
+                })}
+                <BookList 
+                  books={paginatedItems.filter(item => item.type === 'book').map(item => item.data)} 
+                  onBookClick={handleBookClick}
+                />
+              </Box>
+            )}
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                <Pagination
+                  count={totalPages}
+                  page={page}
+                  onChange={(e, value) => setPage(value)}
+                  color="primary"
+                  size={isMobile ? 'medium' : 'large'}
+                  showFirstButton
+                  showLastButton
+                />
+              </Box>
+            )}
+          </Box>
         )}
       </Container>
 
-      {/* Quick Add Books Modal */}
+      {/* Modals */}
       <QuickAddBooks
         open={quickAddModalOpen}
         onClose={() => setQuickAddModalOpen(false)}
         onBooksAdded={handleBooksAdded}
       />
 
-      {/* Manual Add Book Modal */}
       <AddBookModal
         open={manualAddModalOpen}
         onClose={() => setManualAddModalOpen(false)}
         onBookAdded={handleBooksAdded}
       />
 
-      {/* Book Details Modal */}
       <BookDetailsModal
         open={detailsModalOpen}
         onClose={() => {
@@ -631,7 +644,6 @@ const Library = () => {
         }}
       />
 
-      {/* Manage Collections Modal */}
       {selectedBook && (
         <ManageCollectionsModal
           open={manageCollectionsOpen}
@@ -644,13 +656,12 @@ const Library = () => {
         />
       )}
       
-      {/* Create Collection Modal */}
       <CreateCollectionModal
         open={createCollectionOpen}
         onClose={() => setCreateCollectionOpen(false)}
         onCollectionCreated={(collection) => {
           setCreateCollectionOpen(false);
-          fetchLibrary(); // Refresh library to show new collection
+          fetchLibrary();
           navigate(`/collections/${collection._id}`);
         }}
       />

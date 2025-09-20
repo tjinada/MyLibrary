@@ -9,18 +9,27 @@ import {
   Box,
   Rating,
   Skeleton,
-  IconButton,
-  Tooltip,
+  useTheme,
+  alpha,
 } from '@mui/material';
-import { 
-  MenuBook as BookIcon,
-  RemoveCircle as RemoveIcon 
-} from '@mui/icons-material';
+import { MenuBook as BookIcon } from '@mui/icons-material';
+import BookStatusChip from './BookStatusChip';
+import BookCardActions from './BookCardActions';
+import { dimensions } from '../../theme/theme';
 
-const BookCard = ({ book, onClick, showRemoveButton, onRemove }) => {
+const BookCard = ({ 
+  book, 
+  onClick, 
+  showRemoveButton, 
+  onRemove,
+  onQuickEdit,
+  onAddToCollection 
+}) => {
+  const theme = useTheme();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [imageSrc, setImageSrc] = useState(book.coverImage);
+  const [isHovered, setIsHovered] = useState(false);
   const imageRef = React.useRef(null);
 
   // Update image source when book prop changes
@@ -36,14 +45,10 @@ const BookCard = ({ book, onClick, showRemoveButton, onRemove }) => {
         const img = new Image();
         img.src = book.coverImage;
         
-        // If image is already cached, it will have naturalWidth > 0
         if (img.complete && img.naturalWidth > 0) {
           setImageLoaded(true);
         } else {
           setImageLoaded(false);
-          
-          // Fallback: Force show image after 500ms even if onLoad hasn't fired
-          // This handles the case where cached images don't trigger onLoad
           timeoutId = setTimeout(() => {
             if (imageRef.current && imageRef.current.complete) {
               setImageLoaded(true);
@@ -58,48 +63,11 @@ const BookCard = ({ book, onClick, showRemoveButton, onRemove }) => {
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [book.coverImage, book.isbn, imageSrc]); // Include all dependencies
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'to-read':
-        return 'info';
-      case 'reading':
-        return 'primary';
-      case 'read':
-        return 'success';
-      case 'loaned':
-        return 'warning';
-      default:
-        return 'default';
-    }
-  };
-
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case 'to-read':
-        return 'To Read';
-      case 'reading':
-        return 'Reading';
-      case 'read':
-        return 'Read';
-      case 'loaned':
-        return 'Loaned';
-      default:
-        return status;
-    }
-  };
+  }, [book.coverImage, book.isbn, imageSrc]);
 
   const handleClick = () => {
     if (onClick) {
       onClick(book);
-    }
-  };
-
-  const handleRemove = (e) => {
-    e.stopPropagation();
-    if (onRemove) {
-      onRemove();
     }
   };
 
@@ -124,232 +92,243 @@ const BookCard = ({ book, onClick, showRemoveButton, onRemove }) => {
     setImageLoaded(true);
   };
 
-  // Check if we have a validated cover from the backend
   const hasValidCover = book.coverImage && book.coverQualityScore > 0;
 
   return (
     <Card 
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       sx={{ 
         height: '100%', 
         display: 'flex', 
         flexDirection: 'column',
-        transition: 'all 0.2s ease-in-out',
+        position: 'relative',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        cursor: 'pointer',
+        overflow: 'hidden',
+        bgcolor: 'background.paper',
         '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: (theme) => theme.shadows[8],
+          transform: 'translateY(-8px)',
+          boxShadow: theme.shadows[12],
         },
       }}
     >
-      <CardActionArea 
-        onClick={handleClick} 
+      {/* Book Cover Container with Fixed Aspect Ratio */}
+      <Box 
+        onClick={handleClick}
         sx={{ 
-          flexGrow: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'stretch',
-        }}
-      >
-        {/* Book Cover */}
-        <Box sx={{ 
           position: 'relative',
-          paddingTop: '150%', // 2:3 aspect ratio to match collection cards
+          width: '100%',
+          aspectRatio: `${dimensions.bookCoverAspectRatio}`,
           bgcolor: 'grey.100',
           overflow: 'hidden',
-        }}>
-          {/* Quantity Badge */}
-          {book.quantity && book.quantity > 1 && (
-            <Chip
-              label={`${book.quantity} copies`}
-              size="small"
-              sx={{
-                position: 'absolute',
-                top: 8,
-                left: 8,
-                zIndex: 2,
-                bgcolor: 'secondary.main',
-                color: 'white',
-                fontWeight: 'bold',
-                fontSize: '0.75rem',
-                boxShadow: 2,
-              }}
-            />
-          )}
-          {/* Remove Button */}
-          {showRemoveButton && onRemove && (
-            <Tooltip title="Remove from collection">
-              <IconButton
-                size="small"
-                onClick={handleRemove}
-                sx={{
-                  position: 'absolute',
-                  top: 4,
-                  right: 4,
-                  zIndex: 1,
-                  bgcolor: 'background.paper',
-                  '&:hover': {
-                    bgcolor: 'error.light',
-                    color: 'white',
-                  },
-                }}
-              >
-                <RemoveIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-          {/* Loading skeleton */}
-          {!imageLoaded && hasValidCover && (
-            <Skeleton 
-              variant="rectangular" 
-              animation="wave"
-              sx={{ 
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%', 
-                height: '100%',
-              }} 
-            />
-          )}
-          
-          {/* Show cover image if we have a validated one and no error */}
-          {hasValidCover && !imageError && imageSrc && (
-            <img
-              ref={imageRef}
-              key={`${book.isbn}-${imageSrc}`} // Use ISBN + src as key for uniqueness
-              src={imageSrc}
-              alt={book.title}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                height: '100%',
-                width: '100%',
-                objectFit: 'cover',
-                display: imageLoaded ? 'block' : 'none',
-              }}
-              onLoad={handleImageLoad}
-              onError={handleImageError}
-              loading="eager" // Change to eager for better reliability
-            />
-          )}
-          
-          {/* Fallback when no valid cover or error - create a custom book cover */}
-          {(!hasValidCover || imageError) && (
-            <Box
-              sx={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'primary.light',
-                background: `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`,
-                p: 2,
-              }}
-            >
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  color: 'white',
-                  textAlign: 'center',
-                  fontWeight: 'bold',
-                  mb: 1,
-                  fontSize: '0.9rem',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 3,
-                  WebkitBoxOrient: 'vertical',
-                }}
-              >
-                {book.title}
-              </Typography>
-              <BookIcon 
-                sx={{ 
-                  fontSize: 60,
-                  color: 'white',
-                  opacity: 0.7,
-                  my: 1,
-                }} 
-              />
-              {book.authors && book.authors[0] && (
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    color: 'white',
-                    opacity: 0.9,
-                    textAlign: 'center',
-                    fontSize: '0.7rem',
-                  }}
-                >
-                  {book.authors[0]}
-                </Typography>
-              )}
-            </Box>
-          )}
+        }}
+      >
+        {/* Status Chip - Top Left */}
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            zIndex: 3,
+          }}
+        >
+          <BookStatusChip status={book.status || 'to-read'} size="small" />
         </Box>
 
-        <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 1 }}>
+        {/* Quantity Badge - Top Right */}
+        {book.quantity && book.quantity > 1 && (
+          <Chip
+            label={`×${book.quantity}`}
+            size="small"
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              zIndex: 3,
+              bgcolor: alpha(theme.palette.secondary.main, 0.9),
+              color: 'white',
+              fontWeight: 'bold',
+              fontSize: '0.7rem',
+              height: 20,
+              '& .MuiChip-label': {
+                px: 0.75,
+              },
+            }}
+          />
+        )}
+
+        {/* Hover Actions Overlay */}
+        <BookCardActions
+          visible={isHovered}
+          onView={() => onClick(book)}
+          onEdit={onQuickEdit}
+          onAddToCollection={onAddToCollection}
+          onRemove={showRemoveButton ? onRemove : null}
+          showRemove={showRemoveButton}
+        />
+
+        {/* Loading skeleton */}
+        {!imageLoaded && hasValidCover && (
+          <Skeleton 
+            variant="rectangular" 
+            animation="wave"
+            sx={{ 
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%', 
+              height: '100%',
+            }} 
+          />
+        )}
+        
+        {/* Cover Image */}
+        {hasValidCover && !imageError && imageSrc && (
+          <img
+            ref={imageRef}
+            key={`${book.isbn}-${imageSrc}`}
+            src={imageSrc}
+            alt={book.title}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              height: '100%',
+              width: '100%',
+              objectFit: 'cover',
+              display: imageLoaded ? 'block' : 'none',
+            }}
+            onLoad={handleImageLoad}
+            onError={handleImageError}
+            loading="eager"
+          />
+        )}
+        
+        {/* Fallback Book Cover Design */}
+        {(!hasValidCover || imageError) && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+              p: 2,
+            }}
+          >
+            <BookIcon 
+              sx={{ 
+                fontSize: 48,
+                color: 'white',
+                opacity: 0.9,
+                mb: 1,
+              }} 
+            />
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: 'white',
+                textAlign: 'center',
+                fontWeight: 600,
+                fontSize: '0.8rem',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+              }}
+            >
+              {book.title}
+            </Typography>
+            {book.authors && book.authors[0] && (
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: 'white',
+                  opacity: 0.8,
+                  textAlign: 'center',
+                  fontSize: '0.65rem',
+                  mt: 0.5,
+                }}
+              >
+                {book.authors[0]}
+              </Typography>
+            )}
+          </Box>
+        )}
+      </Box>
+
+      {/* Book Info Section - Fixed Height */}
+      <CardContent 
+        sx={{ 
+          flexGrow: 1, 
+          display: 'flex', 
+          flexDirection: 'column',
+          p: 1.5,
+          pb: '12px !important',
+          minHeight: 90,
+        }}
+      >
+        <Typography 
+          variant="subtitle2" 
+          component="h3"
+          sx={{
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            minHeight: '2.4em',
+            fontWeight: 600,
+            lineHeight: 1.2,
+            fontSize: '0.875rem',
+            color: 'text.primary',
+            mb: 0.5,
+          }}
+          title={book.title}
+        >
+          {book.title}
+        </Typography>
+        
+        {book.authors && book.authors.length > 0 && (
           <Typography 
-            gutterBottom 
-            variant="body2" 
-            component="h3"
+            variant="caption" 
             sx={{
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              minHeight: '2.5em',
-              fontWeight: 600,
-              lineHeight: 1.3,
-              fontSize: '0.875rem',
+              whiteSpace: 'nowrap',
+              color: 'text.secondary',
+              fontSize: '0.75rem',
+              mb: 'auto',
             }}
-            title={book.title}
+            title={book.authors?.join(', ')}
           >
-            {book.title}
+            {book.authors?.join(', ')}
           </Typography>
-          
-          {book.authors && book.authors.length > 0 && (
-            <Typography 
-              variant="caption" 
-              color="text.secondary"
-              sx={{
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                mb: 0.5,
-                fontSize: '0.75rem',
-              }}
-              title={book.authors?.join(', ')}
-            >
-              {book.authors?.join(', ')}
-            </Typography>
-          )}
+        )}
 
-          <Box sx={{ mt: 'auto' }}>
-            {book.rating ? (
-              <Rating 
-                value={book.rating} 
-                readOnly 
-                size="small" 
-                sx={{ mb: 0.5 }}
-              />
-            ) : null}
-            
-            <Chip 
-              label={getStatusLabel(book.status)} 
-              size="small" 
-              color={getStatusColor(book.status)}
-              sx={{ fontWeight: 500, fontSize: '0.7rem' }}
+        {/* Rating at the bottom */}
+        {book.rating > 0 && (
+          <Box sx={{ mt: 0.5 }}>
+            <Rating 
+              value={book.rating} 
+              readOnly 
+              size="small"
+              precision={0.5}
+              sx={{ 
+                fontSize: '1rem',
+                color: theme.palette.warning.main,
+              }}
             />
           </Box>
-        </CardContent>
-      </CardActionArea>
+        )}
+      </CardContent>
     </Card>
   );
 };

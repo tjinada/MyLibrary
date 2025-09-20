@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
@@ -9,54 +9,13 @@ import Library from './pages/Library';
 import Collections from './pages/Collections';
 import CollectionDetails from './pages/CollectionDetails';
 import { CollectionProvider } from './contexts/CollectionContext';
-
-// Create a mobile-optimized theme
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-    background: {
-      default: '#f5f5f5',
-    },
-  },
-  typography: {
-    fontFamily: 'Roboto, Arial, sans-serif',
-    h4: {
-      fontSize: '1.75rem',
-      '@media (max-width:600px)': {
-        fontSize: '1.5rem',
-      },
-    },
-    h5: {
-      fontSize: '1.5rem',
-      '@media (max-width:600px)': {
-        fontSize: '1.25rem',
-      },
-    },
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: 'none',
-        },
-      },
-    },
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12,
-        },
-      },
-    },
-  },
-});
+import theme from './theme/theme';
+import useResizeAnimationStopper from './hooks/useResizeAnimationStopper';
 
 function App() {
+  // Optimize animations during window resize
+  useResizeAnimationStopper();
+  
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
