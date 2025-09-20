@@ -34,6 +34,8 @@ import {
   ArrowBackIos as PrevIcon,
   ArrowForwardIos as NextIcon,
   Image as ImageIcon,
+  Diamond as DiamondIcon,
+  AutoAwesome as SpecialIcon,
 } from '@mui/icons-material';
 import BarcodeScanner from '../Scanner/BarcodeScanner';
 import bookService from '../../services/bookService';
@@ -56,6 +58,7 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
   const [customTags, setCustomTags] = useState([]);
   const [newGenre, setNewGenre] = useState('');
   const [newTag, setNewTag] = useState('');
+  const [selectedEdition, setSelectedEdition] = useState('standard');
 
   const steps = ['Enter ISBN', 'Review Details', 'Complete'];
 
@@ -217,6 +220,7 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
         coverImage: selectedCoverUrl,
         genres: customGenres,
         tags: customTags,
+        edition: selectedEdition,
       };
       
       console.log('Sending book data:', bookToAdd);
@@ -255,6 +259,7 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
     setCustomTags([]);
     setNewGenre('');
     setNewTag('');
+    setSelectedEdition('standard');
     onClose();
   };
 
@@ -474,6 +479,33 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
                     </Grid>
                   )}
                 </Grid>
+              </Box>
+
+              {/* Edition Selection */}
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Edition Type
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <Select
+                    value={selectedEdition}
+                    onChange={(e) => setSelectedEdition(e.target.value)}
+                  >
+                    <MenuItem value="standard">Standard Edition</MenuItem>
+                    <MenuItem value="special">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <SpecialIcon fontSize="small" sx={{ color: theme.palette.warning.main }} />
+                        Special Edition
+                      </Box>
+                    </MenuItem>
+                    <MenuItem value="deluxe">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <DiamondIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
+                        Deluxe Edition
+                      </Box>
+                    </MenuItem>
+                  </Select>
+                </FormControl>
               </Box>
 
               {/* Genres with ability to add custom */}

@@ -226,6 +226,7 @@ const BookDetailsModal = ({
         genres: updatedBook.genres || [],
         coverImage: updatedBook.coverImage || '',
         quantity: updatedBook.quantity || 1,
+        edition: updatedBook.edition || 'standard',
       });
       
       if (onBookUpdated) {
@@ -406,14 +407,15 @@ const BookDetailsModal = ({
                     setEditMode(false);
                     const resetBook = currentBookData || book;
                     setEditedBook({
-                      status: resetBook.status || 'to-read',
-                      rating: resetBook.rating || 0,
-                      notes: resetBook.notes || '',
-                      tags: resetBook.tags || [],
-                      genres: resetBook.genres || [],
-                      coverImage: resetBook.coverImage || '',
-                      quantity: resetBook.quantity || 1,
-                    });
+                    status: resetBook.status || 'to-read',
+                    rating: resetBook.rating || 0,
+                    notes: resetBook.notes || '',
+                    tags: resetBook.tags || [],
+                    genres: resetBook.genres || [],
+                    coverImage: resetBook.coverImage || '',
+                    quantity: resetBook.quantity || 1,
+                      edition: resetBook.edition || 'standard',
+      });
                     setSelectedCoverIndex(0);
                   }}
                   size="small"

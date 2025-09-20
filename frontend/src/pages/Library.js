@@ -32,6 +32,7 @@ import BookCard from '../components/Books/BookCard';
 import BookList from '../components/Books/BookList';
 import CollectionCard from '../components/Collections/CollectionCard';
 import BulkActionBar from '../components/Layout/BulkActionBar';
+import LibraryStats from '../components/Layout/LibraryStats';
 import QuickAddBooks from '../components/Modals/QuickAddBooks';
 import AddBookModal from '../components/Modals/AddBookModal';
 import BookDetailsModal from '../components/Modals/BookDetailsModal';
@@ -355,6 +356,19 @@ const Library = () => {
     return counts;
   }, [allBooksForGenres]);
 
+  // Calculate total library stats
+  const libraryStats = useMemo(() => {
+    const uniqueTitles = allBooksForGenres.books?.length || 0;
+    const totalBooks = allBooksForGenres.books?.reduce((sum, book) => sum + (book.quantity || 1), 0) || 0;
+    const totalCollections = allBooksForGenres.collections?.length || 0;
+    
+    return {
+      uniqueTitles,
+      totalBooks,
+      totalCollections,
+    };
+  }, [allBooksForGenres]);
+
   // Handler functions
   const handleSearch = useCallback((searchTerm) => {
     setFilters(prev => ({ ...prev, search: searchTerm }));
@@ -571,7 +585,14 @@ const Library = () => {
             My Book Collection
           </Typography>
           
-          {/* Search Bar */}
+          {/* Library Stats */}
+        <LibraryStats 
+          bookCount={libraryStats.uniqueTitles}
+          totalQuantity={libraryStats.totalBooks}
+          collectionCount={libraryStats.totalCollections}
+        />
+        
+        {/* Search Bar */}
           <Box sx={{ 
             display: 'flex', 
             justifyContent: 'center',
