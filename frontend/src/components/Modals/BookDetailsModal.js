@@ -333,14 +333,15 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
               </IconButton>
               <IconButton onClick={() => {
                 setEditMode(false);
-                // Reset to original values
+                // Reset to current values (not original)
+                const resetBook = currentBookData || book;
                 setEditedBook({
-                  status: book.status || 'to-read',
-                  rating: book.rating || 0,
-                  notes: book.notes || '',
-                  tags: book.tags || [],
-                  genres: book.genres || [],
-                  coverImage: book.coverImage || '',
+                  status: resetBook.status || 'to-read',
+                  rating: resetBook.rating || 0,
+                  notes: resetBook.notes || '',
+                  tags: resetBook.tags || [],
+                  genres: resetBook.genres || [],
+                  coverImage: resetBook.coverImage || '',
                 });
                 setSelectedCoverIndex(0);
               }} size="small" disabled={loading}>
@@ -490,14 +491,14 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
                         </Select>
                       </FormControl>
                     ) : (
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">Status</Typography>
-                        <Chip 
-                          label={getStatusLabel(book.status)} 
-                          color={getStatusColor(book.status)}
-                          size="small"
-                        />
-                      </Box>
+                    <Box>
+                    <Typography variant="body2" color="text.secondary">Status</Typography>
+                    <Chip 
+                    label={getStatusLabel(displayBook.status)} 
+                    color={getStatusColor(displayBook.status)}
+                    size="small"
+                    />
+                    </Box>
                     )}
                   </Grid>
                   <Grid item xs={12} sm={6}>
@@ -505,7 +506,7 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
                       Rating
                     </Typography>
                     <Rating 
-                      value={editMode ? editedBook.rating : book.rating || 0}
+                      value={editMode ? editedBook.rating : displayBook.rating || 0}
                       onChange={(e, newValue) => {
                         if (editMode) {
                           setEditedBook({...editedBook, rating: newValue});
@@ -657,17 +658,17 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
                         </Box>
                       </Box>
                     ) : (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                        {book.tags && book.tags.length > 0 ? (
-                          book.tags.map((tag, index) => (
-                            <Chip key={index} label={tag} size="small" color="secondary" />
-                          ))
-                        ) : (
-                          <Typography variant="body2" color="text.secondary">
-                            No tags added
-                          </Typography>
-                        )}
-                      </Box>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {displayBook.tags && displayBook.tags.length > 0 ? (
+                    displayBook.tags.map((tag, index) => (
+                    <Chip key={index} label={tag} size="small" color="secondary" />
+                    ))
+                    ) : (
+                    <Typography variant="body2" color="text.secondary">
+                    No tags added
+                    </Typography>
+                    )}
+                    </Box>
                     )}
                   </Grid>
                 </Grid>
@@ -701,9 +702,9 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
                 variant="outlined"
               />
             ) : (
-              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                {book.notes || 'No notes yet. Click edit to add notes.'}
-              </Typography>
+            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+            {displayBook.notes || 'No notes yet. Click edit to add notes.'}
+            </Typography>
             )}
           </Paper>
         )}
@@ -718,13 +719,13 @@ const BookDetailsModal = ({ open, onClose, book, onBookUpdated, onBookDeleted, o
             </Typography>
             <Divider sx={{ mb: 2 }} />
             
-            {book.collections && book.collections.length > 0 ? (
+            {displayBook.collections && displayBook.collections.length > 0 ? (
               <Box sx={{ mb: 2 }}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   This book is in the following collections:
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                  {book.collections.map((collection) => (
+                  {displayBook.collections.map((collection) => (
                     <Chip
                       key={collection._id || collection}
                       label={collection.name || collection}
