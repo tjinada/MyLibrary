@@ -1,5 +1,10 @@
 const axios = require('axios');
-const cheerio = require('cheerio');
+let cheerio;
+try {
+  cheerio = require('cheerio');
+} catch (error) {
+  console.warn('Cheerio not available, LibraryThing cover extraction will be limited');
+}
 
 class LibraryThingService {
   constructor() {
@@ -115,7 +120,13 @@ class LibraryThingService {
   }
 
   extractCoverUrls(html) {
-    const $ = cheerio.load(html);
+    if (!cheerio) {
+      console.warn('Cheerio not available, using fallback regex extraction');
+      return this.extractCoverUrlsRegex(html);
+    }
+    
+    try {
+      const $ = cheerio.load(html);
     const urls = [];
     const seenUrls = new Set();
     
@@ -165,6 +176,40 @@ class LibraryThingService {
     console.log(`Found ${urls.length} unique LibraryThing cover URLs`);
     
     // Return unique URLs, prioritized by size indicators
+    return this.prioritizeCoverUrls(urls);
+    } catch (error) {
+      console.error('Error parsing HTML with cheerio:', error);
+      return this.extractCoverUrlsRegex(html);
+    }
+  }
+  
+  // Fallback regex-based extraction if cheerio is not available
+  extractCoverUrlsRegex(html) {
+    const urls = [];
+    const seenUrls = new Set();
+    
+    // Regex patterns for finding image URLs
+    const patterns = [
+      /src=["']([^"']*(?:pics\.cdn\.librarything\.com|picsizes|covers\.librarything\.com)[^"']*)["']/gi,
+      /data-src=["']([^"']*(?:pics\.cdn\.librarything\.com|picsizes|covers\.librarything\.com)[^"']*)["']/gi,
+      /url\(["']?([^"')]*(?:pics\.cdn\.librarything\.com|picsizes|covers\.librarything\.com)[^"')]*)["']?\)/gi
+    ];
+    
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(html)) !== null) {
+        const url = match[1];
+        if (url && this.isLibraryThingCoverUrl(url)) {
+          const normalized = this.normalizeUrl(url);
+          if (!seenUrls.has(normalized)) {
+            urls.push(normalized);
+            seenUrls.add(normalized);
+          }
+        }
+      }
+    }
+    
+    console.log(`Found ${urls.length} LibraryThing cover URLs using regex fallback`);
     return this.prioritizeCoverUrls(urls);
   }
 
