@@ -22,6 +22,10 @@ import {
   Divider,
   Fade,
   Slide,
+  FormControl,
+  Select,
+  MenuItem,
+  Autocomplete,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -31,16 +35,26 @@ import {
   CheckCircle as CheckIcon,
   QrCodeScanner as ScannerIcon,
   LibraryAdd as MultiAddIcon,
+  Diamond as DiamondIcon,
+  AutoAwesome as SpecialIcon,
 } from '@mui/icons-material';
 import BarcodeScanner from '../Scanner/BarcodeScanner';
 import bookService from '../../services/bookService';
+import { ALLOWED_GENRES } from '../../constants/bookConstants';
 
 const AddBookModal = ({ open, onClose, onBookAdded }) => {
   const [isbn, setIsbn] = useState('');
   const [bookData, setBookData] = useState(null);
+  const [editedBookData, setEditedBookData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
+  
+  // Custom fields state
+  const [customGenres, setCustomGenres] = useState([]);
+  const [customTags, setCustomTags] = useState([]);
+  const [newTag, setNewTag] = useState('');
+  const [selectedEdition, setSelectedEdition] = useState('standard');
   
   // Multi-add mode
   const [multiAddMode, setMultiAddMode] = useState(false);
@@ -81,6 +95,20 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
     try {
       const data = await bookService.lookupISBN(isbnToLookup);
       setBookData(data);
+      setEditedBookData(data);
+      
+      // Initialize custom fields with existing data
+      let genres = data.genres || [];
+      const categoryGenre = data.categoryType === 'Nonfiction' ? 'Nonfiction' : 'Fiction';
+      if (!genres.includes(categoryGenre) && ALLOWED_GENRES.includes(categoryGenre)) {
+        genres = [categoryGenre, ...genres];
+      }
+      // Filter to only allowed genres
+      genres = genres.filter(g => ALLOWED_GENRES.includes(g));
+      setCustomGenres(genres);
+      setCustomTags(data.tags || []);
+      setSelectedEdition(data.edition || 'standard');
+      
       setShowConfirmation(true);
       setShowScanner(false);
     } catch (err) {
@@ -95,6 +123,18 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
     }
   };
 
+  // Handle tag management
+  const handleAddTag = () => {
+    if (newTag.trim() && !customTags.includes(newTag.trim())) {
+      setCustomTags([...customTags, newTag.trim()]);
+      setNewTag('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove) => {
+    setCustomTags(customTags.filter(t => t !== tagToRemove));
+  };
+
   // Handle adding book to library
   const handleAddBook = async () => {
     if (!bookData) return;
@@ -103,7 +143,16 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
     setError(null);
 
     try {
-      await bookService.addBook(bookData);
+      // Prepare book data with selected fields
+      const bookToAdd = {
+        ...bookData,
+        ...editedBookData,
+        genres: customGenres,
+        tags: customTags,
+        edition: selectedEdition,
+      };
+      
+      await bookService.addBook(bookToAdd);
       setBooksAdded(prev => prev + 1);
       
       // Success feedback
@@ -153,12 +202,17 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
   const handleClose = () => {
     setIsbn('');
     setBookData(null);
+    setEditedBookData(null);
     setError(null);
     setSuccessMessage('');
     setShowScanner(false);
     setShowConfirmation(false);
     setMultiAddMode(false);
     setBooksAdded(0);
+    setCustomGenres([]);
+    setCustomTags([]);
+    setNewTag('');
+    setSelectedEdition('standard');
     onClose();
   };
 
@@ -352,64 +406,174 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
                 Confirm Book Details
               </Typography>
               
-              <Card sx={{ mb: 2 }}>
-                <Grid container>
-                  {bookData.coverImage && (
-                    <Grid item xs={4}>
+              <Grid container spacing={2}>
+                {/* Book Cover */}
+                {bookData.coverImage && (
+                  <Grid item xs={12} sm={4}>
+                    <Card>
                       <CardMedia
                         component="img"
                         image={bookData.coverImage}
                         alt={bookData.title}
-                        sx={{ height: 'auto', maxHeight: 200 }}
+                        sx={{ height: 'auto', maxHeight: 300 }}
                         onError={(e) => {
                           e.target.style.display = 'none';
                         }}
                       />
-                    </Grid>
-                  )}
-                  <Grid item xs={bookData.coverImage ? 8 : 12}>
-                    <Box sx={{ p: 2 }}>
-                      <Typography variant="h6" gutterBottom noWrap>
-                        {bookData.title}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        by {bookData.authors?.join(', ')}
-                      </Typography>
-                      <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                        ISBN: {bookData.isbn}
-                      </Typography>
-                      {bookData.publishedDate && (
-                        <Typography variant="caption" display="block">
-                          Published: {bookData.publishedDate}
-                        </Typography>
-                      )}
-                      {bookData.primaryCategory && (
-                        <Box sx={{ mt: 1 }}>
-                          <Chip 
-                            label={bookData.primaryCategory} 
-                            size="small" 
-                            color="primary"
-                            variant="outlined"
-                          />
-                          <Chip 
-                            label={bookData.categoryType || 'Fiction'} 
-                            size="small" 
-                            sx={{ ml: 1 }}
-                          />
-                        </Box>
-                      )}
-                    </Box>
+                    </Card>
                   </Grid>
-                </Grid>
-              </Card>
+                )}
+                
+                {/* Book Details */}
+                <Grid item xs={12} sm={bookData.coverImage ? 8 : 12}>
+                  <Typography variant="h5" gutterBottom>
+                    {bookData.title}
+                  </Typography>
+                  <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+                    by {bookData.authors?.join(', ')}
+                  </Typography>
+                  
+                  <Grid container spacing={1} sx={{ mt: 1, mb: 2 }}>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">ISBN</Typography>
+                      <Typography variant="body1">{bookData.isbn}</Typography>
+                    </Grid>
+                    {bookData.publisher && (
+                      <Grid item xs={6}>
+                        <Typography variant="body2" color="text.secondary">Publisher</Typography>
+                        <Typography variant="body1">{bookData.publisher}</Typography>
+                      </Grid>
+                    )}
+                  </Grid>
 
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                  {/* Status Selection */}
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Status
+                    </Typography>
+                    <FormControl fullWidth size="small">
+                      <Select
+                        value={bookData.status || 'to-read'}
+                        onChange={(e) => setEditedBookData({...editedBookData, status: e.target.value})}
+                      >
+                        <MenuItem value="to-read">To Read</MenuItem>
+                        <MenuItem value="reading">Reading</MenuItem>
+                        <MenuItem value="read">Read</MenuItem>
+                        <MenuItem value="loaned">Loaned</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Box>
+
+                  {/* Edition Selection */}
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Edition
+                    </Typography>
+                    <FormControl fullWidth size="small">
+                      <Select
+                        value={selectedEdition}
+                        onChange={(e) => setSelectedEdition(e.target.value)}
+                      >
+                        <MenuItem value="standard">Standard Edition</MenuItem>
+                        <MenuItem value="special">
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <SpecialIcon fontSize="small" sx={{ color: theme.palette.warning.main }} />
+                            Special Edition
+                          </Box>
+                        </MenuItem>
+                        <MenuItem value="deluxe">
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <DiamondIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
+                            Deluxe Edition
+                          </Box>
+                        </MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Box>
+
+                  {/* Genres - Select from allowed list */}
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Genres
+                    </Typography>
+                    <Autocomplete
+                      multiple
+                      size="small"
+                      options={ALLOWED_GENRES}
+                      value={customGenres}
+                      onChange={(event, newValue) => {
+                        setCustomGenres(newValue);
+                      }}
+                      renderTags={(value, getTagProps) =>
+                        value.map((option, index) => (
+                          <Chip
+                            variant="outlined"
+                            label={option}
+                            size="small"
+                            color="primary"
+                            {...getTagProps({ index })}
+                          />
+                        ))
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          variant="outlined"
+                          placeholder="Select genres..."
+                        />
+                      )}
+                    />
+                  </Box>
+
+                  {/* Tags */}
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Tags
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                      {customTags.map((tag, index) => (
+                        <Chip
+                          key={index}
+                          label={tag}
+                          size="small"
+                          color="secondary"
+                          onDelete={() => handleRemoveTag(tag)}
+                        />
+                      ))}
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <TextField
+                        size="small"
+                        placeholder="Add tag..."
+                        value={newTag}
+                        onChange={(e) => setNewTag(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddTag();
+                          }
+                        }}
+                        sx={{ flexGrow: 1 }}
+                      />
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={handleAddTag}
+                        startIcon={<AddIcon />}
+                      >
+                        Add
+                      </Button>
+                    </Box>
+                  </Box>
+                </Grid>
+              </Grid>
+
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
                 <Button
-                  variant="outlined"
                   onClick={handleBack}
                   disabled={loading}
                 >
-                  Wrong Book
+                  Cancel
                 </Button>
                 <Button
                   variant="contained"
