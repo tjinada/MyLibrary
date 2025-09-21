@@ -2,11 +2,10 @@ import React from 'react';
 import { Box, Typography, Paper, useTheme } from '@mui/material';
 import {
   MenuBook as BookIcon,
-  CollectionsBookmark as CollectionIcon,
-  Inventory as InventoryIcon,
+  AutoStories as UnreadIcon,
 } from '@mui/icons-material';
 
-const LibraryStats = ({ bookCount, collectionCount, totalQuantity }) => {
+const LibraryStats = ({ totalQuantity, unreadCount }) => {
   const theme = useTheme();
   
   return (
@@ -18,7 +17,7 @@ const LibraryStats = ({ bookCount, collectionCount, totalQuantity }) => {
         borderRadius: 3,
         p: 2,
         mb: 3,
-        maxWidth: 600,
+        maxWidth: 400,
         mx: 'auto',
       }}
     >
@@ -48,7 +47,7 @@ const LibraryStats = ({ bookCount, collectionCount, totalQuantity }) => {
           </Box>
         </Box>
 
-        {/* Unique Titles */}
+        {/* Unread Books */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Box
             sx={{
@@ -58,42 +57,17 @@ const LibraryStats = ({ bookCount, collectionCount, totalQuantity }) => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: `linear-gradient(135deg, ${theme.palette.success.light} 0%, ${theme.palette.success.main} 100%)`,
+              background: `linear-gradient(135deg, ${theme.palette.info.light} 0%, ${theme.palette.info.main} 100%)`,
             }}
           >
-            <InventoryIcon sx={{ color: 'white', fontSize: 24 }} />
+            <UnreadIcon sx={{ color: 'white', fontSize: 24 }} />
           </Box>
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette.success.main }}>
-              {bookCount.toLocaleString()}
+            <Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette.info.main }}>
+              {unreadCount.toLocaleString()}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Unique Titles
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* Collections */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box
-            sx={{
-              width: 48,
-              height: 48,
-              borderRadius: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: `linear-gradient(135deg, ${theme.palette.secondary.light} 0%, ${theme.palette.secondary.main} 100%)`,
-            }}
-          >
-            <CollectionIcon sx={{ color: 'white', fontSize: 24 }} />
-          </Box>
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette.secondary.main }}>
-              {collectionCount.toLocaleString()}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Collections
+              Unread Books
             </Typography>
           </Box>
         </Box>

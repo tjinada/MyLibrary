@@ -385,14 +385,17 @@ const Library = () => {
 
   // Calculate total library stats
   const libraryStats = useMemo(() => {
-    const uniqueTitles = allBooksForGenres.books?.length || 0;
     const totalBooks = allBooksForGenres.books?.reduce((sum, book) => sum + (book.quantity || 1), 0) || 0;
-    const totalCollections = allBooksForGenres.collections?.length || 0;
+    const unreadBooks = allBooksForGenres.books?.reduce((sum, book) => {
+      if (book.status === 'to-read') {
+        return sum + (book.quantity || 1);
+      }
+      return sum;
+    }, 0) || 0;
     
     return {
-      uniqueTitles,
       totalBooks,
-      totalCollections,
+      unreadBooks,
     };
   }, [allBooksForGenres]);
 
@@ -614,9 +617,8 @@ const Library = () => {
           
           {/* Library Stats */}
         <LibraryStats 
-          bookCount={libraryStats.uniqueTitles}
           totalQuantity={libraryStats.totalBooks}
-          collectionCount={libraryStats.totalCollections}
+          unreadCount={libraryStats.unreadBooks}
         />
         
         {/* Search Bar */}
