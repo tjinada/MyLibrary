@@ -639,24 +639,6 @@ const Library = () => {
       </Box>
 
       <Container maxWidth="xl" sx={{ py: 3, pb: selectionMode ? 10 : 3 }}>
-        {/* Page Title */}
-        <Box sx={{ mb: 3 }}>
-          <Typography 
-            variant="h3" 
-            component="h1" 
-            gutterBottom
-            sx={{ 
-              fontWeight: 700,
-              textAlign: 'center',
-              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}
-          >
-            My Book Collection
-          </Typography>
-        </Box>
 
         {/* Active Filter Chips */}
         {hasActiveFilters && (

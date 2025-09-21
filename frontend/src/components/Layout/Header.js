@@ -52,7 +52,7 @@ const Header = () => {
           }}
           onClick={() => navigate('/')}
         >
-          {isMobile ? 'My Library' : 'My Personal Library'}
+          {isMobile ? "Mekala's Library" : "Mekala's Personal Library"}
         </Typography>
         
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
