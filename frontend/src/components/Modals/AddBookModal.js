@@ -39,6 +39,7 @@ import {
 } from '@mui/icons-material';
 import BarcodeScanner from '../Scanner/BarcodeScanner';
 import bookService from '../../services/bookService';
+import { ALLOWED_GENRES } from '../../constants/bookConstants';
 
 const AddBookModal = ({ open, onClose, onBookAdded }) => {
   const [activeStep, setActiveStep] = useState(0);
@@ -56,7 +57,6 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
   // Custom fields state
   const [customGenres, setCustomGenres] = useState([]);
   const [customTags, setCustomTags] = useState([]);
-  const [newGenre, setNewGenre] = useState('');
   const [newTag, setNewTag] = useState('');
   const [selectedEdition, setSelectedEdition] = useState('standard');
 
@@ -177,17 +177,6 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
     }
   };
 
-  const handleAddGenre = () => {
-    if (newGenre.trim() && !customGenres.includes(newGenre.trim())) {
-      setCustomGenres([...customGenres, newGenre.trim()]);
-      setNewGenre('');
-    }
-  };
-
-  const handleRemoveGenre = (genreToRemove) => {
-    setCustomGenres(customGenres.filter(g => g !== genreToRemove));
-  };
-
   const handleAddTag = () => {
     if (newTag.trim() && !customTags.includes(newTag.trim())) {
       setCustomTags([...customTags, newTag.trim()]);
@@ -257,7 +246,6 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
     setSelectedCoverIndex(0);
     setCustomGenres([]);
     setCustomTags([]);
-    setNewGenre('');
     setNewTag('');
     setSelectedEdition('standard');
     onClose();
@@ -508,43 +496,39 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
                 </FormControl>
               </Box>
 
-              {/* Genres with ability to add custom */}
+              {/* Genres - Select from allowed list */}
               <Box sx={{ mt: 3 }}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   Genres
                 </Typography>
                 
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
-                  {customGenres.map((genre, index) => (
-                    <Chip
-                      key={index}
-                      label={genre}
-                      size="small"
-                      onDelete={() => handleRemoveGenre(genre)}
+                <Autocomplete
+                  multiple
+                  size="small"
+                  options={ALLOWED_GENRES}
+                  value={customGenres}
+                  onChange={(event, newValue) => {
+                    setCustomGenres(newValue);
+                  }}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        variant="outlined"
+                        label={option}
+                        size="small"
+                        {...getTagProps({ index })}
+                      />
+                    ))
+                  }
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      variant="outlined"
+                      placeholder="Select genres..."
                     />
-                  ))}
-                </Box>
-                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                  <TextField
-                    size="small"
-                    placeholder="Add genre..."
-                    value={newGenre}
-                    onChange={(e) => setNewGenre(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        handleAddGenre();
-                      }
-                    }}
-                  />
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={handleAddGenre}
-                    startIcon={<AddIcon />}
-                  >
-                    Add
-                  </Button>
-                </Box>
+                  )}
+                  sx={{ mt: 1 }}
+                />
               </Box>
 
               {/* Tags - New field */}

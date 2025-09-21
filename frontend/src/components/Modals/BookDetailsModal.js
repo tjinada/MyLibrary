@@ -31,6 +31,7 @@ import {
   FormControl,
   Select,
   alpha,
+  Autocomplete,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -60,6 +61,7 @@ import {
 import bookService from '../../services/bookService';
 import StatusPills from './StatusPills';
 import BookStatusChip, { BookEditionBadge } from '../Books/BookStatusChip';
+import { ALLOWED_GENRES } from '../../constants/bookConstants';
 
 const BookDetailsModal = ({ 
   open, 
@@ -93,7 +95,6 @@ const BookDetailsModal = ({
     edition: 'standard',
   });
   const [newTag, setNewTag] = useState('');
-  const [newGenre, setNewGenre] = useState('');
   const [currentBookData, setCurrentBookData] = useState(null);
   
   // Cover selection state
@@ -174,7 +175,6 @@ const BookDetailsModal = ({
       setTabValue(0);
       setEditMode(openInEditMode);
       setNewTag('');
-      setNewGenre('');
     }
   }, [book, openInEditMode]);
 
@@ -301,23 +301,6 @@ const BookDetailsModal = ({
     setEditedBook({
       ...editedBook,
       tags: editedBook.tags.filter(t => t !== tagToRemove)
-    });
-  };
-
-  const handleAddGenre = () => {
-    if (newGenre.trim() && !editedBook.genres.includes(newGenre.trim())) {
-      setEditedBook({
-        ...editedBook,
-        genres: [...editedBook.genres, newGenre.trim()]
-      });
-      setNewGenre('');
-    }
-  };
-
-  const handleRemoveGenre = (genreToRemove) => {
-    setEditedBook({
-      ...editedBook,
-      genres: editedBook.genres.filter(g => g !== genreToRemove)
     });
   };
 
@@ -749,14 +732,20 @@ const BookDetailsModal = ({
                               </Typography>
                             </Box>
                             {editMode ? (
-                              <Box>
-                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
-                                  {editedBook.genres.map((genre, index) => (
+                              <Autocomplete
+                                multiple
+                                size="small"
+                                options={ALLOWED_GENRES}
+                                value={editedBook.genres}
+                                onChange={(event, newValue) => {
+                                  setEditedBook({...editedBook, genres: newValue});
+                                }}
+                                renderTags={(value, getTagProps) =>
+                                  value.map((option, index) => (
                                     <Chip
-                                      key={index}
-                                      label={genre}
+                                      label={option}
                                       size="small"
-                                      onDelete={() => handleRemoveGenre(genre)}
+                                      {...getTagProps({ index })}
                                       sx={{ 
                                         bgcolor: theme.palette.primary.main,
                                         color: 'white',
@@ -768,37 +757,16 @@ const BookDetailsModal = ({
                                         },
                                       }}
                                     />
-                                  ))}
-                                </Box>
-                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                  ))
+                                }
+                                renderInput={(params) => (
                                   <TextField
-                                    size="small"
-                                    placeholder="Add genre..."
-                                    value={newGenre}
-                                    onChange={(e) => setNewGenre(e.target.value)}
-                                    onKeyPress={(e) => {
-                                      if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        handleAddGenre();
-                                      }
-                                    }}
-                                    sx={{ flexGrow: 1 }}
+                                    {...params}
+                                    variant="outlined"
+                                    placeholder="Select genres..."
                                   />
-                                  <IconButton 
-                                    size="small" 
-                                    onClick={handleAddGenre}
-                                    sx={{ 
-                                      bgcolor: theme.palette.primary.main,
-                                      color: 'white',
-                                      '&:hover': {
-                                        bgcolor: theme.palette.primary.dark,
-                                      }
-                                    }}
-                                  >
-                                    <AddIcon fontSize="small" />
-                                  </IconButton>
-                                </Box>
-                              </Box>
+                                )}
+                              />
                             ) : (
                               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                                 {displayBook.genres && displayBook.genres.length > 0 ? (

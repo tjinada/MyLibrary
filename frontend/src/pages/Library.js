@@ -80,6 +80,7 @@ const Library = () => {
     search: '',
     status: 'all',
     genre: 'all',
+    edition: 'all',
     sort: 'title',
   });
 
@@ -102,7 +103,7 @@ const Library = () => {
   // Fetch library data
   useEffect(() => {
     fetchLibrary();
-  }, [filters.status, filters.genre, filters.sort]);
+  }, [filters.status, filters.genre, filters.edition, filters.sort]);
 
   // Save view preferences
   useEffect(() => {
@@ -152,6 +153,10 @@ const Library = () => {
         booksToDisplay = booksToDisplay.filter(book => book.status === filters.status);
       }
       
+      if (filters.edition !== 'all') {
+        booksToDisplay = booksToDisplay.filter(book => book.edition === filters.edition);
+      }
+      
       const booksInCollections = new Set();
       (collectionsData || []).forEach(collection => {
         collection.books?.forEach(book => {
@@ -170,13 +175,13 @@ const Library = () => {
         inCollection: book.collections && book.collections.length > 0
       }));
       
-      const showAllBooks = filters.search !== '' || filters.genre !== 'all' || filters.status !== 'all';
+      const showAllBooks = filters.search !== '' || filters.genre !== 'all' || filters.status !== 'all' || filters.edition !== 'all';
       const displayBookItems = showAllBooks 
         ? allBookItems
         : allBookItems.filter(item => !item.inCollection);
       
       let collectionItems = [];
-      if (filters.genre === 'all' && filters.status === 'all') {
+      if (filters.genre === 'all' && filters.status === 'all' && filters.edition === 'all') {
         collectionItems = (collectionsData || [])
           .filter(c => c.displayInLibrary !== false)
           .map(collection => ({
@@ -420,6 +425,7 @@ const Library = () => {
       search: '',
       status: 'all',
       genre: 'all',
+      edition: 'all',
       sort: 'title',
     });
   }, []);
@@ -573,7 +579,8 @@ const Library = () => {
 
   const hasActiveFilters = filters.search !== '' || 
                           filters.status !== 'all' || 
-                          filters.genre !== 'all';
+                          filters.genre !== 'all' ||
+                          filters.edition !== 'all';
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>

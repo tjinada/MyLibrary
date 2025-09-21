@@ -5,6 +5,7 @@ const useFilters = (initialFilters = {}) => {
     search: '',
     status: 'all',
     genre: 'all',
+    edition: 'all',
     sort: 'title',
     ...initialFilters,
   });
@@ -32,6 +33,7 @@ const useFilters = (initialFilters = {}) => {
       search: '',
       status: 'all',
       genre: 'all',
+      edition: 'all',
       sort: 'title',
     });
   }, []);
@@ -41,6 +43,7 @@ const useFilters = (initialFilters = {}) => {
       filters.search !== '',
       filters.status !== 'all',
       filters.genre !== 'all',
+      filters.edition !== 'all',
     ].filter(Boolean).length;
   }, [filters]);
 
@@ -72,6 +75,14 @@ const useFilters = (initialFilters = {}) => {
         key: 'genre',
         label: `Genre: ${filters.genre}`,
         value: filters.genre,
+      });
+    }
+    
+    if (filters.edition !== 'all') {
+      active.push({
+        key: 'edition',
+        label: `Edition: ${filters.edition.charAt(0).toUpperCase() + filters.edition.slice(1)}`,
+        value: filters.edition,
       });
     }
     

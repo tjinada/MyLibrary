@@ -19,6 +19,8 @@ import {
   FilterList as FilterIcon,
   Close as CloseIcon,
   Clear as ClearIcon,
+  Diamond as DiamondIcon,
+  AutoAwesome as SpecialIcon,
 } from '@mui/icons-material';
 import { statusColors } from '../../theme/theme';
 
@@ -207,6 +209,36 @@ const FilterPopover = ({
 
           <Divider sx={{ my: 2 }} />
 
+          {/* Edition Filter */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'text.secondary' }}>
+              Edition Type
+            </Typography>
+            <FormControl fullWidth size="small">
+              <Select
+                value={filters.edition || 'all'}
+                onChange={(e) => handleFilterUpdate('edition', e.target.value)}
+                sx={{ borderRadius: 1.5 }}
+              >
+                <MenuItem value="all">All Editions</MenuItem>
+                <MenuItem value="special">
+                  <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                    <SpecialIcon fontSize="small" sx={{ color: theme.palette.warning.main, mr: 1 }} />
+                    <Box sx={{ flexGrow: 1 }}>Special Edition</Box>
+                  </Box>
+                </MenuItem>
+                <MenuItem value="deluxe">
+                  <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                    <DiamondIcon fontSize="small" sx={{ color: theme.palette.secondary.main, mr: 1 }} />
+                    <Box sx={{ flexGrow: 1 }}>Deluxe Edition</Box>
+                  </Box>
+                </MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+
+          <Divider sx={{ my: 2 }} />
+
           {/* Genre Filter - Multiple Selection */}
           {genres && genres.length > 0 && (
             <>
@@ -325,6 +357,7 @@ const FilterPopover = ({
                     search: '',
                     status: 'all',
                     genre: 'all',
+                    edition: 'all',
                     sort: 'title',
                   });
                   handleClose();
