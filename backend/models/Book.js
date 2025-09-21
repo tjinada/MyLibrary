@@ -75,6 +75,11 @@ const BookSchema = new mongoose.Schema({
     enum: ['to-read', 'reading', 'read', 'loaned'],
     default: 'to-read'
   },
+  edition: {
+    type: String,
+    enum: ['standard', 'special', 'deluxe'],
+    default: 'standard'
+  },
   quantity: {
     type: Number,
     default: 1,
