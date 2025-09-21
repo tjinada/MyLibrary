@@ -26,6 +26,7 @@ import {
   Select,
   MenuItem,
   Autocomplete,
+  Rating,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -37,6 +38,8 @@ import {
   LibraryAdd as MultiAddIcon,
   Diamond as DiamondIcon,
   AutoAwesome as SpecialIcon,
+  Star as StarIcon,
+  StarBorder as StarBorderIcon,
 } from '@mui/icons-material';
 import BarcodeScanner from '../Scanner/BarcodeScanner';
 import bookService from '../../services/bookService';
@@ -55,6 +58,7 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
   const [customTags, setCustomTags] = useState([]);
   const [newTag, setNewTag] = useState('');
   const [selectedEdition, setSelectedEdition] = useState('standard');
+  const [bookRating, setBookRating] = useState(null);
   
   // Multi-add mode
   const [multiAddMode, setMultiAddMode] = useState(false);
@@ -108,6 +112,7 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
       setCustomGenres(genres);
       setCustomTags(data.tags || []);
       setSelectedEdition(data.edition || 'standard');
+      setBookRating(null); // Reset rating for new book
       
       setShowConfirmation(true);
       setShowScanner(false);
@@ -150,6 +155,7 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
         genres: customGenres,
         tags: customTags,
         edition: selectedEdition,
+        rating: bookRating, // Include rating if set
       };
       
       await bookService.addBook(bookToAdd);
@@ -213,6 +219,7 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
     setCustomTags([]);
     setNewTag('');
     setSelectedEdition('standard');
+    setBookRating(null);
     onClose();
   };
 
@@ -445,6 +452,49 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
                       </Grid>
                     )}
                   </Grid>
+
+                  {/* Rating */}
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Rating
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Rating
+                        value={bookRating}
+                        onChange={(event, newValue) => {
+                          setBookRating(newValue);
+                        }}
+                        size="large"
+                        icon={<StarIcon fontSize="inherit" />}
+                        emptyIcon={<StarBorderIcon fontSize="inherit" />}
+                        sx={{
+                          '& .MuiRating-iconFilled': {
+                            color: theme.palette.warning.main,
+                          },
+                          '& .MuiRating-iconHover': {
+                            color: theme.palette.warning.dark,
+                          },
+                        }}
+                      />
+                      {bookRating && (
+                        <Typography variant="body2" color="text.secondary">
+                          {bookRating} star{bookRating !== 1 ? 's' : ''}
+                        </Typography>
+                      )}
+                      {bookRating && (
+                        <Button
+                          size="small"
+                          onClick={() => setBookRating(null)}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                      Optional - Rate this book if you've read it
+                    </Typography>
+                  </Box>
 
                   {/* Status Selection */}
                   <Box sx={{ mb: 2 }}>
