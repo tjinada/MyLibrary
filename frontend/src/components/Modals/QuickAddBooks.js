@@ -23,6 +23,7 @@ import {
   Zoom,
   LinearProgress,
   Grid,
+  MenuItem,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -33,6 +34,8 @@ import {
   ArrowBack as BackIcon,
   Edit as EditIcon,
   Save as SaveIcon,
+  AutoAwesome as SpecialIcon,
+  Diamond as DiamondIcon,
 } from '@mui/icons-material';
 import MobileBarcodeScanner from '../Scanner/MobileBarcodeScanner';
 import bookService from '../../services/bookService';
@@ -55,6 +58,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
   const [newGenre, setNewGenre] = useState('');
   const [newTag, setNewTag] = useState('');
   const [bookStatus, setBookStatus] = useState('to-read');
+  const [bookEdition, setBookEdition] = useState('standard');
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -116,6 +120,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       setCustomGenres(genres);
       setCustomTags(bookData.tags || []);
       setBookStatus('to-read');
+      setBookEdition('standard'); // Reset edition to standard
       setConfirmationMode(true);
       
       // Clear ISBN for next entry
@@ -165,6 +170,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
         genres: customGenres,
         tags: customTags,
         status: bookStatus,
+        edition: bookEdition,
       };
       
       const response = await bookService.addBook(bookToAdd);
@@ -221,6 +227,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     setNewGenre('');
     setNewTag('');
     setBookStatus('to-read');
+    setBookEdition('standard');
     
     // Refocus ISBN input
     if (!isMobile && isbnInputRef.current) {
@@ -244,6 +251,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
         genres: customGenres,
         tags: customTags,
         status: bookStatus,
+        edition: bookEdition,
         allowDuplicate: true,
       };
       
@@ -299,6 +307,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     setNewGenre('');
     setNewTag('');
     setBookStatus('to-read');
+    setBookEdition('standard');
     setDuplicateBook(null);
     setShowDuplicateDialog(false);
     if (successTimeoutRef.current) {
@@ -558,24 +567,56 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                     </Grid>
                   </Box>
 
-                  {/* Status */}
+                  {/* Status and Edition - Same Row */}
                   <Box sx={{ mb: 3 }}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Status
-                    </Typography>
-                    <TextField
-                      select
-                      value={bookStatus}
-                      onChange={(e) => setBookStatus(e.target.value)}
-                      size="small"
-                      sx={{ minWidth: 150 }}
-                      SelectProps={{ native: true }}
-                    >
-                      <option value="to-read">To Read</option>
-                      <option value="reading">Reading</option>
-                      <option value="read">Read</option>
-                      <option value="loaned">Loaned</option>
-                    </TextField>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Status
+                        </Typography>
+                        <TextField
+                          select
+                          value={bookStatus}
+                          onChange={(e) => setBookStatus(e.target.value)}
+                          size="small"
+                          fullWidth
+                          SelectProps={{ native: true }}
+                        >
+                          <option value="to-read">To Read</option>
+                          <option value="reading">Reading</option>
+                          <option value="read">Read</option>
+                          <option value="loaned">Loaned</option>
+                        </TextField>
+                      </Grid>
+                      
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Edition
+                        </Typography>
+                        <TextField
+                          select
+                          value={bookEdition}
+                          onChange={(e) => setBookEdition(e.target.value)}
+                          size="small"
+                          fullWidth
+                          SelectProps={{ native: false }}
+                        >
+                          <MenuItem value="standard">Standard Edition</MenuItem>
+                          <MenuItem value="special">
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <SpecialIcon fontSize="small" sx={{ color: theme.palette.warning.main }} />
+                              Special Edition
+                            </Box>
+                          </MenuItem>
+                          <MenuItem value="deluxe">
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <DiamondIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
+                              Deluxe Edition
+                            </Box>
+                          </MenuItem>
+                        </TextField>
+                      </Grid>
+                    </Grid>
                   </Box>
 
                   {/* Genres */}
