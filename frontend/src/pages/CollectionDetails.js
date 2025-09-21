@@ -328,7 +328,7 @@ const CollectionDetails = () => {
               border: `1px solid ${alpha(getTypeColor(collection.collectionType), 0.2)}`,
             }}
           >
-            {/* Hero Section */}
+            {/* Hero Section - Compact 2-row design */}
             <Box sx={{ 
               p: { xs: 3, md: 4 },
               background: `linear-gradient(135deg, ${alpha(getTypeColor(collection.collectionType), 0.15)} 0%, transparent 100%)`,
@@ -355,161 +355,178 @@ const CollectionDetails = () => {
                 
                 {/* Content */}
                 <Box sx={{ flexGrow: 1 }}>
-                  {/* Title and Badges */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
-                    <Typography 
-                      variant={isMobile ? "h5" : "h4"} 
-                      component="h1" 
-                      sx={{ 
-                        fontWeight: 700,
-                        background: `linear-gradient(135deg, ${theme.palette.text.primary} 0%, ${alpha(theme.palette.text.primary, 0.8)} 100%)`,
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
-                      }}
-                    >
-                      {collection.name}
-                    </Typography>
-                    <Chip 
-                      label={getTypeLabel(collection.collectionType)}
-                      size="small"
-                      sx={{
-                        bgcolor: alpha(getTypeColor(collection.collectionType), 0.15),
-                        color: getTypeColor(collection.collectionType),
-                        borderColor: getTypeColor(collection.collectionType),
-                        fontWeight: 600,
-                      }}
-                      variant="outlined"
-                    />
-                  </Box>
-                  
-                  {/* Description */}
-                  {collection.description && (
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 3 }}>
-                      <DescriptionIcon sx={{ fontSize: 20, color: 'text.secondary', mt: 0.3 }} />
-                      <Typography variant="body1" color="text.secondary">
-                        {collection.description}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {/* Statistics Cards */}
-                  {collectionStats && (
-                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
-                      <Paper
-                        elevation={0}
-                        sx={{
-                          px: 2,
-                          py: 1,
-                          borderRadius: 2,
-                          bgcolor: alpha(theme.palette.primary.main, 0.08),
-                          border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                  {/* Row 1: Title, Badge, and Action Buttons */}
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 2, 
+                    mb: 2.5,
+                    flexWrap: 'wrap'
+                  }}>
+                    {/* Title and Badge */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexGrow: isMobile ? 1 : 0 }}>
+                      <Typography 
+                        variant={isMobile ? "h5" : "h4"} 
+                        component="h1" 
+                        sx={{ 
+                          fontWeight: 700,
+                          background: `linear-gradient(135deg, ${theme.palette.text.primary} 0%, ${alpha(theme.palette.text.primary, 0.8)} 100%)`,
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text',
                         }}
                       >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <BookIcon sx={{ fontSize: 18, color: 'primary.main' }} />
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {collectionStats.bookCount} {collectionStats.bookCount === 1 ? 'Book' : 'Books'}
-                          </Typography>
-                        </Box>
-                      </Paper>
-                      
-                      {collectionStats.authorCount > 0 && (
+                        {collection.name}
+                      </Typography>
+                      <Chip 
+                        label={getTypeLabel(collection.collectionType)}
+                        size="small"
+                        sx={{
+                          bgcolor: alpha(getTypeColor(collection.collectionType), 0.15),
+                          color: getTypeColor(collection.collectionType),
+                          borderColor: getTypeColor(collection.collectionType),
+                          fontWeight: 600,
+                        }}
+                        variant="outlined"
+                      />
+                    </Box>
+                    
+                    {/* Spacer for desktop */}
+                    {!isMobile && <Box sx={{ flexGrow: 1 }} />}
+                    
+                    {/* Action Buttons */}
+                    {isAuthenticated && (
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        <Button
+                          variant="contained"
+                          startIcon={<AddIcon />}
+                          onClick={() => setAddBooksModalOpen(true)}
+                          size={isMobile ? "small" : "medium"}
+                          sx={{
+                            borderRadius: 2,
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                            boxShadow: theme.shadows[2],
+                            '&:hover': {
+                              boxShadow: theme.shadows[4],
+                            }
+                          }}
+                        >
+                          Add Books
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          startIcon={<EditIcon />}
+                          onClick={() => setEditDialogOpen(true)}
+                          size={isMobile ? "small" : "medium"}
+                          sx={{
+                            borderRadius: 2,
+                            textTransform: 'none',
+                            fontWeight: 500,
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          startIcon={<DeleteIcon />}
+                          color="error"
+                          onClick={handleDeleteCollection}
+                          size={isMobile ? "small" : "medium"}
+                          sx={{
+                            borderRadius: 2,
+                            textTransform: 'none',
+                            fontWeight: 500,
+                          }}
+                        >
+                          Delete
+                        </Button>
+                        {process.env.NODE_ENV === 'development' && (
+                          <Button
+                            size="small"
+                            onClick={() => setDebugDialogOpen(true)}
+                            color="warning"
+                          >
+                            Debug
+                          </Button>
+                        )}
+                      </Box>
+                    )}
+                  </Box>
+                  
+                  {/* Row 2: Statistics and Description */}
+                  <Box>
+                    {/* Description */}
+                    {collection.description && (
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 2 }}>
+                        <DescriptionIcon sx={{ fontSize: 20, color: 'text.secondary', mt: 0.3 }} />
+                        <Typography variant="body1" color="text.secondary">
+                          {collection.description}
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {/* Statistics Cards */}
+                    {collectionStats && (
+                      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                         <Paper
                           elevation={0}
                           sx={{
                             px: 2,
                             py: 1,
                             borderRadius: 2,
-                            bgcolor: alpha(theme.palette.info.main, 0.08),
-                            border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                            bgcolor: alpha(theme.palette.primary.main, 0.08),
+                            border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
                           }}
                         >
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <AuthorIcon sx={{ fontSize: 18, color: 'info.main' }} />
+                            <BookIcon sx={{ fontSize: 18, color: 'primary.main' }} />
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {collectionStats.authorCount} {collectionStats.authorCount === 1 ? 'Author' : 'Authors'}
+                              {collectionStats.bookCount} {collectionStats.bookCount === 1 ? 'Book' : 'Books'}
                             </Typography>
                           </Box>
                         </Paper>
-                      )}
-                      
-                      {collectionStats.readPercentage > 0 && (
-                        <Paper
-                          elevation={0}
-                          sx={{
-                            px: 2,
-                            py: 1,
-                            borderRadius: 2,
-                            bgcolor: alpha(theme.palette.success.main, 0.08),
-                            border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
-                          }}
-                        >
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
-                            {collectionStats.readPercentage}% Read
-                          </Typography>
-                        </Paper>
-                      )}
-                    </Box>
-                  )}
-
-                  {/* Action Buttons */}
-                  {isAuthenticated && (
-                    <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-                      <Button
-                        variant="contained"
-                        startIcon={<AddIcon />}
-                        onClick={() => setAddBooksModalOpen(true)}
-                        sx={{
-                          borderRadius: 2,
-                          textTransform: 'none',
-                          fontWeight: 600,
-                          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                          boxShadow: theme.shadows[2],
-                          '&:hover': {
-                            boxShadow: theme.shadows[4],
-                          }
-                        }}
-                      >
-                        Add Books
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        startIcon={<EditIcon />}
-                        onClick={() => setEditDialogOpen(true)}
-                        sx={{
-                          borderRadius: 2,
-                          textTransform: 'none',
-                          fontWeight: 500,
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        startIcon={<DeleteIcon />}
-                        color="error"
-                        onClick={handleDeleteCollection}
-                        sx={{
-                          borderRadius: 2,
-                          textTransform: 'none',
-                          fontWeight: 500,
-                        }}
-                      >
-                        Delete
-                      </Button>
-                      {process.env.NODE_ENV === 'development' && (
-                        <Button
-                          size="small"
-                          onClick={() => setDebugDialogOpen(true)}
-                          color="warning"
-                          sx={{ ml: 'auto' }}
-                        >
-                          Debug
-                        </Button>
-                      )}
-                    </Box>
-                  )}
+                        
+                        {collectionStats.authorCount > 0 && (
+                          <Paper
+                            elevation={0}
+                            sx={{
+                              px: 2,
+                              py: 1,
+                              borderRadius: 2,
+                              bgcolor: alpha(theme.palette.info.main, 0.08),
+                              border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                            }}
+                          >
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <AuthorIcon sx={{ fontSize: 18, color: 'info.main' }} />
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {collectionStats.authorCount} {collectionStats.authorCount === 1 ? 'Author' : 'Authors'}
+                              </Typography>
+                            </Box>
+                          </Paper>
+                        )}
+                        
+                        {collectionStats.readPercentage > 0 && (
+                          <Paper
+                            elevation={0}
+                            sx={{
+                              px: 2,
+                              py: 1,
+                              borderRadius: 2,
+                              bgcolor: alpha(theme.palette.success.main, 0.08),
+                              border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                            }}
+                          >
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
+                              {collectionStats.readPercentage}% Read
+                            </Typography>
+                          </Paper>
+                        )}
+                      </Box>
+                    )}
+                  </Box>
                 </Box>
               </Box>
             </Box>
