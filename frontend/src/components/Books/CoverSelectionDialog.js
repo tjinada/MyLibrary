@@ -184,6 +184,42 @@ const CoverSelectionDialog = ({
                 const imageState = imageLoadStates[cover.id];
                 const quality = getQualityBadge(cover.score);
 
+                // Special handling for LibraryThing link
+                if (cover.isLink) {
+                  return (
+                    <Grid item xs={12} key={cover.id}>
+                      <Card
+                        sx={{
+                          p: 2,
+                          border: '1px dashed',
+                          borderColor: 'divider',
+                          bgcolor: 'grey.50',
+                          cursor: 'pointer',
+                          '&:hover': {
+                            bgcolor: 'grey.100'
+                          }
+                        }}
+                        onClick={() => window.open(cover.url, '_blank')}
+                      >
+                        <Box display="flex" alignItems="center" gap={2}>
+                          <ImageSearchIcon sx={{ fontSize: 32, color: 'text.secondary' }} />
+                          <Box>
+                            <Typography variant="subtitle2">
+                              LibraryThing has covers available
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Click to view covers on LibraryThing website (opens in new tab)
+                            </Typography>
+                            <Typography variant="caption" display="block" color="primary">
+                              {cover.url}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Card>
+                    </Grid>
+                  );
+                }
+
                 return (
                   <Grid item xs={6} sm={4} md={3} key={cover.id}>
                     <Card

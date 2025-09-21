@@ -81,68 +81,17 @@ class LibraryThingService {
         return [];
       }
       
-      // Try to fetch the covers page
-      try {
-        const coversUrl = `https://www.librarything.com/work/${workId}/covers`;
-        console.log(`Attempting to fetch covers page: ${coversUrl}`);
-        
-        const { data: html } = await axios.get(coversUrl, {
-          headers: { 
-            'User-Agent': this.userAgent,
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1'
-          },
-          timeout: 10000,
-          maxRedirects: 5
-        });
-        
-        console.log(`Successfully fetched covers page, HTML length: ${html.length} characters`);
-        console.log(`HTML preview (first 500 chars): ${html.substring(0, 500)}`);
-        
-        const urls = this.extractCoverUrls(html);
-        console.log(`Extracted ${urls.length} cover URLs`);
-        if (urls.length > 0) {
-          console.log('First 3 URLs:', urls.slice(0, 3));
-        }
-        
-        return urls;
-      } catch (pageError) {
-        console.log(`\nCould not fetch covers page!`);
-        console.log(`Error status: ${pageError.response?.status}`);
-        console.log(`Error message: ${pageError.message}`);
-        if (pageError.response?.headers) {
-          console.log('Response headers:', pageError.response.headers);
-        }
-        console.log('\nTrying direct URL construction fallback...');
-        
-        // Fallback: Construct likely cover URLs based on work ID
-        // LibraryThing often uses predictable patterns for cover URLs
-        const fallbackUrls = [];
-        
-        // Common LibraryThing CDN patterns
-        // These are educated guesses based on common patterns
-        const patterns = [
-          `https://pics.cdn.librarything.com/picsizes/large_${workId}.jpg`,
-          `https://pics.cdn.librarything.com/picsizes/${workId}_large.jpg`,
-          `https://pics.cdn.librarything.com/picsizes/${workId}.jpg`,
-          `https://covers.librarything.com/large/${workId}.jpg`,
-          `https://covers.librarything.com/medium/${workId}.jpg`
-        ];
-        
-        // Add the patterns but we'll validate them later
-        patterns.forEach(url => {
-          fallbackUrls.push(url);
-        });
-        
-        console.log(`Generated ${fallbackUrls.length} fallback cover URLs for work ${workId}`);
-        console.log('Fallback URLs:', fallbackUrls);
-        return fallbackUrls;
-      }
+      // Since LibraryThing is behind Cloudflare, we can't scrape it
+      // Instead, return a special URL that indicates where covers can be found
+      console.log(`LibraryThing work ID found: ${workId}`);
+      console.log(`Covers available at: https://www.librarything.com/work/${workId}/covers`);
+      console.log('Note: LibraryThing covers cannot be automatically fetched due to Cloudflare protection');
+      
+      // Return empty array since we can't actually get the covers
+      // The frontend could show a link to the covers page instead
+      return [];
     } catch (error) {
-      console.log(`\nLibraryThing cover fetch failed completely:`, error.message);
+      console.log(`\nLibraryThing cover fetch failed:`, error.message);
       return [];
     } finally {
       console.log(`=== LibraryThing getCoverUrls END ===\n`);
@@ -161,55 +110,21 @@ class LibraryThingService {
         return [];
       }
       
-      let coverUrls = [];
+      // We can provide a link to LibraryThing but can't fetch the actual covers
+      console.log(`LibraryThing work ID found: ${workId}`);
+      console.log(`User can manually visit: https://www.librarything.com/work/${workId}/covers`);
       
-      // Try to fetch the covers page first
-      try {
-        const coversUrl = `https://www.librarything.com/work/${workId}/covers`;
-        console.log(`getAllCovers: Attempting to fetch covers page: ${coversUrl}`);
-        
-        const { data: html } = await axios.get(coversUrl, {
-          headers: { 
-            'User-Agent': this.userAgent,
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1'
-          },
-          timeout: 30000,
-          maxRedirects: 5
-        });
-        
-        console.log(`getAllCovers: Successfully fetched covers page, HTML length: ${html.length} characters`);
-        coverUrls = this.extractCoverUrls(html);
-        console.log(`getAllCovers: Extracted ${coverUrls.length} URLs from covers page`);
-      } catch (pageError) {
-        console.log(`getAllCovers: Could not fetch covers page`);
-        console.log(`Error status: ${pageError.response?.status}`);
-        console.log(`Error message: ${pageError.message}`);
-        console.log('getAllCovers: Using getCoverUrls fallback method...');
-        // Use fallback URLs
-        coverUrls = await this.getCoverUrls(isbn);
-        console.log(`getAllCovers: Got ${coverUrls.length} URLs from fallback`);
-      }
-      
-      // Return with metadata for each cover
-      const result = coverUrls.map((url, index) => ({
-        url,
+      // Return a special entry that indicates LibraryThing has covers but they need manual access
+      return [{
+        url: `https://www.librarything.com/work/${workId}/covers`,
         source: 'librarything',
-        priority: index, // First is highest quality
-        label: this.getCoverLabel(url, index)
-      }));
-      
-      console.log(`getAllCovers: Returning ${result.length} cover objects`);
-      if (result.length > 0) {
-        console.log('First cover object:', result[0]);
-      }
-      
-      return result;
+        priority: 0,
+        label: 'View on LibraryThing (manual)',
+        isLink: true, // Special flag to indicate this is a link, not an image
+        workId: workId
+      }];
     } catch (error) {
-      console.log(`\ngetAllCovers failed completely:`, error.message);
+      console.log(`\ngetAllCovers failed:`, error.message);
       return [];
     } finally {
       console.log(`=== LibraryThing getAllCovers END ===\n`);
