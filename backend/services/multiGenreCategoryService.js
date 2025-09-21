@@ -205,21 +205,24 @@ const GENRE_RULES = {
   
   "Children's Fiction": {
     requiresFiction: true,
+    // Only match if explicitly marked as children's content
     exactMatches: [
       'children\'s fiction', 'childrens fiction', 'juvenile fiction',
+      'children\'s', 'children', 'kids', 'juvenile',
       'picture book', 'early reader', 'chapter book', 'middle grade',
-      'children\'s literature', 'kids book', 'bedtime story'
+      'children\'s literature', 'kids book', 'bedtime story',
+      'children\'s books', 'books for children', 'books for kids'
     ],
     strongKeywords: [
-      'children', 'kids', 'juvenile', 'picture book',
-      'illustrated', 'bedtime', 'fairy tale', 'fable',
-      'nursery rhyme', 'adventure for kids', 'animal story'
+      // Only use very specific children's book terms
+      // Removed generic terms that could match adult books
     ],
     weakKeywords: [
-      'child', 'boy', 'girl', 'elementary', 'grade school',
-      'playground', 'toy', 'imagination'
+      // Removed all weak keywords to prevent false positives
     ],
-    excludeIfPresent: ['parenting', 'child psychology', 'education']
+    excludeIfPresent: ['young adult', 'ya', 'teen', 'parenting', 'child psychology', 'education'],
+    // Special flag to require API genre match
+    requiresApiMatch: true
   },
   
   'Biography / Memoir': {
@@ -410,6 +413,55 @@ class MultiGenreCategoryService {
       if (rules.requiresFiction && categoryType !== 'Fiction') continue;
       if (rules.requiresNonfiction && categoryType !== 'Nonfiction') continue;
       
+      // Special handling for Children's Fiction - ONLY match if API explicitly says children
+      if (genreName === "Children's Fiction") {
+        // Only check exact matches from API genres, not from description or title
+        let childrenMatchFound = false;
+        for (const exactMatch of rules.exactMatches) {
+          const searchTerm = exactMatch.toLowerCase();
+          if (apiGenres.some(g => {
+            const genreLower = g.toLowerCase();
+            // Must be an exact match or contain the term as a whole word
+            return genreLower === searchTerm || 
+                   genreLower.includes('children') || 
+                   genreLower.includes('kids') || 
+                   genreLower.includes('juvenile');
+          })) {
+            score += 100;
+            reasons.push(`Children's genre from API: "${exactMatch}"`);
+            childrenMatchFound = true;
+            break; // One match is enough
+          }
+        }
+        
+        // If no children's genre from API, skip this genre entirely
+        if (!childrenMatchFound) {
+          continue;
+        }
+        
+        // Check exclusions (YA books shouldn't be marked as children's)
+        let excluded = false;
+        for (const excludeWord of rules.excludeIfPresent) {
+          if (apiGenres.some(g => g.toLowerCase().includes(excludeWord))) {
+            excluded = true;
+            reasons.push(`EXCLUDED: Found "${excludeWord}" - likely Young Adult`);
+            console.log(`    [EXCLUSION] Children's Fiction excluded - found YA/Teen indicator`);
+            break;
+          }
+        }
+        
+        if (!excluded && score > 0) {
+          genreScores.push({
+            genre: genreName,
+            score: score,
+            reasons: reasons
+          });
+          console.log(`  [CHILDREN'S MATCH] ${genreName}: Score = ${score}`);
+        }
+        continue; // Skip the rest of the normal processing for this genre
+      }
+      
+      // Normal processing for all other genres
       // Check for exact matches (highest priority)
       let exactMatchFound = false;
       for (const exactMatch of rules.exactMatches) {
