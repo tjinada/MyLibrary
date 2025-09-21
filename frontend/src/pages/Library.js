@@ -135,11 +135,16 @@ const Library = () => {
         const genreFilters = Array.isArray(filters.genre) ? filters.genre : [filters.genre];
         booksToDisplay = allBooksData.books.filter(book => {
           if (genreFilters.length === 0) return true;
-          return genreFilters.some(genre => {
-            if (book.primaryCategory === genre) return true;
-            if (book.genres && book.genres.includes(genre)) return true;
-            return false;
-          });
+          
+          // Collect all genres for this book
+          const bookGenres = new Set();
+          if (book.primaryCategory) bookGenres.add(book.primaryCategory);
+          if (book.genres && Array.isArray(book.genres)) {
+            book.genres.forEach(genre => bookGenres.add(genre));
+          }
+          
+          // AND condition: book must have ALL selected genres
+          return genreFilters.every(filterGenre => bookGenres.has(filterGenre));
         });
       }
       
@@ -294,29 +299,72 @@ const Library = () => {
     setPage(1);
   }, [filteredItems.length, itemsPerPage]);
 
-  // Extract genres from ALL books
+  // Calculate dynamic genre counts based on active filters
   const genres = useMemo(() => {
     const genreMap = new Map();
     
-    if (allBooksForGenres.books) {
-      allBooksForGenres.books.forEach(book => {
-        if (book.primaryCategory) {
-          genreMap.set(book.primaryCategory, (genreMap.get(book.primaryCategory) || 0) + 1);
-        } else if (book.genres) {
-          book.genres.forEach(genre => {
-            genreMap.set(genre, (genreMap.get(genre) || 0) + 1);
-          });
-        }
-      });
+    // Start with books that match the current status filter
+    let booksForGenreCounting = allBooksForGenres.books || [];
+    
+    if (filters.status !== 'all') {
+      booksForGenreCounting = booksForGenreCounting.filter(book => 
+        book.status === filters.status
+      );
     }
     
-    if (allBooksForGenres.collections) {
+    // Get currently selected genres
+    const currentGenreFilters = filters.genre === 'all' 
+      ? [] 
+      : Array.isArray(filters.genre) ? filters.genre : [filters.genre];
+    
+    // Count genres based on books that match ALL current filters
+    booksForGenreCounting.forEach(book => {
+      // Collect all genres for this book
+      const bookGenres = new Set();
+      if (book.primaryCategory) bookGenres.add(book.primaryCategory);
+      if (book.genres && Array.isArray(book.genres)) {
+        book.genres.forEach(genre => bookGenres.add(genre));
+      }
+      
+      // If genre filters are active, only count books that match ALL selected genres
+      if (currentGenreFilters.length > 0) {
+        const matchesAllFilters = currentGenreFilters.every(filterGenre => 
+          bookGenres.has(filterGenre)
+        );
+        
+        if (!matchesAllFilters) {
+          return; // Skip this book if it doesn't match all current genre filters
+        }
+      }
+      
+      // Now count each genre this book has
+      bookGenres.forEach(genre => {
+        // For each genre, check if adding it to the filter would still show this book
+        // This means the book must have this genre AND all currently selected genres
+        if (currentGenreFilters.length === 0 || !currentGenreFilters.includes(genre)) {
+          // Only count this genre if it's not already selected
+          genreMap.set(genre, (genreMap.get(genre) || 0) + 1);
+        } else {
+          // If this genre is already selected, still count it
+          genreMap.set(genre, (genreMap.get(genre) || 0) + 1);
+        }
+      });
+    });
+    
+    // Also add books from collections if no genre filter is active
+    if (filters.genre === 'all' && allBooksForGenres.collections) {
       allBooksForGenres.collections.forEach(collection => {
         collection.books?.forEach(book => {
           if (book && typeof book === 'object') {
+            // Apply status filter to collection books too
+            if (filters.status !== 'all' && book.status !== filters.status) {
+              return;
+            }
+            
             if (book.primaryCategory) {
               genreMap.set(book.primaryCategory, (genreMap.get(book.primaryCategory) || 0) + 1);
-            } else if (book.genres) {
+            }
+            if (book.genres) {
               book.genres.forEach(genre => {
                 genreMap.set(genre, (genreMap.get(genre) || 0) + 1);
               });
@@ -326,11 +374,13 @@ const Library = () => {
       });
     }
     
+    // Convert to array and filter out genres with 0 count
     return Array.from(genreMap.entries())
+      .filter(([name, count]) => count > 0) // Hide genres with 0 results
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 15);
-  }, [allBooksForGenres]);
+  }, [allBooksForGenres, filters.status, filters.genre]);
 
   // Calculate book counts
   const bookCounts = useMemo(() => {
