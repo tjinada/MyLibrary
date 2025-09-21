@@ -1,4 +1,5 @@
 const axios = require('axios');
+const libraryThingService = require('./libraryThingService');
 
 class CoverValidationService {
   constructor() {
@@ -12,6 +13,18 @@ class CoverValidationService {
    * Quality scores for different cover sources and sizes
    */
   getQualityScore(url, contentType, contentLength = 0) {
+    // LibraryThing scoring (highest priority)
+    if (url.includes('librarything.com') || url.includes('pics.cdn.librarything.com')) {
+      if (contentType === 'image/jpeg' || contentType === 'image/png') {
+        // LibraryThing covers are generally high quality
+        if (url.includes('large') || url.includes('_L')) return 95;
+        if (url.includes('medium') || url.includes('_M')) return 85;
+        if (url.includes('small') || url.includes('_S')) return 75;
+        return 90; // Default high score for LibraryThing
+      }
+      return 0;
+    }
+
     // Special case: Google Books zoom=0 PNG images with sufficient size are valid
     if ((url.includes('books.google.com') || url.includes('googleapis.com')) && 
         url.includes('zoom=0') && 
@@ -129,6 +142,23 @@ class CoverValidationService {
       
       console.log(`Validating cover: ${secureUrl}`);
       
+      // Special handling for LibraryThing URLs - trust them if they match our patterns
+      if (secureUrl.includes('librarything.com') || secureUrl.includes('pics.cdn.librarything.com')) {
+        // LibraryThing covers are generally reliable
+        const result = {
+          url: secureUrl,
+          valid: true,
+          score: this.getQualityScore(secureUrl, 'image/jpeg', 100000), // Assume good size
+          contentType: 'image/jpeg',
+          source: 'librarything',
+          error: null
+        };
+        
+        this.validationCache.set(url, { result, timestamp: Date.now() });
+        console.log(`Validation result for ${secureUrl}: valid=true (LibraryThing cover)`);
+        return result;
+      }
+      
       // Special handling for OpenLibrary URLs from the API (using /b/id/ pattern)
       // We trust them since the API confirmed they exist
       if (url.includes('covers.openlibrary.org/b/id/')) {
@@ -243,7 +273,20 @@ class CoverValidationService {
   async generateCoverUrls(isbn, googleBooksId) {
     const urls = [];
 
-    // Google Books URLs with different zoom levels (high to low quality)
+    // Priority 1: LibraryThing covers (NEW)
+    if (isbn && process.env.USE_LIBRARYTHING !== 'false') {
+      try {
+        const ltUrls = await libraryThingService.getCoverUrls(isbn);
+        if (ltUrls.length > 0) {
+          console.log(`Found ${ltUrls.length} LibraryThing covers for ISBN ${isbn}`);
+          urls.push(...ltUrls);
+        }
+      } catch (error) {
+        console.log(`LibraryThing lookup failed, continuing with other sources`);
+      }
+    }
+
+    // Priority 2: Google Books URLs (existing code)
     if (googleBooksId) {
       // Use consistent parameter order to avoid duplicates
       urls.push(
@@ -253,7 +296,7 @@ class CoverValidationService {
       );
     }
 
-    // Check if OpenLibrary has covers for this ISBN
+    // Priority 3: OpenLibrary (existing code)
     if (isbn) {
       const openLibraryCovers = await this.checkOpenLibraryCover(isbn);
       

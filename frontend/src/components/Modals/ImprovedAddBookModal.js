@@ -40,10 +40,12 @@ import {
   AutoAwesome as SpecialIcon,
   Star as StarIcon,
   StarBorder as StarBorderIcon,
+  ImageSearch as ImageSearchIcon,
 } from '@mui/icons-material';
 import BarcodeScanner from '../Scanner/BarcodeScanner';
 import bookService from '../../services/bookService';
 import { ALLOWED_GENRES } from '../../constants/bookConstants';
+import CoverSelectionDialog from '../Books/CoverSelectionDialog';
 
 const AddBookModal = ({ open, onClose, onBookAdded }) => {
   const [isbn, setIsbn] = useState('');
@@ -52,6 +54,10 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
+  
+  // Cover selection state
+  const [showCoverSelection, setShowCoverSelection] = useState(false);
+  const [selectedCover, setSelectedCover] = useState(null);
   
   // Custom fields state
   const [customGenres, setCustomGenres] = useState([]);
@@ -240,6 +246,17 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
     setError(null);
   };
 
+  // Handle cover selection
+  const handleCoverSelect = (cover) => {
+    setSelectedCover(cover);
+    setEditedBookData(prev => ({
+      ...prev,
+      coverImage: cover.url,
+      coverQualityScore: cover.score,
+      coverImageSource: cover.source
+    }));
+  };
+
   return (
     <Dialog 
       open={open} 
@@ -415,24 +432,60 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
               
               <Grid container spacing={2}>
                 {/* Book Cover */}
-                {bookData.coverImage && (
-                  <Grid item xs={12} sm={4}>
-                    <Card>
-                      <CardMedia
-                        component="img"
-                        image={bookData.coverImage}
-                        alt={bookData.title}
-                        sx={{ height: 'auto', maxHeight: 300 }}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
+                <Grid item xs={12} sm={4}>
+                  <Card sx={{ position: 'relative' }}>
+                    {(editedBookData?.coverImage || bookData.coverImage) ? (
+                      <>
+                        <CardMedia
+                          component="img"
+                          image={editedBookData?.coverImage || bookData.coverImage}
+                          alt={bookData.title}
+                          sx={{ height: 'auto', maxHeight: 300 }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                        {selectedCover && (
+                          <Chip
+                            size="small"
+                            label={selectedCover.sourceName}
+                            color="primary"
+                            sx={{
+                              position: 'absolute',
+                              top: 8,
+                              left: 8,
+                            }}
+                          />
+                        )}
+                      </>
+                    ) : (
+                      <Box
+                        sx={{
+                          height: 300,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          bgcolor: 'grey.100',
                         }}
-                      />
-                    </Card>
-                  </Grid>
-                )}
+                      >
+                        <Typography color="text.secondary">No cover</Typography>
+                      </Box>
+                    )}
+                  </Card>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    startIcon={<ImageSearchIcon />}
+                    onClick={() => setShowCoverSelection(true)}
+                    sx={{ mt: 1 }}
+                    size="small"
+                  >
+                    {selectedCover ? 'Change Cover' : 'Select Cover'}
+                  </Button>
+                </Grid>
                 
                 {/* Book Details */}
-                <Grid item xs={12} sm={bookData.coverImage ? 8 : 12}>
+                <Grid item xs={12} sm={8}>
                   <Typography variant="h5" gutterBottom>
                     {bookData.title}
                   </Typography>
@@ -639,6 +692,17 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
         )}
       </DialogContent>
     </Dialog>
+
+    {/* Cover Selection Dialog */}
+    <CoverSelectionDialog
+      open={showCoverSelection}
+      onClose={() => setShowCoverSelection(false)}
+      onSelect={handleCoverSelect}
+      isbn={bookData?.isbn}
+      googleBooksId={bookData?.googleBooksId}
+      currentCoverUrl={editedBookData?.coverImage || bookData?.coverImage}
+      bookTitle={bookData?.title}
+    />
   );
 };
 

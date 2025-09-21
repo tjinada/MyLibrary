@@ -87,7 +87,9 @@ class BookMetadataService {
       if (bestCover) {
         enhancedBook.coverImage = bestCover.url;
         // Determine source based on URL pattern
-        if (bestCover.url.includes('openlibrary.org')) {
+        if (bestCover.url.includes('librarything.com') || bestCover.url.includes('pics.cdn.librarything.com')) {
+          enhancedBook.coverImageSource = 'librarything';
+        } else if (bestCover.url.includes('openlibrary.org')) {
           enhancedBook.coverImageSource = 'openlibrary';
         } else if (bestCover.url.includes('google')) {
           enhancedBook.coverImageSource = 'google';

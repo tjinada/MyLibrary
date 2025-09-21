@@ -4,6 +4,8 @@ const Book = require('../models/Book');
 const auth = require('../middleware/auth');
 const bookMetadataService = require('../services/bookMetadataService');
 const coverValidationService = require('../services/coverValidationService');
+const coverAggregationService = require('../services/coverAggregationService');
+const libraryThingService = require('../services/libraryThingService');
 const { body, validationResult } = require('express-validator');
 
 // Get all books with filtering and pagination
@@ -344,6 +346,162 @@ router.post('/:isbn/validate-cover', auth, async (req, res) => {
   } catch (error) {
     console.error('Error validating book cover:', error);
     res.status(500).json({ message: 'Failed to validate book cover' });
+  }
+});
+
+// Get all available covers for a book
+router.post('/covers/fetch-all', async (req, res) => {
+  try {
+    const { isbn, googleBooksId, currentCoverUrl } = req.body;
+    
+    if (!isbn && !googleBooksId) {
+      return res.status(400).json({ 
+        message: 'Either ISBN or Google Books ID is required' 
+      });
+    }
+
+    console.log(`Fetching all covers for ISBN: ${isbn}, Google ID: ${googleBooksId}`);
+    
+    // Fetch all available covers
+    const result = await coverAggregationService.fetchAllAvailableCovers(
+      isbn,
+      googleBooksId,
+      currentCoverUrl
+    );
+
+    // Generate thumbnails for preview
+    if (result.covers.length > 0) {
+      result.covers = await coverAggregationService.generateThumbnails(result.covers);
+    }
+
+    res.json({
+      success: true,
+      ...result
+    });
+
+  } catch (error) {
+    console.error('Error fetching covers:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch covers',
+      error: error.message 
+    });
+  }
+});
+
+// Preview a specific cover in higher quality
+router.post('/covers/preview', async (req, res) => {
+  try {
+    const { url, asBase64 = false } = req.body;
+    
+    if (!url) {
+      return res.status(400).json({ message: 'Cover URL is required' });
+    }
+
+    if (asBase64) {
+      const base64Data = await libraryThingService.fetchCoverAsBase64(url);
+      if (base64Data) {
+        return res.json({ 
+          success: true,
+          data: base64Data.data,
+          contentType: base64Data.contentType,
+          size: base64Data.size
+        });
+      }
+    }
+
+    // Just validate and return the URL
+    const validation = await coverValidationService.validateCoverUrl(url);
+    res.json({
+      success: validation.valid,
+      url: validation.url,
+      contentType: validation.contentType,
+      score: validation.score
+    });
+
+  } catch (error) {
+    console.error('Error previewing cover:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to preview cover' 
+    });
+  }
+});
+
+// Download high-quality cover for a book
+router.get('/:isbn/cover/download', async (req, res) => {
+  try {
+    const { isbn } = req.params;
+    const { format = 'url' } = req.query; // 'url' or 'base64'
+    
+    // Find the book
+    const book = await Book.findOne({ isbn });
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+    
+    // If book already has a high-quality cover, return it
+    if (book.coverImage && book.coverQualityScore >= 90) {
+      if (format === 'base64') {
+        const base64Data = await libraryThingService.fetchCoverAsBase64(book.coverImage);
+        if (base64Data) {
+          return res.json({ 
+            success: true,
+            cover: base64Data.data,
+            source: book.coverImageSource,
+            score: book.coverQualityScore
+          });
+        }
+      } else {
+        return res.json({ 
+          success: true,
+          cover: book.coverImage,
+          source: book.coverImageSource,
+          score: book.coverQualityScore
+        });
+      }
+    }
+    
+    // Try to find a better cover
+    const bestCover = await coverValidationService.findBestCover(
+      isbn,
+      book.googleBooksId,
+      book.coverImage
+    );
+    
+    if (!bestCover) {
+      return res.status(404).json({ message: 'No cover found' });
+    }
+    
+    // Update book with new cover
+    book.coverImage = bestCover.url;
+    book.coverQualityScore = bestCover.score;
+    book.coverImageSource = bestCover.url.includes('librarything') ? 'librarything' : 
+                            bestCover.url.includes('openlibrary') ? 'openlibrary' : 'google';
+    await book.save();
+    
+    if (format === 'base64') {
+      const base64Data = await libraryThingService.fetchCoverAsBase64(bestCover.url);
+      if (base64Data) {
+        return res.json({ 
+          success: true,
+          cover: base64Data.data,
+          source: book.coverImageSource,
+          score: bestCover.score
+        });
+      }
+    }
+    
+    res.json({ 
+      success: true,
+      cover: bestCover.url,
+      source: book.coverImageSource,
+      score: bestCover.score
+    });
+    
+  } catch (error) {
+    console.error('Error downloading cover:', error);
+    res.status(500).json({ message: 'Failed to download cover' });
   }
 });
 
