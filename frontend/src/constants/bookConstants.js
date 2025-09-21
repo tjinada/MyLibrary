@@ -6,7 +6,8 @@
 export const ALLOWED_GENRES = [
   'Historical Fiction',
   'Fantasy',
-  'SciFi / Dystopian',
+  'Science Fiction',
+  'Dystopian',
   'Mystery / Thriller',
   'Contemporary Fiction',
   'Romance',

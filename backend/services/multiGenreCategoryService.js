@@ -8,7 +8,8 @@
 const ALLOWED_GENRES = [
   'Historical Fiction',
   'Fantasy',
-  'SciFi / Dystopian',
+  'Science Fiction',
+  'Dystopian',
   'Mystery / Thriller',
   'Contemporary Fiction',
   'Romance',
@@ -60,31 +61,52 @@ const GENRE_RULES = {
     excludeIfPresent: ['space', 'spaceship', 'science fiction', 'sci-fi']
   },
   
-  'SciFi / Dystopian': {
+  'Science Fiction': {
     requiresFiction: true,
     exactMatches: [
       'science fiction', 'sci-fi', 'sci fi', 'scifi',
-      'dystopian', 'dystopia', 'dystopian fiction',
-      'post-apocalyptic', 'apocalyptic fiction', 'cyberpunk',
-      'steampunk', 'space opera', 'hard science fiction',
+      'cyberpunk', 'steampunk', 'space opera', 'hard science fiction',
       'soft science fiction', 'military science fiction',
-      'science fiction & fantasy' // Common combo
+      'science fiction & fantasy', 'space', 'space exploration'
     ],
     strongKeywords: [
       'space station', 'spaceship', 'alien', 'robot', 'android', 'cyborg',
-      'artificial intelligence', 'time travel', 'parallel universe',
+      'artificial intelligence', 'ai', 'time travel', 'parallel universe',
       'multiverse', 'futuristic', 'mars colony', 'space colonization',
-      'dystopian society', 'totalitarian', 'surveillance state',
-      'post-apocalypse', 'apocalypse', 'pandemic fiction',
       'galaxy', 'interstellar', 'starship', 'space exploration',
-      'terraforming', 'cryosleep', 'wormhole', 'light speed'
+      'terraforming', 'cryosleep', 'wormhole', 'light speed',
+      'laser', 'plasma', 'quantum', 'nano technology', 'nanotechnology',
+      'virtual reality', 'simulation', 'matrix', 'hologram'
     ],
     weakKeywords: [
       'future', 'space', 'stars', 'planet', 'orbit',
       'technology', 'scientific', 'experiment', 'laboratory',
-      'mutation', 'genetic', 'virtual reality', 'simulation'
+      'mutation', 'genetic', 'spacecraft', 'astronaut'
     ],
-    excludeIfPresent: ['astronomy', 'astrophysics', 'space science'] // when clearly nonfiction
+    excludeIfPresent: ['astronomy', 'astrophysics', 'space science', 'nasa history']
+  },
+  
+  'Dystopian': {
+    requiresFiction: true,
+    exactMatches: [
+      'dystopian', 'dystopia', 'dystopian fiction',
+      'post-apocalyptic', 'apocalyptic fiction', 'post apocalyptic',
+      'apocalypse', 'dystopian ya', 'dystopian young adult'
+    ],
+    strongKeywords: [
+      'dystopian society', 'totalitarian', 'surveillance state',
+      'post-apocalypse', 'apocalypse', 'pandemic fiction',
+      'oppressive government', 'rebellion', 'uprising', 'revolution',
+      'survival', 'wasteland', 'collapse of civilization',
+      'authoritarian', 'dictatorship', 'thought police',
+      'book burning', 'censorship', 'propaganda', 'brainwashing',
+      'faction', 'divergent', 'hunger games', 'maze runner'
+    ],
+    weakKeywords: [
+      'future society', 'controlled', 'oppression', 'resistance',
+      'underground', 'rebels', 'survivors', 'outbreak'
+    ],
+    excludeIfPresent: ['history of', 'true story', 'actual events']
   },
   
   'Mystery / Thriller': {
@@ -258,7 +280,7 @@ const CATEGORY_TYPE_RULES = {
       'adventure', 'drama', 'saga', 'epic', 'thriller', 'mystery'
     ],
     genreIndicators: [
-      'Fantasy', 'SciFi / Dystopian', 'Mystery / Thriller', 
+      'Fantasy', 'Science Fiction', 'Dystopian', 'Mystery / Thriller', 
       'Romance', 'Historical Fiction', 'Contemporary Fiction'
     ]
   },
@@ -599,6 +621,13 @@ class MultiGenreCategoryService {
     // If we have YA and one other genre, that's fine
     if (selected.length === 2 && selected.some(g => g.genre === 'Young Adult')) {
       console.log('  Keeping both genres (Young Adult pairs well with other genres)');
+    }
+    
+    // Special case: Science Fiction and Dystopian often go together
+    const hasSciFi = selected.some(g => g.genre === 'Science Fiction');
+    const hasDystopian = selected.some(g => g.genre === 'Dystopian');
+    if (hasSciFi && hasDystopian) {
+      console.log('  Keeping both Science Fiction and Dystopian (common pairing)');
     }
     
     // Limit to maximum of 2 genres unless third is very strong
