@@ -11,8 +11,16 @@ class CoverValidationService {
   /**
    * Quality scores for different cover sources and sizes
    */
-  getQualityScore(url, contentType) {
-    // Only JPEG images get a score, PNG and others get 0
+  getQualityScore(url, contentType, contentLength = 0) {
+    // Special case: Google Books zoom=0 PNG images with sufficient size are valid
+    if ((url.includes('books.google.com') || url.includes('googleapis.com')) && 
+        url.includes('zoom=0') && 
+        contentType === 'image/png' && 
+        contentLength > 9103) {
+      return 100; // Highest quality for proper PNG covers
+    }
+    
+    // Otherwise, only JPEG images get a score
     if (contentType !== 'image/jpeg') {
       return 0;
     }
@@ -161,6 +169,13 @@ class CoverValidationService {
       const contentType = response.headers['content-type'];
       const contentLength = parseInt(response.headers['content-length'] || '0');
       
+      // Special handling for Google Books zoom=0 PNG images
+      const isGoogleZoom0 = (secureUrl.includes('books.google.com') || secureUrl.includes('googleapis.com')) && 
+                           secureUrl.includes('zoom=0');
+      const isValidPng = isGoogleZoom0 && 
+                        contentType && contentType.includes('image/png') && 
+                        contentLength > 9103; // PNG > 9103 bytes indicates a real cover, not placeholder
+      
       // Check if it's a valid JPEG
       const isValidJpeg = contentType && (
         contentType.includes('image/jpeg') || 
@@ -168,10 +183,11 @@ class CoverValidationService {
       );
       
       // Additional validation: reject very small images (likely placeholders)
-      const isValidSize = contentLength > 1000; // At least 1KB
+      const isValidSize = contentLength > 1000; // At least 1KB for JPEGs
       
-      const valid = isValidJpeg && isValidSize;
-      const score = valid ? this.getQualityScore(secureUrl, 'image/jpeg') : 0;
+      // Valid if it's either a good JPEG OR a Google zoom=0 PNG with proper size
+      const valid = (isValidJpeg && isValidSize) || isValidPng;
+      const score = valid ? this.getQualityScore(secureUrl, contentType, contentLength) : 0;
       
       const result = {
         url: secureUrl,
@@ -188,7 +204,11 @@ class CoverValidationService {
         timestamp: Date.now()
       });
 
-      console.log(`Validation result for ${secureUrl}: valid=${valid}, score=${score}, type=${contentType}`);
+      if (isValidPng) {
+        console.log(`Validation result for ${secureUrl}: valid=${valid}, score=${score}, type=${contentType}, size=${contentLength} (Google zoom=0 PNG accepted)`);
+      } else {
+        console.log(`Validation result for ${secureUrl}: valid=${valid}, score=${score}, type=${contentType}`);
+      }
       
       return result;
 
