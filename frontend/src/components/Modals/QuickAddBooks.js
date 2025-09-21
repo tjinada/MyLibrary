@@ -24,6 +24,7 @@ import {
   LinearProgress,
   Grid,
   MenuItem,
+  Autocomplete,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -39,6 +40,7 @@ import {
 } from '@mui/icons-material';
 import MobileBarcodeScanner from '../Scanner/MobileBarcodeScanner';
 import bookService from '../../services/bookService';
+import { ALLOWED_GENRES } from '../../constants/bookConstants';
 
 const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
   const [isbn, setIsbn] = useState('');
@@ -55,7 +57,6 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
   // Book editing fields
   const [customGenres, setCustomGenres] = useState([]);
   const [customTags, setCustomTags] = useState([]);
-  const [newGenre, setNewGenre] = useState('');
   const [newTag, setNewTag] = useState('');
   const [bookStatus, setBookStatus] = useState('to-read');
   const [bookEdition, setBookEdition] = useState('standard');
@@ -113,9 +114,11 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       // Add Fiction or Nonfiction to genres based on categoryType
       let genres = bookData.genres || [];
       const categoryGenre = bookData.categoryType === 'Nonfiction' ? 'Nonfiction' : 'Fiction';
-      if (!genres.includes(categoryGenre)) {
+      if (!genres.includes(categoryGenre) && ALLOWED_GENRES.includes(categoryGenre)) {
         genres = [categoryGenre, ...genres];
       }
+      // Filter to only allowed genres
+      genres = genres.filter(g => ALLOWED_GENRES.includes(g));
       
       setCustomGenres(genres);
       setCustomTags(bookData.tags || []);
@@ -133,17 +136,6 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleAddGenre = () => {
-    if (newGenre.trim() && !customGenres.includes(newGenre.trim())) {
-      setCustomGenres([...customGenres, newGenre.trim()]);
-      setNewGenre('');
-    }
-  };
-
-  const handleRemoveGenre = (genreToRemove) => {
-    setCustomGenres(customGenres.filter(g => g !== genreToRemove));
   };
 
   const handleAddTag = () => {
@@ -224,7 +216,6 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     setCurrentBook(null);
     setCustomGenres([]);
     setCustomTags([]);
-    setNewGenre('');
     setNewTag('');
     setBookStatus('to-read');
     setBookEdition('standard');
@@ -304,7 +295,6 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     setConfirmationMode(false);
     setCustomGenres([]);
     setCustomTags([]);
-    setNewGenre('');
     setNewTag('');
     setBookStatus('to-read');
     setBookEdition('standard');
@@ -619,46 +609,39 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                     </Grid>
                   </Box>
 
-                  {/* Genres */}
+                  {/* Genres - Using Autocomplete with allowed genres */}
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       Genres
                     </Typography>
                     
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-                      {customGenres.map((genre, index) => (
-                        <Chip
-                          key={index}
-                          label={genre}
-                          size="small"
-                          onDelete={() => handleRemoveGenre(genre)}
-                          color="primary"
+                    <Autocomplete
+                      multiple
+                      size="small"
+                      options={ALLOWED_GENRES}
+                      value={customGenres}
+                      onChange={(event, newValue) => {
+                        setCustomGenres(newValue);
+                      }}
+                      renderTags={(value, getTagProps) =>
+                        value.map((option, index) => (
+                          <Chip
+                            variant="outlined"
+                            label={option}
+                            size="small"
+                            color="primary"
+                            {...getTagProps({ index })}
+                          />
+                        ))
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
                           variant="outlined"
+                          placeholder="Select genres..."
                         />
-                      ))}
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <TextField
-                        size="small"
-                        placeholder="Add genre..."
-                        value={newGenre}
-                        onChange={(e) => setNewGenre(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddGenre();
-                          }
-                        }}
-                        sx={{ flex: 1, maxWidth: 300 }}
-                      />
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={handleAddGenre}
-                      >
-                        Add
-                      </Button>
-                    </Box>
+                      )}
+                    />
                   </Box>
 
                   {/* Tags */}
