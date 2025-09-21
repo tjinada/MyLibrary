@@ -22,6 +22,7 @@ import {
   ListItem,
   ListItemText,
   Checkbox,
+  alpha,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Layout/Header';
@@ -43,6 +44,7 @@ import collectionService from '../services/collectionService';
 import imagePreloader from '../utils/imagePreloader';
 import { useCollections } from '../contexts/CollectionContext';
 import useSelection from '../hooks/useSelection';
+import { spacing } from '../theme/theme';
 
 const Library = () => {
   const navigate = useNavigate();
@@ -602,9 +604,43 @@ const Library = () => {
         onToggleSelectionMode={handleToggleSelectionMode}
       />
       
+      {/* Sticky Search and Stats Section */}
+      <Box
+        sx={{
+          position: 'sticky',
+          top: 64 + spacing.filterBarHeight, // Below header (64px) + StickyToolbar height
+          zIndex: theme.zIndex.appBar - 2,
+          bgcolor: 'background.default',
+          borderBottom: `1px solid ${theme.palette.divider}`,
+          pb: 2,
+          pt: 2,
+          boxShadow: theme.shadows[2],
+          backdropFilter: 'blur(8px)',
+          backgroundColor: alpha(theme.palette.background.default, 0.95),
+        }}
+      >
+        <Container maxWidth="xl">
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            {/* Library Stats */}
+            <Box sx={{ '& .MuiPaper-root': { mb: 0 } }}>
+              <LibraryStats 
+                totalQuantity={libraryStats.totalBooks}
+                unreadCount={libraryStats.unreadBooks}
+              />
+            </Box>
+            
+            {/* Search Bar */}
+            <SearchBar 
+              onSearch={handleSearch} 
+              isSearching={isSearching}
+            />
+          </Box>
+        </Container>
+      </Box>
+
       <Container maxWidth="xl" sx={{ py: 3, pb: selectionMode ? 10 : 3 }}>
-        {/* Page Title and Search */}
-        <Box sx={{ mb: 4 }}>
+        {/* Page Title */}
+        <Box sx={{ mb: 3 }}>
           <Typography 
             variant="h3" 
             component="h1" 
@@ -612,7 +648,6 @@ const Library = () => {
             sx={{ 
               fontWeight: 700,
               textAlign: 'center',
-              mb: 3,
               background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
@@ -621,24 +656,6 @@ const Library = () => {
           >
             My Book Collection
           </Typography>
-          
-          {/* Library Stats */}
-        <LibraryStats 
-          totalQuantity={libraryStats.totalBooks}
-          unreadCount={libraryStats.unreadBooks}
-        />
-        
-        {/* Search Bar */}
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'center',
-            mb: 3,
-          }}>
-            <SearchBar 
-              onSearch={handleSearch} 
-              isSearching={isSearching}
-            />
-          </Box>
         </Box>
 
         {/* Active Filter Chips */}
