@@ -21,15 +21,35 @@ import {
   FormControl,
   InputLabel,
   Breadcrumbs,
-  Link
+  Link,
+  Tooltip,
+  Fade,
+  useTheme,
+  useMediaQuery,
+  ToggleButton,
+  ToggleButtonGroup,
+  Avatar,
+  Divider,
+  alpha
 } from '@mui/material';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
   ArrowBack as BackIcon,
-  DragIndicator as DragIcon,
-  CollectionsBookmark as CollectionIcon
+  GridView as GridIcon,
+  ViewList as ListIcon,
+  CollectionsBookmark as CollectionIcon,
+  AutoStories as SeriesIcon,
+  Category as ThemeIcon,
+  Style as CustomIcon,
+  CalendarToday as DateIcon,
+  Person as AuthorIcon,
+  MenuBook as BookIcon,
+  LibraryBooks as LibraryIcon,
+  Share as ShareIcon,
+  MoreVert as MoreIcon,
+  Description as DescriptionIcon
 } from '@mui/icons-material';
 import Header from '../components/Layout/Header';
 import BookGrid from '../components/Books/BookGrid';
@@ -45,6 +65,9 @@ import CollectionDebugDialog from '../components/Debug/CollectionDebugDialog';
 const CollectionDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const { isAuthenticated } = useAuth();
   const { updateCollection, deleteCollection, removeBookFromCollection, reorderBooks } = useCollections();
   
@@ -112,7 +135,6 @@ const CollectionDetails = () => {
     if (window.confirm('Remove this book from the collection?')) {
       try {
         await removeBookFromCollection(id, bookId);
-        // Update local state
         setCollection(prev => ({
           ...prev,
           books: prev.books.filter(b => b._id !== bookId),
@@ -134,38 +156,94 @@ const CollectionDetails = () => {
   const handleReorderBooks = async (newOrder) => {
     try {
       await reorderBooks(id, newOrder);
-      fetchCollection(); // Refresh to get updated order
+      fetchCollection();
     } catch (error) {
       console.error('Error reordering books:', error);
     }
   };
 
-  // Get books in proper order for series
-  // Ensure we're displaying ALL books in the collection
+  const handleViewModeChange = (event, newMode) => {
+    if (newMode !== null) {
+      setViewMode(newMode);
+    }
+  };
+
+  // Get the appropriate icon for collection type
+  const getCollectionIcon = (type) => {
+    switch(type) {
+      case 'series':
+        return <SeriesIcon sx={{ fontSize: 40 }} />;
+      case 'theme':
+        return <ThemeIcon sx={{ fontSize: 40 }} />;
+      default:
+        return <CustomIcon sx={{ fontSize: 40 }} />;
+    }
+  };
+
+  // Get collection type color
+  const getTypeColor = (type) => {
+    switch(type) {
+      case 'series':
+        return theme.palette.info.main;
+      case 'theme':
+        return theme.palette.success.main;
+      default:
+        return theme.palette.primary.main;
+    }
+  };
+
+  // Get collection type label with better naming
+  const getTypeLabel = (type) => {
+    switch(type) {
+      case 'series':
+        return 'Book Series';
+      case 'theme':
+        return 'Themed Collection';
+      default:
+        return 'Custom Collection';
+    }
+  };
+
   const displayBooks = useMemo(() => {
     if (!collection) return [];
-    
-    // For series with defined order, use bookOrder
     if (collection.collectionType === 'series' && collection.bookOrder?.length > 0) {
       return collection.bookOrder;
     }
-    
-    // Otherwise use all books in the collection
     return collection.books || [];
   }, [collection]);
-  
-  // Debug logging
-  useEffect(() => {
-    if (collection) {
-      console.log('Collection details:', {
-        id: collection._id,
-        name: collection.name,
-        bookCount: collection.bookCount,
-        actualBooksLength: collection.books?.length,
-        bookOrderLength: collection.bookOrder?.length,
-        displayBooksLength: displayBooks.length
-      });
-    }
+
+  // Calculate collection statistics
+  const collectionStats = useMemo(() => {
+    if (!collection || !displayBooks.length) return null;
+    
+    const uniqueAuthors = new Set();
+    const genres = new Set();
+    let totalPages = 0;
+    let readCount = 0;
+    
+    displayBooks.forEach(book => {
+      if (book.authors) {
+        book.authors.forEach(author => uniqueAuthors.add(author));
+      }
+      if (book.genres) {
+        book.genres.forEach(genre => genres.add(genre));
+      }
+      if (book.pageCount) {
+        totalPages += book.pageCount;
+      }
+      if (book.status === 'read') {
+        readCount++;
+      }
+    });
+    
+    return {
+      bookCount: displayBooks.length,
+      authorCount: uniqueAuthors.size,
+      genreCount: genres.size,
+      totalPages,
+      readCount,
+      readPercentage: Math.round((readCount / displayBooks.length) * 100)
+    };
   }, [collection, displayBooks]);
 
   if (loading) {
@@ -174,7 +252,7 @@ const CollectionDetails = () => {
         <Header />
         <MuiToolbar />
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
-          <CircularProgress size={60} />
+          <CircularProgress size={60} thickness={4} />
         </Box>
       </Box>
     );
@@ -187,7 +265,7 @@ const CollectionDetails = () => {
         <MuiToolbar />
         <Container maxWidth="xl" sx={{ py: 3 }}>
           <Alert severity="error">{error || 'Collection not found'}</Alert>
-          <Button sx={{ mt: 2 }} onClick={() => navigate('/collections')}>
+          <Button sx={{ mt: 2 }} onClick={() => navigate('/collections')} startIcon={<BackIcon />}>
             Back to Collections
           </Button>
         </Container>
@@ -201,162 +279,365 @@ const CollectionDetails = () => {
       <MuiToolbar />
       
       <Container maxWidth="xl" sx={{ py: 3 }}>
-        {/* Breadcrumbs */}
-        <Breadcrumbs sx={{ mb: 2 }}>
+        {/* Enhanced Breadcrumbs */}
+        <Breadcrumbs sx={{ mb: 3 }}>
           <Link 
             component="button"
             variant="body2"
             onClick={() => navigate('/')}
-            sx={{ cursor: 'pointer' }}
+            sx={{ 
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              '&:hover': { color: 'primary.main' }
+            }}
           >
+            <LibraryIcon fontSize="small" />
             Library
           </Link>
           <Link 
             component="button"
             variant="body2"
             onClick={() => navigate('/collections')}
-            sx={{ cursor: 'pointer' }}
+            sx={{ 
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              '&:hover': { color: 'primary.main' }
+            }}
           >
+            <CollectionIcon fontSize="small" />
             Collections
           </Link>
-          <Typography variant="body2" color="text.primary">
+          <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
             {collection.name}
           </Typography>
         </Breadcrumbs>
 
-        {/* Collection Header */}
-        <Paper elevation={1} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-            <CollectionIcon sx={{ fontSize: 48, color: 'primary.main', mt: 1 }} />
-            <Box sx={{ flexGrow: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
-                  {collection.name}
-                </Typography>
-                <Chip 
-                  label={collection.collectionType} 
-                  size="small" 
-                  color="primary"
-                  variant="outlined"
-                />
-                <Chip 
-                  label={`${collection.bookCount || 0} books`} 
-                  size="small"
-                />
-              </Box>
-              
-              {collection.description && (
-                <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-                  {collection.description}
-                </Typography>
-              )}
-
-              {isAuthenticated && (
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button
-                    size="small"
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={() => setAddBooksModalOpen(true)}
-                  >
-                    Add Books
-                  </Button>
-                  <Button
-                    size="small"
-                    startIcon={<EditIcon />}
-                    onClick={() => setEditDialogOpen(true)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    size="small"
-                    startIcon={<DeleteIcon />}
-                    color="error"
-                    onClick={handleDeleteCollection}
-                  >
-                    Delete
-                  </Button>
-                  {process.env.NODE_ENV === 'development' && (
-                    <Button
-                      size="small"
-                      onClick={() => setDebugDialogOpen(true)}
-                      color="warning"
-                    >
-                      Debug
-                    </Button>
-                  )}
-                </Box>
-              )}
-            </Box>
-          </Box>
-        </Paper>
-
-        {/* Books Display */}
-        {displayBooks && displayBooks.length > 0 ? (
-          <Box>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Books in Collection ({displayBooks.length} {displayBooks.length === 1 ? 'book' : 'books'})
-            </Typography>
-            {/* View Mode Toggle */}
-            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-              <Button
-                size="small"
-                variant={viewMode === 'grid' ? 'contained' : 'outlined'}
-                onClick={() => setViewMode('grid')}
-              >
-                Grid View
-              </Button>
-              <Button
-                size="small"
-                variant={viewMode === 'list' ? 'contained' : 'outlined'}
-                onClick={() => setViewMode('list')}
-              >
-                List View
-              </Button>
-            </Box>
-            {viewMode === 'grid' ? (
-              <BookGrid 
-                books={displayBooks} 
-                onBookClick={handleBookClick}
-                showRemoveButton={isAuthenticated}
-                onRemoveBook={handleRemoveBook}
-              />
-            ) : (
-              <BookList 
-                books={displayBooks} 
-                onBookClick={handleBookClick}
-                showRemoveButton={isAuthenticated}
-                onRemoveBook={handleRemoveBook}
-                draggable={collection.collectionType === 'series' && isAuthenticated}
-                onReorder={handleReorderBooks}
-              />
-            )}
-          </Box>
-        ) : (
+        {/* Enhanced Collection Header */}
+        <Fade in timeout={600}>
           <Paper 
-            elevation={0} 
+            elevation={0}
             sx={{ 
-              p: 6, 
-              textAlign: 'center',
-              borderRadius: 2,
-              bgcolor: 'background.paper',
+              mb: 4,
+              borderRadius: 3,
+              overflow: 'hidden',
+              background: `linear-gradient(135deg, ${alpha(getTypeColor(collection.collectionType), 0.08)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
+              border: `1px solid ${alpha(getTypeColor(collection.collectionType), 0.2)}`,
             }}
           >
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No books in this collection yet
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Add books from your library to this collection
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              sx={{ mt: 3 }}
-              onClick={() => navigate('/')}
-            >
-              Browse Library
-            </Button>
+            {/* Hero Section */}
+            <Box sx={{ 
+              p: { xs: 3, md: 4 },
+              background: `linear-gradient(135deg, ${alpha(getTypeColor(collection.collectionType), 0.15)} 0%, transparent 100%)`,
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 3 }}>
+                {/* Icon Container */}
+                <Box
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 2.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: `linear-gradient(135deg, ${getTypeColor(collection.collectionType)} 0%, ${alpha(getTypeColor(collection.collectionType), 0.8)} 100%)`,
+                    color: 'white',
+                    boxShadow: theme.shadows[4],
+                    flexShrink: 0,
+                    display: isMobile ? 'none' : 'flex',
+                  }}
+                >
+                  {getCollectionIcon(collection.collectionType)}
+                </Box>
+                
+                {/* Content */}
+                <Box sx={{ flexGrow: 1 }}>
+                  {/* Title and Badges */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+                    <Typography 
+                      variant={isMobile ? "h5" : "h4"} 
+                      component="h1" 
+                      sx={{ 
+                        fontWeight: 700,
+                        background: `linear-gradient(135deg, ${theme.palette.text.primary} 0%, ${alpha(theme.palette.text.primary, 0.8)} 100%)`,
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                      }}
+                    >
+                      {collection.name}
+                    </Typography>
+                    <Chip 
+                      label={getTypeLabel(collection.collectionType)}
+                      size="small"
+                      sx={{
+                        bgcolor: alpha(getTypeColor(collection.collectionType), 0.15),
+                        color: getTypeColor(collection.collectionType),
+                        borderColor: getTypeColor(collection.collectionType),
+                        fontWeight: 600,
+                      }}
+                      variant="outlined"
+                    />
+                  </Box>
+                  
+                  {/* Description */}
+                  {collection.description && (
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 3 }}>
+                      <DescriptionIcon sx={{ fontSize: 20, color: 'text.secondary', mt: 0.3 }} />
+                      <Typography variant="body1" color="text.secondary">
+                        {collection.description}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Statistics Cards */}
+                  {collectionStats && (
+                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
+                      <Paper
+                        elevation={0}
+                        sx={{
+                          px: 2,
+                          py: 1,
+                          borderRadius: 2,
+                          bgcolor: alpha(theme.palette.primary.main, 0.08),
+                          border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <BookIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {collectionStats.bookCount} {collectionStats.bookCount === 1 ? 'Book' : 'Books'}
+                          </Typography>
+                        </Box>
+                      </Paper>
+                      
+                      {collectionStats.authorCount > 0 && (
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            px: 2,
+                            py: 1,
+                            borderRadius: 2,
+                            bgcolor: alpha(theme.palette.info.main, 0.08),
+                            border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <AuthorIcon sx={{ fontSize: 18, color: 'info.main' }} />
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {collectionStats.authorCount} {collectionStats.authorCount === 1 ? 'Author' : 'Authors'}
+                            </Typography>
+                          </Box>
+                        </Paper>
+                      )}
+                      
+                      {collectionStats.readPercentage > 0 && (
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            px: 2,
+                            py: 1,
+                            borderRadius: 2,
+                            bgcolor: alpha(theme.palette.success.main, 0.08),
+                            border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                          }}
+                        >
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
+                            {collectionStats.readPercentage}% Read
+                          </Typography>
+                        </Paper>
+                      )}
+                    </Box>
+                  )}
+
+                  {/* Action Buttons */}
+                  {isAuthenticated && (
+                    <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                      <Button
+                        variant="contained"
+                        startIcon={<AddIcon />}
+                        onClick={() => setAddBooksModalOpen(true)}
+                        sx={{
+                          borderRadius: 2,
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                          boxShadow: theme.shadows[2],
+                          '&:hover': {
+                            boxShadow: theme.shadows[4],
+                          }
+                        }}
+                      >
+                        Add Books
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        startIcon={<EditIcon />}
+                        onClick={() => setEditDialogOpen(true)}
+                        sx={{
+                          borderRadius: 2,
+                          textTransform: 'none',
+                          fontWeight: 500,
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        startIcon={<DeleteIcon />}
+                        color="error"
+                        onClick={handleDeleteCollection}
+                        sx={{
+                          borderRadius: 2,
+                          textTransform: 'none',
+                          fontWeight: 500,
+                        }}
+                      >
+                        Delete
+                      </Button>
+                      {process.env.NODE_ENV === 'development' && (
+                        <Button
+                          size="small"
+                          onClick={() => setDebugDialogOpen(true)}
+                          color="warning"
+                          sx={{ ml: 'auto' }}
+                        >
+                          Debug
+                        </Button>
+                      )}
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+            </Box>
           </Paper>
+        </Fade>
+
+        {/* Books Section */}
+        {displayBooks && displayBooks.length > 0 ? (
+          <Fade in timeout={800}>
+            <Box>
+              {/* Section Header with View Toggle */}
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                mb: 3,
+              }}>
+                <Typography 
+                  variant="h5" 
+                  sx={{ 
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                  }}
+                >
+                  <BookIcon sx={{ color: 'primary.main' }} />
+                  Collection Books
+                </Typography>
+                
+                <ToggleButtonGroup
+                  value={viewMode}
+                  exclusive
+                  onChange={handleViewModeChange}
+                  size="small"
+                  sx={{
+                    bgcolor: 'background.paper',
+                    border: `1px solid ${theme.palette.divider}`,
+                    borderRadius: 2,
+                  }}
+                >
+                  <ToggleButton 
+                    value="grid" 
+                    aria-label="grid view"
+                    sx={{ px: 2 }}
+                  >
+                    <GridIcon sx={{ mr: 1 }} />
+                    Grid
+                  </ToggleButton>
+                  <ToggleButton 
+                    value="list" 
+                    aria-label="list view"
+                    sx={{ px: 2 }}
+                  >
+                    <ListIcon sx={{ mr: 1 }} />
+                    List
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+
+              {/* Books Display */}
+              <Paper 
+                elevation={0}
+                sx={{ 
+                  p: viewMode === 'grid' ? 2 : 0,
+                  borderRadius: 2,
+                  bgcolor: 'background.paper',
+                  border: `1px solid ${theme.palette.divider}`,
+                }}
+              >
+                {viewMode === 'grid' ? (
+                  <BookGrid 
+                    books={displayBooks} 
+                    onBookClick={handleBookClick}
+                    showRemoveButton={isAuthenticated}
+                    onRemoveBook={handleRemoveBook}
+                  />
+                ) : (
+                  <BookList 
+                    books={displayBooks} 
+                    onBookClick={handleBookClick}
+                    showRemoveButton={isAuthenticated}
+                    onRemoveBook={handleRemoveBook}
+                    draggable={collection.collectionType === 'series' && isAuthenticated}
+                    onReorder={handleReorderBooks}
+                  />
+                )}
+              </Paper>
+            </Box>
+          </Fade>
+        ) : (
+          <Fade in timeout={800}>
+            <Paper 
+              elevation={0} 
+              sx={{ 
+                p: 8, 
+                textAlign: 'center',
+                borderRadius: 3,
+                background: `linear-gradient(135deg, ${theme.palette.grey[50]} 0%, white 100%)`,
+                border: `1px solid ${theme.palette.divider}`,
+              }}
+            >
+              <Box sx={{ mb: 3 }}>
+                <BookIcon sx={{ fontSize: 80, color: 'text.disabled', opacity: 0.5 }} />
+              </Box>
+              <Typography variant="h5" color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
+                No books in this collection yet
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                Start building your collection by adding books from your library
+              </Typography>
+              <Button
+                variant="contained"
+                size="large"
+                startIcon={<AddIcon />}
+                sx={{ 
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  px: 4,
+                  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                }}
+                onClick={() => setAddBooksModalOpen(true)}
+              >
+                Add Books to Collection
+              </Button>
+            </Paper>
+          </Fade>
         )}
       </Container>
 
@@ -396,16 +677,16 @@ const CollectionDetails = () => {
                 onChange={(e) => setEditData({ ...editData, collectionType: e.target.value })}
                 label="Type"
               >
-                <MenuItem value="custom">Custom</MenuItem>
-                <MenuItem value="series">Series</MenuItem>
-                <MenuItem value="theme">Theme</MenuItem>
+                <MenuItem value="custom">Custom Collection</MenuItem>
+                <MenuItem value="series">Book Series</MenuItem>
+                <MenuItem value="theme">Themed Collection</MenuItem>
               </Select>
             </FormControl>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleEditCollection} variant="contained">Save</Button>
+          <Button onClick={handleEditCollection} variant="contained">Save Changes</Button>
         </DialogActions>
       </Dialog>
 
@@ -418,11 +699,9 @@ const CollectionDetails = () => {
         }}
         book={selectedBook}
         onBookUpdated={() => {
-          // Refresh collection to get updated book info
           fetchCollection();
         }}
         onBookDeleted={() => {
-          // Refresh collection if book was deleted
           fetchCollection();
           setDetailsModalOpen(false);
         }}
