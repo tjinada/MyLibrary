@@ -6,6 +6,8 @@
 
 // Define the allowed genres
 const ALLOWED_GENRES = [
+  'Fiction',
+  'Nonfiction',
   'Historical Fiction',
   'Fantasy',
   'Science Fiction',
@@ -22,6 +24,38 @@ const ALLOWED_GENRES = [
 
 // Define matching rules for each genre
 const GENRE_RULES = {
+  'Fiction': {
+    requiresFiction: true,
+    requiresNonfiction: false,
+    exactMatches: [
+      'fiction', 'general fiction', 'literary fiction'
+    ],
+    strongKeywords: [
+      'novel', 'novella', 'short stories'
+    ],
+    weakKeywords: [
+      'narrative', 'story', 'tale'
+    ],
+    excludeIfPresent: ['nonfiction', 'non-fiction', 'true story', 'factual'],
+    isGeneralCategory: true // Flag to indicate this is a broad category
+  },
+  
+  'Nonfiction': {
+    requiresFiction: false,
+    requiresNonfiction: true,
+    exactMatches: [
+      'nonfiction', 'non-fiction', 'non fiction'
+    ],
+    strongKeywords: [
+      'true story', 'factual', 'real events', 'documentary'
+    ],
+    weakKeywords: [
+      'guide', 'manual', 'reference'
+    ],
+    excludeIfPresent: ['fiction', 'novel', 'fantasy', 'imaginary'],
+    isGeneralCategory: true // Flag to indicate this is a broad category
+  },
+  
   'Historical Fiction': {
     requiresFiction: true,
     exactMatches: [

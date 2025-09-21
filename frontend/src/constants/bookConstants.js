@@ -4,6 +4,8 @@
  */
 
 export const ALLOWED_GENRES = [
+  'Fiction',
+  'Nonfiction',
   'Historical Fiction',
   'Fantasy',
   'Science Fiction',
