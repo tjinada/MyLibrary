@@ -125,9 +125,12 @@ async function validateAllCovers(force = false, batchSize = 10) {
     console.log(`No valid cover: ${noValidCover}`);
     console.log(`Failed: ${failed}`);
     
-    // Show cache stats
+    // Show detailed cache stats
     const cacheStats = coverValidationService.getCacheStats();
-    console.log(`\nCache size: ${cacheStats.size} entries`);
+    console.log(`\nCache Statistics:`);
+    console.log(`  Validation cache: ${cacheStats.validationCacheSize} entries`);
+    console.log(`  OpenLibrary API cache: ${cacheStats.openLibraryCacheSize} entries`);
+    console.log(`  Total cache size: ${cacheStats.totalCacheSize} entries`);
     
   } catch (error) {
     console.error('Fatal error:', error);

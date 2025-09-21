@@ -27,12 +27,17 @@ router.post('/lookup', auth, async (req, res) => {
     // Fetch enhanced book data from multiple sources
     let bookData;
     try {
-      // Try to get enhanced metadata (Google + Open Library + BISAC mapping)
+      // Try to get enhanced metadata (Google + Open Library + improved cover validation)
       bookData = await bookMetadataService.fetchEnhancedBookData(cleanISBN);
       
       // Mark as enhanced data source
       if (bookData) {
         bookData.dataSource = 'enhanced';
+        console.log(`Enhanced data fetched for ISBN ${cleanISBN}:`, {
+          hascover: !!bookData.coverImage,
+          source: bookData.coverImageSource,
+          score: bookData.coverQualityScore
+        });
       }
     } catch (enhancedError) {
       console.log('Enhanced metadata fetch failed, falling back to Google Books only:', enhancedError.message);

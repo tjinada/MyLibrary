@@ -302,9 +302,20 @@ router.post('/:isbn/validate-cover', auth, async (req, res) => {
       // Update the book with the best cover
       book.coverImage = bestCover.url;
       book.coverQualityScore = bestCover.score;
+      
+      // Determine and save cover source
+      let coverSource = 'unknown';
+      if (bestCover.url.includes('openlibrary.org')) {
+        coverSource = 'openlibrary';
+      } else if (bestCover.url.includes('google')) {
+        coverSource = 'google';
+      }
+      book.coverImageSource = coverSource;
       book.lastModified = Date.now();
       
       await book.save();
+      
+      console.log(`Cover updated for ${book.title}: ${coverSource} (score: ${bestCover.score})`);
       
       res.json({
         message: 'Cover validated and updated successfully',
@@ -312,7 +323,7 @@ router.post('/:isbn/validate-cover', auth, async (req, res) => {
           url: bestCover.url,
           score: bestCover.score,
           contentType: bestCover.contentType,
-          source: bestCover.url.includes('openlibrary') ? 'openlibrary' : 'google'
+          source: coverSource
         },
         book
       });
@@ -374,6 +385,15 @@ router.post('/validate-covers/batch', auth, async (req, res) => {
         if (bestCover) {
           book.coverImage = bestCover.url;
           book.coverQualityScore = bestCover.score;
+          
+          // Track cover source
+          let coverSource = 'unknown';
+          if (bestCover.url.includes('openlibrary.org')) {
+            coverSource = 'openlibrary';
+          } else if (bestCover.url.includes('google')) {
+            coverSource = 'google';
+          }
+          book.coverImageSource = coverSource;
           book.lastModified = Date.now();
           await book.save();
           
@@ -381,10 +401,12 @@ router.post('/validate-covers/batch', auth, async (req, res) => {
             isbn: book.isbn,
             title: book.title,
             coverUrl: bestCover.url,
+            source: coverSource,
             score: bestCover.score
           });
         } else {
           book.coverImage = null;
+          book.coverImageSource = 'none';
           book.coverQualityScore = 0;
           book.lastModified = Date.now();
           await book.save();

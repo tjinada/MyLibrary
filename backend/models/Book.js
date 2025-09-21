@@ -64,6 +64,11 @@ const BookSchema = new mongoose.Schema({
     default: 'en'
   },
   coverImage: String,
+  coverImageSource: {
+    type: String,
+    enum: ['google', 'openlibrary', 'other', 'none'],
+    default: 'none'
+  },
   coverQualityScore: {
     type: Number,
     default: 0

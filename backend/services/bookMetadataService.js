@@ -86,9 +86,16 @@ class BookMetadataService {
       
       if (bestCover) {
         enhancedBook.coverImage = bestCover.url;
-        enhancedBook.coverImageSource = bestCover.url.includes('openlibrary') ? 'openlibrary' : 'google';
+        // Determine source based on URL pattern
+        if (bestCover.url.includes('openlibrary.org')) {
+          enhancedBook.coverImageSource = 'openlibrary';
+        } else if (bestCover.url.includes('google')) {
+          enhancedBook.coverImageSource = 'google';
+        } else {
+          enhancedBook.coverImageSource = 'other';
+        }
         enhancedBook.coverQualityScore = bestCover.score;
-        console.log(`Selected best cover for ISBN ${cleanISBN}: ${bestCover.url} (score: ${bestCover.score})`);
+        console.log(`Selected best cover for ISBN ${cleanISBN}: ${bestCover.url} (source: ${enhancedBook.coverImageSource}, score: ${bestCover.score})`);
       } else {
         // No valid JPEG cover found
         enhancedBook.coverImage = null;
@@ -225,7 +232,7 @@ class BookMetadataService {
             // Try to get Open Library data
             const openLibData = await openLibraryService.searchByISBN(book.isbn);
             
-            // Validate and find best cover
+            // Validate and find best cover using the improved validation
             const bestCover = await coverValidationService.findBestCover(
               book.isbn,
               book.googleBooksId,
