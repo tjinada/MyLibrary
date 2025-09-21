@@ -8,9 +8,9 @@ try {
 
 class LibraryThingService {
   constructor() {
-    this.talpaUrl = process.env.LT_TALPA_URL || 'https://www.librarything.com/talpa';
+    this.talpaUrl = process.env.LT_TALPA_URL || 'https://www.librarything.com/api/talpa.php';
     this.apiKey = process.env.LT_API_KEY;
-    this.userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    this.userAgent = 'CoverFetcher/1.0 (+personal use)';
     this.workIdCache = new Map();
     this.coverCache = new Map();
     this.cacheTimeout = 1000 * 60 * 60 * 24; // 24 hours
@@ -179,29 +179,19 @@ class LibraryThingService {
     
     try {
       const $ = cheerio.load(html);
-    const urls = [];
-    const seenUrls = new Set();
-    
-    // Extract all cover URLs
-    $('img').each((_, el) => {
-      const src = $(el).attr('src');
-      const dataSrc = $(el).attr('data-src');
-      const srcset = $(el).attr('srcset');
+      const urls = [];
+      const seenUrls = new Set();
       
-      [src, dataSrc].forEach(url => {
-        if (url && this.isLibraryThingCoverUrl(url)) {
-          const normalized = this.normalizeUrl(url);
-          if (!seenUrls.has(normalized)) {
-            urls.push(normalized);
-            seenUrls.add(normalized);
-          }
-        }
-      });
+      // LibraryThing loads covers dynamically, but they're in the page
+      // Look for all image sources that match the LibraryThing CDN pattern
       
-      if (srcset) {
-        srcset.split(',').forEach(entry => {
-          const url = entry.trim().split(' ')[0];
-          if (url && this.isLibraryThingCoverUrl(url)) {
+      // Extract from img tags
+      $('img').each((_, el) => {
+        const src = $(el).attr('src');
+        const dataSrc = $(el).attr('data-src');
+        
+        [src, dataSrc].forEach(url => {
+          if (url && url.includes('pics.cdn.librarything.com/picsizes/')) {
             const normalized = this.normalizeUrl(url);
             if (!seenUrls.has(normalized)) {
               urls.push(normalized);
@@ -209,26 +199,32 @@ class LibraryThingService {
             }
           }
         });
-      }
-    });
-    
-    // Also check background-image styles
-    $('[style*="background-image"]').each((_, el) => {
-      const style = $(el).attr('style') || '';
-      const match = style.match(/url\(['"]?(.*?)['"]?\)/i);
-      if (match && match[1] && this.isLibraryThingCoverUrl(match[1])) {
-        const normalized = this.normalizeUrl(match[1]);
+      });
+      
+      // Also check for URLs in JavaScript or data attributes
+      // LibraryThing might store cover URLs in JavaScript arrays
+      const scriptContent = $('script').text();
+      const jsUrlPattern = /["'](https?:\/\/pics\.cdn\.librarything\.com\/picsizes\/[^"']+)["']/gi;
+      let match;
+      while ((match = jsUrlPattern.exec(scriptContent)) !== null) {
+        const url = match[1];
+        const normalized = this.normalizeUrl(url);
         if (!seenUrls.has(normalized)) {
           urls.push(normalized);
           seenUrls.add(normalized);
         }
       }
-    });
-    
-    console.log(`Found ${urls.length} unique LibraryThing cover URLs`);
-    
-    // Return unique URLs, prioritized by size indicators
-    return this.prioritizeCoverUrls(urls);
+      
+      console.log(`Found ${urls.length} unique LibraryThing cover URLs`);
+      
+      // If we found URLs, return them prioritized
+      if (urls.length > 0) {
+        return this.prioritizeCoverUrls(urls);
+      }
+      
+      // If no URLs found in HTML, return empty array
+      // The getCoverUrls method will handle the fallback
+      return [];
     } catch (error) {
       console.error('Error parsing HTML with cheerio:', error);
       return this.extractCoverUrlsRegex(html);
@@ -240,18 +236,19 @@ class LibraryThingService {
     const urls = [];
     const seenUrls = new Set();
     
-    // Regex patterns for finding image URLs
+    // Updated patterns for finding LibraryThing CDN image URLs
     const patterns = [
-      /src=["']([^"']*(?:pics\.cdn\.librarything\.com|picsizes|covers\.librarything\.com)[^"']*)["']/gi,
-      /data-src=["']([^"']*(?:pics\.cdn\.librarything\.com|picsizes|covers\.librarything\.com)[^"']*)["']/gi,
-      /url\(["']?([^"')]*(?:pics\.cdn\.librarything\.com|picsizes|covers\.librarything\.com)[^"')]*)["']?\)/gi
+      /src=["']([^"']*pics\.cdn\.librarything\.com\/picsizes\/[^"']+)["']/gi,
+      /data-src=["']([^"']*pics\.cdn\.librarything\.com\/picsizes\/[^"']+)["']/gi,
+      /["'](https?:\/\/pics\.cdn\.librarything\.com\/picsizes\/[\w\d\/\-_]+\.jpg)["']/gi,
+      /url\(["']?([^"')]*pics\.cdn\.librarything\.com\/picsizes\/[^"')]+)["']?\)/gi
     ];
     
     for (const pattern of patterns) {
       let match;
       while ((match = pattern.exec(html)) !== null) {
         const url = match[1];
-        if (url && this.isLibraryThingCoverUrl(url)) {
+        if (url) {
           const normalized = this.normalizeUrl(url);
           if (!seenUrls.has(normalized)) {
             urls.push(normalized);
@@ -296,20 +293,30 @@ class LibraryThingService {
   prioritizeCoverUrls(urls) {
     // Sort by quality indicators (larger sizes first)
     return urls.sort((a, b) => {
-      // Check for size indicators in the URL
+      // Extract height from LibraryThing URL patterns like h200, h400, etc.
+      const heightPattern = /h(\d+)/;
+      const aHeightMatch = a.match(heightPattern);
+      const bHeightMatch = b.match(heightPattern);
+      
+      if (aHeightMatch && bHeightMatch) {
+        const aHeight = parseInt(aHeightMatch[1]);
+        const bHeight = parseInt(bHeightMatch[1]);
+        return bHeight - aHeight; // Larger height first
+      }
+      
+      // Check for other size indicators in the URL
       const sizeIndicators = [
         { pattern: /large/i, score: 100 },
         { pattern: /_L\./i, score: 95 },
-        { pattern: /\b1000\b/, score: 90 },
-        { pattern: /\b800\b/, score: 85 },
-        { pattern: /\b600\b/, score: 80 },
-        { pattern: /medium/i, score: 70 },
-        { pattern: /_M\./i, score: 65 },
-        { pattern: /\b400\b/, score: 60 },
-        { pattern: /small/i, score: 50 },
-        { pattern: /_S\./i, score: 45 },
-        { pattern: /\b200\b/, score: 40 },
-        { pattern: /thumb/i, score: 30 }
+        { pattern: /h1000|h800|h600/i, score: 90 },
+        { pattern: /h400/i, score: 70 },
+        { pattern: /medium/i, score: 60 },
+        { pattern: /_M\./i, score: 55 },
+        { pattern: /h200/i, score: 50 },
+        { pattern: /small/i, score: 40 },
+        { pattern: /_S\./i, score: 35 },
+        { pattern: /h100/i, score: 30 },
+        { pattern: /thumb/i, score: 20 }
       ];
       
       let aScore = 50; // Default score
