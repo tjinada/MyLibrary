@@ -4,9 +4,17 @@ import BookCard from './BookCard';
 
 const BookGrid = ({ books, onBookClick, showRemoveButton, onRemoveBook }) => {
   return (
-    <Grid container spacing={3}>
+    <Grid container spacing={1.5}> {/* Reduced spacing from 3 to 1.5 */}
       {books.map((book) => (
-        <Grid item key={book._id || book.isbn} xs={6} sm={4} md={3} lg={2}>
+        <Grid 
+          item 
+          key={book._id || book.isbn} 
+          xs={4}   // 3 cards per row on mobile (was 2)
+          sm={3}   // 4 cards per row on small screens (was 3)
+          md={2.4} // 5 cards per row on medium screens (was 4)
+          lg={2}   // 6 cards per row on large screens (was 6)
+          xl={1.5} // 8 cards per row on extra large screens
+        >
           <MemoizedBookCard 
             book={book} 
             onClick={onBookClick}

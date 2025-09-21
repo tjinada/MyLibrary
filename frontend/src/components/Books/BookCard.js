@@ -112,13 +112,14 @@ const BookCard = ({
         overflow: 'hidden',
         bgcolor: 'background.paper',
         border: selectionMode && isSelected ? `2px solid ${theme.palette.primary.main}` : 'none',
+        borderRadius: 1, // Smaller border radius
         '&:hover': {
-          transform: selectionMode ? 'none' : 'translateY(-4px)',
-          boxShadow: selectionMode ? theme.shadows[4] : theme.shadows[8],
+          transform: selectionMode ? 'none' : 'translateY(-2px)', // Reduced hover lift
+          boxShadow: selectionMode ? theme.shadows[2] : theme.shadows[4], // Lighter shadows
         },
       }}
     >
-      {/* Book Cover Container with Fixed Aspect Ratio */}
+      {/* Book Cover Container with Fixed Aspect Ratio - SMALLER */}
       <Box 
         onClick={handleClick}
         sx={{ 
@@ -129,12 +130,12 @@ const BookCard = ({
           overflow: 'hidden',
         }}
       >
-        {/* Selection Checkbox or Status Chip - Top Left */}
+        {/* Selection Checkbox or Status Chip - Top Left - SMALLER */}
         <Box
           sx={{
             position: 'absolute',
-            top: 6,
-            left: 6,
+            top: 3,
+            left: 3,
             zIndex: 3,
           }}
         >
@@ -149,28 +150,28 @@ const BookCard = ({
               }}
               sx={{
                 bgcolor: 'rgba(255, 255, 255, 0.9)',
-                borderRadius: 1,
-                p: 0.25,
+                borderRadius: 0.5,
+                p: 0,
                 '&:hover': {
                   bgcolor: 'rgba(255, 255, 255, 1)',
                 },
                 '& .MuiSvgIcon-root': {
-                  fontSize: 18,
+                  fontSize: 14, // Smaller checkbox
                 },
               }}
             />
           ) : (
-            <BookStatusChip status={book.status || 'to-read'} size="small" />
+            isHovered && <BookStatusChip status={book.status || 'to-read'} size="small" />
           )}
         </Box>
 
-        {/* Edition Badge - Top Right */}
-        {book.edition && book.edition !== 'standard' && (
+        {/* Edition Badge - Top Right - SMALLER */}
+        {book.edition && book.edition !== 'standard' && isHovered && (
           <Box
             sx={{
               position: 'absolute',
-              top: 6,
-              right: 6,
+              top: 3,
+              right: 3,
               zIndex: 3,
             }}
           >
@@ -178,20 +179,20 @@ const BookCard = ({
           </Box>
         )}
 
-        {/* Quantity Display - Bottom Center of Cover (More Visible) */}
+        {/* Quantity Display - Bottom Center of Cover - SMALLER */}
         {book.quantity && book.quantity > 1 && (
           <Box
             sx={{
               position: 'absolute',
-              bottom: 8,
+              bottom: 4,
               left: '50%',
               transform: 'translateX(-50%)',
               zIndex: 3,
               bgcolor: 'rgba(255, 255, 255, 0.95)',
-              borderRadius: 2,
-              px: 1.5,
-              py: 0.5,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+              borderRadius: 1,
+              px: 0.75,
+              py: 0.25,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
             }}
           >
             <Typography 
@@ -199,7 +200,7 @@ const BookCard = ({
               sx={{ 
                 fontWeight: 'bold',
                 color: theme.palette.secondary.main,
-                fontSize: '0.75rem',
+                fontSize: '0.6rem', // Smaller text
               }}
             >
               {book.quantity} copies
@@ -256,7 +257,7 @@ const BookCard = ({
           />
         )}
         
-        {/* Fallback Book Cover Design */}
+        {/* Fallback Book Cover Design - SMALLER */}
         {(!hasValidCover || imageError) && (
           <Box
             sx={{
@@ -270,15 +271,15 @@ const BookCard = ({
               alignItems: 'center',
               justifyContent: 'center',
               background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-              p: 1.5,
+              p: 1,
             }}
           >
             <BookIcon 
               sx={{ 
-                fontSize: 36,
+                fontSize: 24, // Smaller icon
                 color: 'white',
                 opacity: 0.9,
-                mb: 0.5,
+                mb: 0.25,
               }} 
             />
             <Typography 
@@ -287,12 +288,13 @@ const BookCard = ({
                 color: 'white',
                 textAlign: 'center',
                 fontWeight: 600,
-                fontSize: '0.7rem',
+                fontSize: '0.6rem', // Smaller text
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 display: '-webkit-box',
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: 'vertical',
+                px: 0.5,
               }}
             >
               {book.title}
@@ -304,8 +306,9 @@ const BookCard = ({
                   color: 'white',
                   opacity: 0.8,
                   textAlign: 'center',
-                  fontSize: '0.6rem',
+                  fontSize: '0.5rem', // Smaller text
                   mt: 0.25,
+                  px: 0.5,
                 }}
               >
                 {book.authors[0]}
@@ -315,16 +318,16 @@ const BookCard = ({
         )}
       </Box>
 
-      {/* Book Info Section - Smaller Height */}
+      {/* Book Info Section - MUCH SMALLER */}
       <CardContent 
         sx={{ 
           flexGrow: 1, 
           display: 'flex', 
           flexDirection: 'column',
-          p: 1,
-          pb: '8px !important',
-          minHeight: 60,
-          maxHeight: 80,
+          p: 0.75, // Reduced padding
+          pb: '6px !important',
+          minHeight: 45, // Reduced height
+          maxHeight: 60, // Reduced max height
         }}
       >
         <Typography 
@@ -337,10 +340,10 @@ const BookCard = ({
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             fontWeight: 600,
-            lineHeight: 1.2,
-            fontSize: '0.75rem',
+            lineHeight: 1.15,
+            fontSize: '0.7rem', // Smaller font
             color: 'text.primary',
-            mb: 0.25,
+            mb: 0.15,
           }}
           title={book.title}
         >
@@ -355,8 +358,9 @@ const BookCard = ({
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
               color: 'text.secondary',
-              fontSize: '0.65rem',
+              fontSize: '0.6rem', // Smaller font
               mb: 'auto',
+              lineHeight: 1.1,
             }}
             title={book.authors?.join(', ')}
           >
@@ -364,17 +368,20 @@ const BookCard = ({
           </Typography>
         )}
 
-        {/* Rating at the bottom - Smaller */}
+        {/* Rating at the bottom - MUCH SMALLER */}
         {book.rating > 0 && (
-          <Box sx={{ mt: 0.25 }}>
+          <Box sx={{ mt: 0.15 }}>
             <Rating 
               value={book.rating} 
               readOnly 
               size="small"
               precision={0.5}
               sx={{ 
-                fontSize: '0.75rem',
+                fontSize: '0.65rem', // Smaller stars
                 color: theme.palette.warning.main,
+                '& .MuiRating-icon': {
+                  fontSize: '0.65rem',
+                }
               }}
             />
           </Box>
