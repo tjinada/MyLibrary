@@ -25,6 +25,7 @@ import {
   Grid,
   MenuItem,
   Autocomplete,
+  Rating,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -37,6 +38,8 @@ import {
   Save as SaveIcon,
   AutoAwesome as SpecialIcon,
   Diamond as DiamondIcon,
+  Star as StarIcon,
+  StarBorder as StarBorderIcon,
 } from '@mui/icons-material';
 import MobileBarcodeScanner from '../Scanner/MobileBarcodeScanner';
 import bookService from '../../services/bookService';
@@ -60,6 +63,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
   const [newTag, setNewTag] = useState('');
   const [bookStatus, setBookStatus] = useState('to-read');
   const [bookEdition, setBookEdition] = useState('standard');
+  const [bookRating, setBookRating] = useState(null);
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -124,6 +128,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       setCustomTags(bookData.tags || []);
       setBookStatus('to-read');
       setBookEdition('standard'); // Reset edition to standard
+      setBookRating(null); // Reset rating for new book
       setConfirmationMode(true);
       
       // Clear ISBN for next entry
@@ -163,6 +168,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
         tags: customTags,
         status: bookStatus,
         edition: bookEdition,
+        rating: bookRating, // Include rating if set
       };
       
       const response = await bookService.addBook(bookToAdd);
@@ -219,6 +225,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     setNewTag('');
     setBookStatus('to-read');
     setBookEdition('standard');
+    setBookRating(null);
     
     // Refocus ISBN input
     if (!isMobile && isbnInputRef.current) {
@@ -243,6 +250,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
         tags: customTags,
         status: bookStatus,
         edition: bookEdition,
+        rating: bookRating, // Include rating if set
         allowDuplicate: true,
       };
       
@@ -298,6 +306,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     setNewTag('');
     setBookStatus('to-read');
     setBookEdition('standard');
+    setBookRating(null);
     setDuplicateBook(null);
     setShowDuplicateDialog(false);
     if (successTimeoutRef.current) {
@@ -555,6 +564,49 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                         </Grid>
                       )}
                     </Grid>
+                  </Box>
+
+                  {/* Rating - NEW */}
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Rating
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Rating
+                        value={bookRating}
+                        onChange={(event, newValue) => {
+                          setBookRating(newValue);
+                        }}
+                        size="large"
+                        icon={<StarIcon fontSize="inherit" />}
+                        emptyIcon={<StarBorderIcon fontSize="inherit" />}
+                        sx={{
+                          '& .MuiRating-iconFilled': {
+                            color: theme.palette.warning.main,
+                          },
+                          '& .MuiRating-iconHover': {
+                            color: theme.palette.warning.dark,
+                          },
+                        }}
+                      />
+                      {bookRating && (
+                        <Typography variant="body2" color="text.secondary">
+                          {bookRating} star{bookRating !== 1 ? 's' : ''}
+                        </Typography>
+                      )}
+                      {bookRating && (
+                        <Button
+                          size="small"
+                          onClick={() => setBookRating(null)}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                      Optional - Rate this book if you've read it
+                    </Typography>
                   </Box>
 
                   {/* Status and Edition - Same Row */}
