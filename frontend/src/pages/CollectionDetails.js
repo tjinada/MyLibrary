@@ -20,8 +20,6 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Breadcrumbs,
-  Link,
   Tooltip,
   Fade,
   useTheme,
@@ -36,7 +34,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
-  ArrowBack as BackIcon,
+  ArrowBack,
   GridView as GridIcon,
   ViewList as ListIcon,
   CollectionsBookmark as CollectionIcon,
@@ -279,42 +277,26 @@ const CollectionDetails = () => {
       <MuiToolbar />
       
       <Container maxWidth="xl" sx={{ py: 3 }}>
-        {/* Enhanced Breadcrumbs */}
-        <Breadcrumbs sx={{ mb: 3 }}>
-          <Link 
-            component="button"
-            variant="body2"
+        {/* Back to Library Button */}
+        <Box sx={{ mb: 3 }}>
+          <Button
+            startIcon={<ArrowBack />}
             onClick={() => navigate('/')}
-            sx={{ 
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5,
-              '&:hover': { color: 'primary.main' }
+            sx={{
+              textTransform: 'none',
+              color: 'text.primary',
+              fontWeight: 500,
+              '&:hover': {
+                bgcolor: 'action.hover',
+                color: 'primary.main',
+              },
+              padding: '6px 12px',
+              borderRadius: 2,
             }}
           >
-            <LibraryIcon fontSize="small" />
-            Library
-          </Link>
-          <Link 
-            component="button"
-            variant="body2"
-            onClick={() => navigate('/collections')}
-            sx={{ 
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5,
-              '&:hover': { color: 'primary.main' }
-            }}
-          >
-            <CollectionIcon fontSize="small" />
-            Collections
-          </Link>
-          <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
-            {collection.name}
-          </Typography>
-        </Breadcrumbs>
+            Back to Library
+          </Button>
+        </Box>
 
         {/* Enhanced Collection Header */}
         <Fade in timeout={600}>
