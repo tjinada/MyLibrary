@@ -351,29 +351,6 @@ const Library = () => {
       });
     });
     
-    // Also add books from collections if no genre filter is active
-    if (filters.genre === 'all' && allBooksForGenres.collections) {
-      allBooksForGenres.collections.forEach(collection => {
-        collection.books?.forEach(book => {
-          if (book && typeof book === 'object') {
-            // Apply status filter to collection books too
-            if (filters.status !== 'all' && book.status !== filters.status) {
-              return;
-            }
-            
-            if (book.primaryCategory) {
-              genreMap.set(book.primaryCategory, (genreMap.get(book.primaryCategory) || 0) + 1);
-            }
-            if (book.genres) {
-              book.genres.forEach(genre => {
-                genreMap.set(genre, (genreMap.get(genre) || 0) + 1);
-              });
-            }
-          }
-        });
-      });
-    }
-    
     // Convert to array and filter out genres with 0 count
     return Array.from(genreMap.entries())
       .filter(([name, count]) => count > 0) // Hide genres with 0 results
