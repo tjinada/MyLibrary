@@ -263,7 +263,7 @@ const CollectionDetails = () => {
         <MuiToolbar />
         <Container maxWidth="xl" sx={{ py: 3 }}>
           <Alert severity="error">{error || 'Collection not found'}</Alert>
-          <Button sx={{ mt: 2 }} onClick={() => navigate('/collections')} startIcon={<BackIcon />}>
+          <Button sx={{ mt: 2 }} onClick={() => navigate('/collections')} startIcon={<ArrowBack />}>
             Back to Collections
           </Button>
         </Container>
