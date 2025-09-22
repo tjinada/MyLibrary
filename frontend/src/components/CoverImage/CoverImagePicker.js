@@ -37,6 +37,7 @@ import {
 } from '@mui/icons-material';
 import CoverImageUpload from './CoverImageUpload';
 import CoverSearchDialog from './CoverSearchDialog';
+import EnhancedCoverSearch from './EnhancedCoverSearch';
 import bookService from '../../services/bookService';
 
 const CoverImagePicker = ({ 
@@ -450,9 +451,8 @@ const CoverImagePicker = ({
             
             {tabValue === 2 && (
               <Box>
-                {/* Direct search UI without extra dialog */}
-                <CoverSearchDialog
-                  open={false}  // Use inline mode
+                {/* Enhanced search with auto-detection and multiple sources */}
+                <EnhancedCoverSearch
                   book={book}
                   onSelectCover={handleSearchSelect}
                   mode="inline"
