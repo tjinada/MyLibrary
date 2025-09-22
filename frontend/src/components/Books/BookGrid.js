@@ -10,8 +10,8 @@ const BookGrid = ({ books, onBookClick, onQuickEdit, onAddToCollection, showRemo
           <MemoizedBookCard 
             book={book} 
             onClick={onBookClick}
-            onQuickEdit={onQuickEdit}
-            onAddToCollection={onAddToCollection}
+            onQuickEdit={() => onQuickEdit && onQuickEdit(book)}
+            onAddToCollection={() => onAddToCollection && onAddToCollection(book)}
             showRemoveButton={showRemoveButton}
             onRemove={onRemoveBook ? () => onRemoveBook(book._id) : undefined}
           />

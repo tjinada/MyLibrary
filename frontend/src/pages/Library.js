@@ -146,6 +146,11 @@ const Library = () => {
             book.genres.forEach(genre => bookGenres.add(genre));
           }
           
+          // If book has no genres at all, categorize as "Uncategorized"
+          if (bookGenres.size === 0) {
+            bookGenres.add('Uncategorized');
+          }
+          
           // AND condition: book must have ALL selected genres
           return genreFilters.every(filterGenre => bookGenres.has(filterGenre));
         });
@@ -331,6 +336,11 @@ const Library = () => {
       if (book.primaryCategory) bookGenres.add(book.primaryCategory);
       if (book.genres && Array.isArray(book.genres)) {
         book.genres.forEach(genre => bookGenres.add(genre));
+      }
+      
+      // If book has no genres at all, categorize as "Uncategorized"
+      if (bookGenres.size === 0) {
+        bookGenres.add('Uncategorized');
       }
       
       // If genre filters are active, only count books that match ALL selected genres

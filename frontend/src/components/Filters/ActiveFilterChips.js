@@ -29,6 +29,17 @@ const ActiveFilterChips = ({ filters, onRemoveFilter, onClearAll }) => {
     });
   }
 
+  if (filters.edition && filters.edition !== 'all') {
+    const editionLabel = filters.edition === 'signed' ? 'Signed Edition' : 
+                         filters.edition === 'deluxe' ? 'Deluxe Edition' : 
+                         filters.edition;
+    activeFilters.push({
+      key: 'edition',
+      label: `Edition: ${editionLabel}`,
+      value: filters.edition,
+    });
+  }
+
   if (activeFilters.length === 0) return null;
 
   return (
