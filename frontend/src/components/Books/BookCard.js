@@ -32,21 +32,22 @@ const BookCard = ({
   const theme = useTheme();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [imageSrc, setImageSrc] = useState(book.coverImage);
+  const [imageSrc, setImageSrc] = useState(book.coverThumbnail || book.coverImage);
   const [isHovered, setIsHovered] = useState(false);
   const imageRef = React.useRef(null);
 
   // Update image source when book prop changes
   React.useEffect(() => {
     let timeoutId;
+    const newSrc = book.coverThumbnail || book.coverImage;
     
-    if (book.coverImage !== imageSrc) {
-      setImageSrc(book.coverImage);
+    if (newSrc !== imageSrc) {
+      setImageSrc(newSrc);
       setImageError(false);
       
-      if (book.coverImage) {
+      if (newSrc) {
         const img = new Image();
-        img.src = book.coverImage;
+        img.src = newSrc;
         
         if (img.complete && img.naturalWidth > 0) {
           setImageLoaded(true);
@@ -96,7 +97,7 @@ const BookCard = ({
     setImageLoaded(true);
   };
 
-  const hasValidCover = book.coverImage && book.coverQualityScore > 0;
+  const hasValidCover = book.coverImage || book.customCoverImage || book.coverThumbnail;
 
   return (
     <Card 

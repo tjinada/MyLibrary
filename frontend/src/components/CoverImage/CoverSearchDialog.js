@@ -61,35 +61,40 @@ const CoverSearchDialog = ({
     setHasSearched(true);
     
     try {
-      // If book doesn't exist in DB, use alternative search
-      if (!book?._id) {
-        // Use the fallback search service directly
-        const searchService = require('../../services/bookService').default;
-        // Search using Google Books API or other sources
-        const results = await searchService.searchGoogleBooks(searchQuery);
-        
-        // Convert results to our format
-        const suggestions = results.items?.map(item => ({
-          url: item.volumeInfo?.imageLinks?.thumbnail?.replace('http://', 'https://'),
-          thumbnail: item.volumeInfo?.imageLinks?.thumbnail?.replace('http://', 'https://'),
-          title: item.volumeInfo?.title,
-          source: 'Google Books',
-          valid: true
-        })).filter(s => s.url) || [];
-        
-        setSearchResults(suggestions);
-        
-        if (suggestions.length === 0) {
-          setError('No covers found. Try different search terms.');
-        }
-      } else {
-        // Book exists, use normal search
-        const response = await bookService.searchCovers(book.isbn, searchQuery);
-        setSearchResults(response.suggestions || []);
-        
-        if (response.suggestions.length === 0) {
-          setError('No covers found. Try different search terms.');
-        }
+      // Always use Google Books search for covers
+      const results = await bookService.searchGoogleBooks(searchQuery);
+      
+      // Extract cover images from book results
+      const suggestions = [];
+      
+      if (results.items) {
+        results.items.forEach(item => {
+          const imageLinks = item.volumeInfo?.imageLinks;
+          if (imageLinks) {
+            // Try to get the highest quality image available
+            const imageUrl = imageLinks.extraLarge || 
+                           imageLinks.large || 
+                           imageLinks.medium || 
+                           imageLinks.thumbnail || 
+                           imageLinks.smallThumbnail;
+            
+            if (imageUrl) {
+              suggestions.push({
+                url: imageUrl.replace('http://', 'https://'),
+                thumbnail: (imageLinks.thumbnail || imageLinks.smallThumbnail || imageUrl).replace('http://', 'https://'),
+                title: item.volumeInfo?.title,
+                source: 'Google Books',
+                valid: true
+              });
+            }
+          }
+        });
+      }
+      
+      setSearchResults(suggestions);
+      
+      if (suggestions.length === 0) {
+        setError('No covers found. Try different search terms.');
       }
     } catch (err) {
       console.error('Error searching covers:', err);

@@ -338,6 +338,7 @@ router.post('/:isbn/cover/upload', async (req, res) => {
       book.coverThumbnail = thumbnail;
       book.coverImage = processedImage; // Set as active cover
       book.coverImageSource = 'user';
+      book.coverQualityScore = 100; // Set high quality score for user uploads
       book.lastModified = Date.now();
       
       await book.save();
@@ -419,6 +420,7 @@ router.post('/:isbn/cover/select', async (req, res) => {
     // Update active cover
     book.coverImage = coverUrl;
     book.coverImageSource = source || 'other';
+    book.coverQualityScore = source === 'user' ? 100 : 50; // Set quality score
     book.lastModified = Date.now();
     
     await book.save();
