@@ -47,7 +47,8 @@ import {
   LibraryBooks as LibraryIcon,
   Share as ShareIcon,
   MoreVert as MoreIcon,
-  Description as DescriptionIcon
+  Description as DescriptionIcon,
+  Image as ImageIcon
 } from '@mui/icons-material';
 import Header from '../components/Layout/Header';
 import BookGrid from '../components/Books/BookGrid';
@@ -55,6 +56,7 @@ import BookList from '../components/Books/BookList';
 import BookDetailsModal from '../components/Modals/BookDetailsModal';
 import ManageCollectionsModal from '../components/Collections/ManageCollectionsModal';
 import AddBooksToCollectionModal from '../components/Collections/AddBooksToCollectionModal';
+import CollectionImagePicker from '../components/Collections/CollectionImagePicker';
 import { useCollections } from '../contexts/CollectionContext';
 import { useAuth } from '../contexts/AuthContext';
 import collectionService from '../services/collectionService';
@@ -79,6 +81,7 @@ const CollectionDetails = () => {
   const [selectedBook, setSelectedBook] = useState(null);
   const [manageCollectionsOpen, setManageCollectionsOpen] = useState(false);
   const [addBooksModalOpen, setAddBooksModalOpen] = useState(false);
+  const [imagePickerOpen, setImagePickerOpen] = useState(false);
   const [editData, setEditData] = useState({
     name: '',
     description: '',
@@ -412,6 +415,19 @@ const CollectionDetails = () => {
                         </Button>
                         <Button
                           variant="outlined"
+                          startIcon={<ImageIcon />}
+                          onClick={() => setImagePickerOpen(true)}
+                          size={isMobile ? "small" : "medium"}
+                          sx={{
+                            borderRadius: 2,
+                            textTransform: 'none',
+                            fontWeight: 500,
+                          }}
+                        >
+                          Change Image
+                        </Button>
+                        <Button
+                          variant="outlined"
                           startIcon={<DeleteIcon />}
                           color="error"
                           onClick={handleDeleteCollection}
@@ -731,6 +747,20 @@ const CollectionDetails = () => {
           onBooksAdded={() => {
             fetchCollection();
             setAddBooksModalOpen(false);
+          }}
+        />
+      )}
+
+      {/* Collection Image Picker */}
+      {collection && (
+        <CollectionImagePicker
+          open={imagePickerOpen}
+          onClose={() => setImagePickerOpen(false)}
+          collection={collection}
+          currentImage={collection.coverImage}
+          onImageSelected={(imageUrl, bookId) => {
+            fetchCollection();
+            setImagePickerOpen(false);
           }}
         />
       )}
