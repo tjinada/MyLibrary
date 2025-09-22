@@ -32,14 +32,25 @@ const BookCard = ({
   const theme = useTheme();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [imageSrc, setImageSrc] = useState(book.coverThumbnail || book.coverImage);
+  const [imageSrc, setImageSrc] = useState(null);
   const [isHovered, setIsHovered] = useState(false);
   const imageRef = React.useRef(null);
 
-  // Update image source when book prop changes
+  // Initialize and update image source
   React.useEffect(() => {
     let timeoutId;
-    let newSrc = book.coverThumbnail || book.coverImage;
+    let newSrc = book.coverThumbnail || book.coverImage || book.customCoverImage;
+    
+    // Temporary debug log
+    if (book.title.includes('Beauty')) {  // Only log for specific book to reduce noise
+      console.log('BookCard received book:', {
+        title: book.title,
+        coverImage: book.coverImage?.substring(0, 100),
+        customCoverImage: book.customCoverImage?.substring(0, 100),
+        coverThumbnail: book.coverThumbnail?.substring(0, 100),
+        newSrc: newSrc?.substring(0, 100)
+      });
+    }
     
     // Add cache busting parameter based on lastModified timestamp
     if (newSrc && book.lastModified) {
@@ -48,33 +59,31 @@ const BookCard = ({
       newSrc = `${newSrc}${separator}t=${timestamp}`;
     }
     
-    if (newSrc !== imageSrc) {
-      setImageSrc(newSrc);
-      setImageError(false);
+    setImageSrc(newSrc);
+    setImageError(false);
+    
+    if (newSrc) {
+      const img = new Image();
+      img.src = newSrc;
       
-      if (newSrc) {
-        const img = new Image();
-        img.src = newSrc;
-        
-        if (img.complete && img.naturalWidth > 0) {
-          setImageLoaded(true);
-        } else {
-          setImageLoaded(false);
-          timeoutId = setTimeout(() => {
-            if (imageRef.current && imageRef.current.complete) {
-              setImageLoaded(true);
-            }
-          }, 500);
-        }
+      if (img.complete && img.naturalWidth > 0) {
+        setImageLoaded(true);
       } else {
         setImageLoaded(false);
+        timeoutId = setTimeout(() => {
+          if (imageRef.current && imageRef.current.complete) {
+            setImageLoaded(true);
+          }
+        }, 500);
       }
+    } else {
+      setImageLoaded(false);
     }
     
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [book.coverImage, book.isbn, imageSrc]);
+  }, [book.coverImage, book.coverThumbnail, book.customCoverImage, book.isbn, book.lastModified]);
 
   const handleClick = () => {
     if (selectionMode && onToggleSelection) {
@@ -90,11 +99,9 @@ const BookCard = ({
   };
 
   const handleImageError = (e) => {
-    console.log(`Failed to load cover for "${book.title}": ${book.coverImage}`);
-    
+    // Try HTTPS if HTTP fails
     if (imageSrc && imageSrc.startsWith('http://')) {
       const httpsSrc = imageSrc.replace('http://', 'https://');
-      console.log(`Retrying with HTTPS: ${httpsSrc}`);
       setImageSrc(httpsSrc);
       setImageError(false);
       return;
@@ -103,8 +110,6 @@ const BookCard = ({
     setImageError(true);
     setImageLoaded(true);
   };
-
-  const hasValidCover = book.coverImage || book.customCoverImage || book.coverThumbnail;
 
   return (
     <Card 
@@ -228,7 +233,7 @@ const BookCard = ({
         )}
 
         {/* Loading skeleton */}
-        {!imageLoaded && hasValidCover && (
+        {imageSrc && !imageLoaded && !imageError && (
           <Skeleton 
             variant="rectangular" 
             animation="wave"
@@ -243,7 +248,7 @@ const BookCard = ({
         )}
         
         {/* Cover Image */}
-        {hasValidCover && !imageError && imageSrc && (
+        {imageSrc && !imageError && (
           <img
             ref={imageRef}
             key={`${book.isbn}-${imageSrc}`}
@@ -265,7 +270,7 @@ const BookCard = ({
         )}
         
         {/* Fallback Book Cover Design */}
-        {(!hasValidCover || imageError) && (
+        {(!imageSrc || imageError) && (
           <Box
             sx={{
               position: 'absolute',
