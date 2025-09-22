@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { Grid } from '@mui/material';
 import BookCard from './BookCard';
 
-const BookGrid = ({ books, onBookClick, showRemoveButton, onRemoveBook }) => {
+const BookGrid = ({ books, onBookClick, onQuickEdit, onAddToCollection, showRemoveButton, onRemoveBook }) => {
   return (
     <Grid container spacing={3}>
       {books.map((book) => (
@@ -10,6 +10,8 @@ const BookGrid = ({ books, onBookClick, showRemoveButton, onRemoveBook }) => {
           <MemoizedBookCard 
             book={book} 
             onClick={onBookClick}
+            onQuickEdit={onQuickEdit}
+            onAddToCollection={onAddToCollection}
             showRemoveButton={showRemoveButton}
             onRemove={onRemoveBook ? () => onRemoveBook(book._id) : undefined}
           />
@@ -21,7 +23,7 @@ const BookGrid = ({ books, onBookClick, showRemoveButton, onRemoveBook }) => {
 
 // Memoize BookCard to prevent unnecessary re-renders
 const MemoizedBookCard = memo(BookCard, (prevProps, nextProps) => {
-  // Only re-render if the book data or click handler changes
+  // Only re-render if the book data or handlers change
   return (
     prevProps.book._id === nextProps.book._id &&
     prevProps.book.coverImage === nextProps.book.coverImage &&
@@ -29,6 +31,8 @@ const MemoizedBookCard = memo(BookCard, (prevProps, nextProps) => {
     prevProps.book.status === nextProps.book.status &&
     prevProps.book.rating === nextProps.book.rating &&
     prevProps.onClick === nextProps.onClick &&
+    prevProps.onQuickEdit === nextProps.onQuickEdit &&
+    prevProps.onAddToCollection === nextProps.onAddToCollection &&
     prevProps.showRemoveButton === nextProps.showRemoveButton &&
     prevProps.onRemove === nextProps.onRemove
   );

@@ -64,9 +64,9 @@ export const BookEditionBadge = ({ edition, size = 'small' }) => {
 
   const getEditionConfig = () => {
     switch (edition) {
-      case 'special':
+      case 'signed':
         return {
-          label: 'Special',
+          label: 'Signed',
           icon: <SpecialIcon sx={{ fontSize: 14 }} />,
           gradient: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
         };

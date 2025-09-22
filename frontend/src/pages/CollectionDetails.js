@@ -82,6 +82,7 @@ const CollectionDetails = () => {
   const [manageCollectionsOpen, setManageCollectionsOpen] = useState(false);
   const [addBooksModalOpen, setAddBooksModalOpen] = useState(false);
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
+  const [openInEditMode, setOpenInEditMode] = useState(false);
   const [editData, setEditData] = useState({
     name: '',
     description: '',
@@ -152,6 +153,18 @@ const CollectionDetails = () => {
   const handleBookClick = (book) => {
     setSelectedBook(book);
     setDetailsModalOpen(true);
+    setOpenInEditMode(false);
+  };
+
+  const handleQuickEdit = (book) => {
+    setSelectedBook(book);
+    setDetailsModalOpen(true);
+    setOpenInEditMode(true);
+  };
+
+  const handleAddToCollection = (book) => {
+    setSelectedBook(book);
+    setManageCollectionsOpen(true);
   };
 
   const handleReorderBooks = async (newOrder) => {
@@ -599,6 +612,8 @@ const CollectionDetails = () => {
                   <BookGrid 
                     books={displayBooks} 
                     onBookClick={handleBookClick}
+                    onQuickEdit={handleQuickEdit}
+                    onAddToCollection={handleAddToCollection}
                     showRemoveButton={isAuthenticated}
                     onRemoveBook={handleRemoveBook}
                   />
@@ -711,6 +726,7 @@ const CollectionDetails = () => {
         onClose={() => {
           setDetailsModalOpen(false);
           setSelectedBook(null);
+          setOpenInEditMode(false);
         }}
         book={selectedBook}
         onBookUpdated={() => {
@@ -723,6 +739,7 @@ const CollectionDetails = () => {
         onManageCollections={() => {
           setManageCollectionsOpen(true);
         }}
+        openInEditMode={openInEditMode}
       />
 
       {/* Manage Collections Modal */}
