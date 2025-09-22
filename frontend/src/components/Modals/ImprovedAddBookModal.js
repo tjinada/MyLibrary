@@ -424,49 +424,75 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
               
               <Grid container spacing={2}>
                 {/* Book Cover */}
-                {(bookData.coverImage || selectedCoverUrl) && (
-                  <Grid item xs={12} sm={4}>
-                    <Card sx={{ position: 'relative' }}>
-                      <CardMedia
-                        component="img"
-                        image={selectedCoverUrl || bookData.coverImage}
-                        alt={bookData.title}
-                        sx={{ height: 'auto', maxHeight: 300 }}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                      {/* Change Cover Button */}
+                <Grid item xs={12} sm={4}>
+                  <Card sx={{ position: 'relative' }}>
+                    {(bookData.coverImage || selectedCoverUrl) ? (
+                      <>
+                        <CardMedia
+                          component="img"
+                          image={selectedCoverUrl || bookData.coverImage}
+                          alt={bookData.title}
+                          sx={{ height: 'auto', maxHeight: 300 }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                        {/* Change Cover Button */}
+                        <Box sx={{ 
+                          position: 'absolute', 
+                          bottom: 0, 
+                          left: 0, 
+                          right: 0,
+                          background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)',
+                          p: 1,
+                          display: 'flex',
+                          justifyContent: 'center'
+                        }}>
+                          <Button
+                            size="small"
+                            startIcon={<ImageIcon />}
+                            onClick={() => setShowCoverPicker(true)}
+                            sx={{ 
+                              color: 'white',
+                              '&:hover': {
+                                bgcolor: 'rgba(255,255,255,0.1)'
+                              }
+                            }}
+                          >
+                            Change Cover
+                          </Button>
+                        </Box>
+                      </>
+                    ) : (
+                      /* No Cover Placeholder */
                       <Box sx={{ 
-                        position: 'absolute', 
-                        bottom: 0, 
-                        left: 0, 
-                        right: 0,
-                        background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)',
-                        p: 1,
-                        display: 'flex',
-                        justifyContent: 'center'
+                        height: 300, 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        bgcolor: 'grey.100',
+                        p: 3
                       }}>
+                        <ImageIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
+                        <Typography color="text.secondary" align="center" gutterBottom>
+                          No Cover
+                        </Typography>
                         <Button
-                          size="small"
+                          variant="contained"
                           startIcon={<ImageIcon />}
                           onClick={() => setShowCoverPicker(true)}
-                          sx={{ 
-                            color: 'white',
-                            '&:hover': {
-                              bgcolor: 'rgba(255,255,255,0.1)'
-                            }
-                          }}
+                          size="small"
                         >
-                          Change Cover
+                          Add Cover
                         </Button>
                       </Box>
-                    </Card>
-                  </Grid>
-                )}
+                    )}
+                  </Card>
+                </Grid>
                 
                 {/* Book Details */}
-                <Grid item xs={12} sm={bookData.coverImage ? 8 : 12}>
+                <Grid item xs={12} sm={8}>
                   <Typography variant="h5" gutterBottom>
                     {bookData.title}
                   </Typography>
