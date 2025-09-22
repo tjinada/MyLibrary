@@ -207,6 +207,27 @@ class CoverSearchService {
   }
 
   /**
+   * Generate Google Images search URL
+   * @param {String} query - Search query (book title, author, etc.)
+   * @param {String} isbn - ISBN (optional)
+   * @returns {String} Google Images search URL
+   */
+  generateGoogleImageSearchUrl(query, isbn = null) {
+    let searchQuery = '';
+    
+    if (isbn) {
+      // If ISBN provided, use it as primary search term
+      searchQuery = `${isbn}+book+cover`;
+    } else if (query) {
+      // Otherwise use the provided query
+      searchQuery = `${query.replace(/\s+/g, '+')}+book+cover`;
+    }
+    
+    // The &udm=2 parameter forces Google to show image results
+    return `https://www.google.com/search?q=${searchQuery}&udm=2`;
+  }
+
+  /**
    * Search for covers by ISBN
    * @param {String} isbn - Book ISBN
    * @returns {Promise<Array>} Array of cover options

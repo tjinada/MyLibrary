@@ -435,6 +435,34 @@ router.post('/:isbn/cover/select', async (req, res) => {
   }
 });
 
+// Get Google Images search URL for a book
+router.get('/:isbn/cover/google-search-url', async (req, res) => {
+  try {
+    const { isbn } = req.params;
+    
+    const book = await Book.findOne({ isbn });
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+    
+    // Generate search URL with ISBN or book details
+    const searchUrl = coverSearchService.generateGoogleImageSearchUrl(
+      `${book.title} ${book.authors?.join(' ')}`,
+      isbn
+    );
+    
+    res.json({
+      searchUrl,
+      isbn,
+      title: book.title,
+      authors: book.authors
+    });
+  } catch (error) {
+    console.error('Error generating Google search URL:', error);
+    res.status(500).json({ message: 'Failed to generate search URL' });
+  }
+});
+
 // Search for cover suggestions (no auth required for searching)
 router.post('/:isbn/cover/search', async (req, res) => {
   console.log('=== COVER SEARCH ROUTE HIT ===');

@@ -26,6 +26,7 @@ import {
   Search as SearchIcon,
   Check as CheckIcon,
   OpenInNew as OpenIcon,
+  ImageSearch as ImageSearchIcon,
 } from '@mui/icons-material';
 import bookService from '../../services/bookService';
 
@@ -41,6 +42,8 @@ const CoverSearchDialog = ({
   const [searchResults, setSearchResults] = useState([]);
   const [selectedCover, setSelectedCover] = useState(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
+  const [showUrlInput, setShowUrlInput] = useState(false);
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -52,6 +55,53 @@ const CoverSearchDialog = ({
       setSearchQuery(defaultQuery);
     }
   }, [open, book]);
+
+  const handleGoogleImageSearch = () => {
+    // Generate Google Images search URL
+    const isbn = book?.isbn || '';
+    const title = book?.title || '';
+    const authors = book?.authors?.join(' ') || '';
+    
+    let searchQuery = '';
+    if (isbn) {
+      // Use ISBN as primary search term
+      searchQuery = `${isbn}+book+cover`;
+    } else {
+      // Fallback to title and author
+      searchQuery = `${title} ${authors} book cover`.replace(/\s+/g, '+');
+    }
+    
+    // Open Google Images in new tab with the search
+    const googleUrl = `https://www.google.com/search?q=${searchQuery}&udm=2`;
+    window.open(googleUrl, '_blank');
+    
+    // Show URL input field for user to paste the image URL
+    setShowUrlInput(true);
+    setError(null);
+  };
+
+  const handleUrlImport = async () => {
+    if (!urlInput.trim()) {
+      setError('Please enter an image URL');
+      return;
+    }
+    
+    try {
+      // Use the URL as the selected cover
+      setSelectedCover({
+        url: urlInput.trim(),
+        thumbnail: urlInput.trim(),
+        source: 'Google Images',
+        title: 'Imported from URL'
+      });
+      
+      setError(null);
+      setShowUrlInput(false);
+    } catch (err) {
+      console.error('Error importing URL:', err);
+      setError('Invalid image URL. Please check and try again.');
+    }
+  };
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -139,6 +189,8 @@ const CoverSearchDialog = ({
     setSelectedCover(null);
     setError(null);
     setHasSearched(false);
+    setUrlInput('');
+    setShowUrlInput(false);
     onClose();
   };
 
@@ -296,35 +348,91 @@ const CoverSearchDialog = ({
           </Typography>
         </Box>
 
-        {/* Search Input */}
+        {/* Search Options */}
         <Box sx={{ mb: 3 }}>
-          <TextField
-            fullWidth
-            label="Search Query"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && !loading) {
-                handleSearch();
-              }
-            }}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <Button
-                    onClick={handleSearch}
-                    disabled={loading || !searchQuery.trim()}
-                    startIcon={loading ? <CircularProgress size={20} /> : <SearchIcon />}
-                  >
-                    {loading ? 'Searching...' : 'Search'}
-                  </Button>
-                </InputAdornment>
-              ),
-            }}
-          />
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-            Tip: Try variations like "{book?.title} cover", "{book?.title} {book?.authors?.[0]}", or ISBN
-          </Typography>
+          {/* Google Images Search Button */}
+          <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<ImageSearchIcon />}
+              onClick={handleGoogleImageSearch}
+              sx={{ flex: isMobile ? '1 1 100%' : 'none' }}
+            >
+              Search on Google Images
+            </Button>
+            
+            <Typography variant="body2" color="text.secondary" sx={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              flex: isMobile ? '1 1 100%' : 1
+            }}>
+              Click to search Google Images, then copy the image URL and paste below
+            </Typography>
+          </Box>
+
+          {/* URL Import Section */}
+          {showUrlInput && (
+            <Box sx={{ mb: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Step 2: Paste the image URL from Google Images
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Paste image URL here (right-click on image → Copy image address)"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleUrlImport();
+                    }
+                  }}
+                />
+                <Button
+                  variant="contained"
+                  onClick={handleUrlImport}
+                  disabled={!urlInput.trim()}
+                >
+                  Import
+                </Button>
+              </Box>
+            </Box>
+          )}
+
+          {/* Alternative: Search with Google Books API */}
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+              Alternative: Search Google Books (limited results)
+            </Typography>
+            <TextField
+              fullWidth
+              size="small"
+              label="Search Query"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !loading) {
+                  handleSearch();
+                }
+              }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <Button
+                      size="small"
+                      onClick={handleSearch}
+                      disabled={loading || !searchQuery.trim()}
+                      startIcon={loading ? <CircularProgress size={16} /> : <SearchIcon />}
+                    >
+                      {loading ? 'Searching...' : 'Search'}
+                    </Button>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
         </Box>
 
         {/* Error Alert */}
@@ -336,11 +444,46 @@ const CoverSearchDialog = ({
 
         {/* Search Results */}
         <Box sx={{ minHeight: 200 }}>
-          {!hasSearched && !loading && (
+          {/* Show selected cover if imported from URL */}
+          {selectedCover && selectedCover.source === 'Google Images' && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Selected Cover (from URL)
+              </Typography>
+              <Card sx={{ 
+                maxWidth: 200, 
+                border: 2, 
+                borderColor: 'primary.main',
+                p: 1
+              }}>
+                <CardMedia
+                  component="img"
+                  image={selectedCover.url}
+                  alt="Selected cover"
+                  sx={{ 
+                    height: 250,
+                    objectFit: 'cover',
+                  }}
+                  onError={(e) => {
+                    setError('Failed to load image. Please check the URL.');
+                    setSelectedCover(null);
+                  }}
+                />
+                <Typography variant="caption" sx={{ mt: 1, display: 'block', textAlign: 'center' }}>
+                  ✓ Ready to use
+                </Typography>
+              </Card>
+            </Box>
+          )}
+          
+          {!hasSearched && !loading && !selectedCover && (
             <Box sx={{ textAlign: 'center', py: 4 }}>
-              <SearchIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
+              <ImageSearchIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
               <Typography color="text.secondary">
-                Click search to find book covers from Google Images and other sources
+                Use the Google Images button above to find book covers
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Or search Google Books below for limited results
               </Typography>
             </Box>
           )}
