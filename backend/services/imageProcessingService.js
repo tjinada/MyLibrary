@@ -84,31 +84,81 @@ class ImageProcessingService {
    */
   async processImageFromUrl(imageUrl, size = 'full') {
     try {
+      console.log('\n=== IMAGE DOWNLOAD ATTEMPT ===' );
+      console.log('URL:', imageUrl);
+      console.log('Size:', size);
+      
+      const headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Referer': imageUrl.includes('bookshop.org') ? 'https://bookshop.org/' : 'https://www.google.com/',
+        'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+        'Sec-Fetch-Dest': 'image',
+        'Sec-Fetch-Mode': 'no-cors',
+        'Sec-Fetch-Site': 'cross-site',
+      };
+      
+      console.log('Request headers:', JSON.stringify(headers, null, 2));
+      
       const response = await axios.get(imageUrl, {
         responseType: 'arraybuffer',
         timeout: 15000,
         maxRedirects: 5,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-          'Referer': imageUrl.includes('bookshop.org') ? 'https://bookshop.org/' : 'https://www.google.com/',
-          'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-          'Sec-Ch-Ua-Mobile': '?0',
-          'Sec-Ch-Ua-Platform': '"Windows"',
-          'Sec-Fetch-Dest': 'image',
-          'Sec-Fetch-Mode': 'no-cors',
-          'Sec-Fetch-Site': 'cross-site',
+        headers: headers,
+        validateStatus: function (status) {
+          // Log any non-200 status
+          if (status !== 200) {
+            console.log('Non-200 status received:', status);
+          }
+          return status >= 200 && status < 300; // default
         }
       });
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      console.log('Image downloaded successfully, size:', response.data.length, 'bytes');
+      console.log('=== END IMAGE DOWNLOAD ===\n');
 
       const buffer = Buffer.from(response.data);
       return await this.processImage(buffer, size);
     } catch (error) {
+      console.error('\n=== IMAGE DOWNLOAD ERROR ===');
       console.error('Error downloading/processing image from URL:', error.message);
+      
+      // Log more details if it's an axios error
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error('Error response status:', error.response.status);
+        console.error('Error response status text:', error.response.statusText);
+        console.error('Error response headers:', error.response.headers);
+        
+        // Try to log response body if it's text
+        if (error.response.data) {
+          try {
+            const responseText = error.response.data.toString('utf8').substring(0, 500);
+            console.error('Error response body (first 500 chars):', responseText);
+          } catch (e) {
+            console.error('Could not parse error response body');
+          }
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error('No response received. Request details:');
+        console.error('Request URL:', error.request.path || error.config?.url);
+        console.error('Request method:', error.request.method || error.config?.method);
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error('Error setting up request:', error.message);
+      }
+      
+      console.error('=== END ERROR DETAILS ===\n');
       throw new Error('Failed to process image from URL: ' + error.message);
     }
   }
