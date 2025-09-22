@@ -51,7 +51,9 @@ const bookService = {
 
   // Search Google Books
   async searchGoogleBooks(query) {
+    console.log('bookService.searchGoogleBooks called with query:', query);
     const response = await api.get('/search/google', { params: { q: query } });
+    console.log('bookService.searchGoogleBooks response:', response.data);
     return response.data;
   },
 

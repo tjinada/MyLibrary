@@ -56,6 +56,8 @@ const CoverSearchDialog = ({
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     
+    console.log('Starting search with query:', searchQuery);
+    
     setLoading(true);
     setError(null);
     setHasSearched(true);
@@ -63,13 +65,19 @@ const CoverSearchDialog = ({
     try {
       // Always use Google Books search for covers
       const results = await bookService.searchGoogleBooks(searchQuery);
+      console.log('Search results received:', results);
       
       // Extract cover images from book results
       const suggestions = [];
       
       if (results.items) {
-        results.items.forEach(item => {
+        console.log(`Found ${results.items.length} items`);
+        
+        results.items.forEach((item, index) => {
+          console.log(`Item ${index}:`, item.volumeInfo?.title);
           const imageLinks = item.volumeInfo?.imageLinks;
+          console.log(`Image links for item ${index}:`, imageLinks);
+          
           if (imageLinks) {
             // Try to get the highest quality image available
             const imageUrl = imageLinks.extraLarge || 
@@ -77,6 +85,8 @@ const CoverSearchDialog = ({
                            imageLinks.medium || 
                            imageLinks.thumbnail || 
                            imageLinks.smallThumbnail;
+            
+            console.log(`Selected image URL for item ${index}:`, imageUrl);
             
             if (imageUrl) {
               suggestions.push({
@@ -89,7 +99,13 @@ const CoverSearchDialog = ({
             }
           }
         });
+      } else {
+        console.log('No items in search results');
+        console.log('Full response structure:', JSON.stringify(results, null, 2));
       }
+      
+      console.log(`Total suggestions created: ${suggestions.length}`);
+      console.log('Suggestions:', suggestions);
       
       setSearchResults(suggestions);
       
@@ -98,6 +114,7 @@ const CoverSearchDialog = ({
       }
     } catch (err) {
       console.error('Error searching covers:', err);
+      console.error('Error details:', err.response?.data);
       setError('Failed to search for covers. Please try again.');
       setSearchResults([]);
     } finally {
@@ -126,7 +143,14 @@ const CoverSearchDialog = ({
   };
 
   const renderSearchResults = () => {
+    console.log('Rendering search results...');
+    console.log('Loading:', loading);
+    console.log('HasSearched:', hasSearched);
+    console.log('SearchResults length:', searchResults.length);
+    console.log('SearchResults:', searchResults);
+    
     if (loading) {
+      console.log('Showing loading skeletons');
       return (
         <Grid container spacing={2}>
           {[1, 2, 3, 4, 5, 6].map((n) => (
@@ -140,6 +164,7 @@ const CoverSearchDialog = ({
     }
 
     if (searchResults.length === 0 && hasSearched) {
+      console.log('No results to show after search');
       return (
         <Box sx={{ textAlign: 'center', py: 4 }}>
           <SearchIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
@@ -153,9 +178,12 @@ const CoverSearchDialog = ({
       );
     }
 
+    console.log('Rendering grid with results');
     return (
       <Grid container spacing={2}>
-        {searchResults.map((result, index) => (
+        {searchResults.map((result, index) => {
+          console.log(`Rendering result ${index}:`, result);
+          return (
           <Grid item xs={6} sm={4} md={3} key={index}>
             <Card 
               sx={{ 
@@ -227,7 +255,8 @@ const CoverSearchDialog = ({
               </CardActions>
             </Card>
           </Grid>
-        ))}
+          );
+        })}
       </Grid>
     );
   };
