@@ -39,8 +39,8 @@ const BookCard = ({
   // Initialize and update image source
   React.useEffect(() => {
     let timeoutId;
-    // Prefer thumbnail for performance in grid view
-    let newSrc = book.coverThumbnail || book.coverImage || book.customCoverImage;
+    // Use full resolution for better quality in grid view
+    let newSrc = book.coverImage || book.customCoverImage || book.coverThumbnail;
     
     // Don't add cache busting to base64 images
     if (newSrc && !newSrc.startsWith('data:') && book.lastModified) {
