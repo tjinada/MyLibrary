@@ -694,10 +694,10 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                           SelectProps={{ native: false }}
                         >
                           <MenuItem value="standard">Standard Edition</MenuItem>
-                          <MenuItem value="special">
+                          <MenuItem value="signed">
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <SpecialIcon fontSize="small" sx={{ color: theme.palette.warning.main }} />
-                              Special Edition
+                              Signed Edition
                             </Box>
                           </MenuItem>
                           <MenuItem value="deluxe">

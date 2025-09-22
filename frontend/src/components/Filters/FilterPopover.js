@@ -221,10 +221,10 @@ const FilterPopover = ({
                 sx={{ borderRadius: 1.5 }}
               >
                 <MenuItem value="all">All Editions</MenuItem>
-                <MenuItem value="special">
+                <MenuItem value="signed">
                   <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                     <SpecialIcon fontSize="small" sx={{ color: theme.palette.warning.main, mr: 1 }} />
-                    <Box sx={{ flexGrow: 1 }}>Special Edition</Box>
+                    <Box sx={{ flexGrow: 1 }}>Signed Edition</Box>
                   </Box>
                 </MenuItem>
                 <MenuItem value="deluxe">
