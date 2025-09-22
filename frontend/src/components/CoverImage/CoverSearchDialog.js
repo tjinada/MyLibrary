@@ -81,12 +81,19 @@ const CoverSearchDialog = ({
     
     try {
       // Use the URL as the selected cover
-      setSelectedCover({
+      const newCover = {
         url: urlInput.trim(),
         thumbnail: urlInput.trim(),
         source: 'other',  // Use enum value for web sources
         title: 'Imported from URL'
-      });
+      };
+      
+      setSelectedCover(newCover);
+      
+      // In inline mode, notify parent immediately about the selection
+      if (mode === 'inline' && onSelectCover) {
+        onSelectCover(newCover.url);
+      }
       
       setError(null);
       setShowUrlInput(false);
@@ -253,16 +260,11 @@ const CoverSearchDialog = ({
                 <Alert severity="success" icon={<CheckIcon />}>
                   Cover ready to use!
                 </Alert>
-                {mode === 'inline' ? (
-                  <Button
-                    variant="contained"
-                    onClick={() => onSelectCover(selectedCover.url)}
-                    sx={{ mt: 2 }}
-                    startIcon={<CheckIcon />}
-                  >
-                    Use This Cover
-                  </Button>
-                ) : null}
+                {mode === 'inline' && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+                    Click 'Apply Cover' below to save your selection
+                  </Typography>
+                )}
               </Box>
             </Box>
           </Box>
