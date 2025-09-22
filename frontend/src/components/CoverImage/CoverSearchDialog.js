@@ -84,7 +84,7 @@ const CoverSearchDialog = ({
       setSelectedCover({
         url: urlInput.trim(),
         thumbnail: urlInput.trim(),
-        source: 'Google Images',
+        source: 'other',  // Use enum value for web sources
         title: 'Imported from URL'
       });
       
@@ -224,7 +224,7 @@ const CoverSearchDialog = ({
         )}
 
         {/* Selected Cover Preview */}
-        {selectedCover && selectedCover.source === 'Google Images' && (
+        {selectedCover && selectedCover.source === 'other' && (
           <Box sx={{ mb: 2 }}>
             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
               Selected Cover Preview

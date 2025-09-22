@@ -159,7 +159,7 @@ const CoverImagePicker = ({
         id: 'uploaded-' + Date.now(),
         url: imageUrl || imageData,
         thumbnail: imageUrl || imageData,
-        source: 'Uploaded',
+        source: 'user',  // Changed from 'Uploaded' to 'user'
         isActive: false
       };
       setAvailableCovers(prev => [...prev, newCover]);
@@ -222,7 +222,7 @@ const CoverImagePicker = ({
         id: 'search-' + Date.now(),
         url: coverUrl,
         thumbnail: coverUrl,
-        source: 'Web Search',
+        source: 'other',  // Changed from 'Web Search' to 'other'
         isActive: false
       };
       setAvailableCovers(prev => [...prev, newCover]);
@@ -347,9 +347,13 @@ const CoverImagePicker = ({
 
                 <CardActions sx={{ justifyContent: 'space-between', py: 1 }}>
                   <Typography variant="caption" noWrap>
-                    {cover.source}
+                    {cover.source === 'user' ? 'User Upload' : 
+                     cover.source === 'google' ? 'Google Books' : 
+                     cover.source === 'openlibrary' ? 'Open Library' : 
+                     cover.source === 'other' ? 'Web Search' : 
+                     cover.source}
                   </Typography>
-                  {cover.source === 'User Upload' && (
+                  {cover.source === 'user' && (
                     <Tooltip title="Delete custom cover">
                       <IconButton 
                         size="small"

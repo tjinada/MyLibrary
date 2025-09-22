@@ -258,7 +258,7 @@ router.get('/:isbn/covers', async (req, res) => {
         id: 'custom',
         url: book.customCoverImage,
         thumbnail: book.coverThumbnail || book.customCoverImage,
-        source: 'User Upload',
+        source: 'user',  // Use enum value
         isActive: book.coverImageSource === 'user'
       });
     }
@@ -382,7 +382,15 @@ router.delete('/:isbn/cover/custom', async (req, res) => {
       const apiCovers = await coverSearchService.searchByISBN(isbn);
       if (apiCovers && apiCovers.length > 0) {
         book.coverImage = apiCovers[0].url;
-        book.coverImageSource = apiCovers[0].source.toLowerCase().replace(' ', '');
+        // Normalize source to match enum values
+        let normalizedSource = 'other';
+        const sourceLower = apiCovers[0].source.toLowerCase();
+        if (sourceLower.includes('google')) {
+          normalizedSource = 'google';
+        } else if (sourceLower.includes('open')) {
+          normalizedSource = 'openlibrary';
+        }
+        book.coverImageSource = normalizedSource;
       } else {
         book.coverImage = null;
         book.coverImageSource = 'none';
@@ -417,10 +425,31 @@ router.post('/:isbn/cover/select', async (req, res) => {
       return res.status(404).json({ message: 'Book not found' });
     }
     
+    // Normalize source to match enum values
+    let normalizedSource = source || 'other';
+    if (typeof normalizedSource === 'string') {
+      const sourceLower = normalizedSource.toLowerCase();
+      if (sourceLower.includes('google')) {
+        normalizedSource = 'google';
+      } else if (sourceLower.includes('open')) {
+        normalizedSource = 'openlibrary';
+      } else if (sourceLower === 'user upload' || sourceLower === 'uploaded' || sourceLower === 'user') {
+        normalizedSource = 'user';
+      } else if (sourceLower === 'current' || sourceLower === 'original') {
+        // Keep current source if it's just a re-selection
+        normalizedSource = book.coverImageSource || 'other';
+      } else if (!['google', 'openlibrary', 'user', 'custom', 'other', 'none'].includes(sourceLower)) {
+        // Default to 'other' for unknown sources
+        normalizedSource = 'other';
+      } else {
+        normalizedSource = sourceLower;
+      }
+    }
+    
     // Update active cover
     book.coverImage = coverUrl;
-    book.coverImageSource = source || 'other';
-    book.coverQualityScore = source === 'user' ? 100 : 50; // Set quality score
+    book.coverImageSource = normalizedSource;
+    book.coverQualityScore = normalizedSource === 'user' ? 100 : 50; // Set quality score
     book.lastModified = Date.now();
     
     await book.save();
