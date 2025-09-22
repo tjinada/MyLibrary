@@ -4,6 +4,8 @@ const Book = require('../models/Book');
 const auth = require('../middleware/auth');
 const bookMetadataService = require('../services/bookMetadataService');
 const coverValidationService = require('../services/coverValidationService');
+const imageProcessingService = require('../services/imageProcessingService');
+const coverSearchService = require('../services/coverSearchService');
 const { body, validationResult } = require('express-validator');
 
 // Get all books with filtering and pagination
@@ -434,6 +436,241 @@ router.post('/validate-covers/batch', auth, async (req, res) => {
   } catch (error) {
     console.error('Error in batch cover validation:', error);
     res.status(500).json({ message: 'Failed to validate covers in batch' });
+  }
+});
+
+// ==================== NEW COVER MANAGEMENT ENDPOINTS ====================
+
+// Upload custom cover image (requires auth)
+router.post('/:isbn/cover/upload', auth, async (req, res) => {
+  try {
+    const { isbn } = req.params;
+    const { imageData, imageUrl } = req.body;
+    
+    if (!imageData && !imageUrl) {
+      return res.status(400).json({ message: 'No image data or URL provided' });
+    }
+    
+    // Find the book
+    const book = await Book.findOne({ isbn });
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+    
+    let processedImage;
+    let thumbnail;
+    
+    try {
+      if (imageUrl) {
+        // Process image from URL
+        processedImage = await imageProcessingService.processImageFromUrl(imageUrl, 'full');
+        thumbnail = await imageProcessingService.processImageFromUrl(imageUrl, 'thumbnail');
+      } else {
+        // Validate the uploaded image
+        const buffer = Buffer.from(imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+        const validation = await imageProcessingService.validateImage(buffer);
+        
+        if (!validation.valid) {
+          return res.status(400).json({ 
+            message: 'Invalid image', 
+            errors: validation.errors 
+          });
+        }
+        
+        // Process the image
+        const sizes = await imageProcessingService.generateAllSizes(imageData);
+        processedImage = sizes.full;
+        thumbnail = sizes.thumbnail;
+      }
+      
+      // Update book with custom cover
+      book.customCoverImage = processedImage;
+      book.coverThumbnail = thumbnail;
+      book.coverImage = processedImage; // Set as active cover
+      book.coverImageSource = 'user';
+      book.lastModified = Date.now();
+      
+      await book.save();
+      
+      console.log(`Custom cover uploaded for book: ${book.title}`);
+      
+      res.json({
+        message: 'Cover uploaded successfully',
+        book
+      });
+    } catch (processingError) {
+      console.error('Error processing image:', processingError);
+      return res.status(400).json({ 
+        message: 'Failed to process image',
+        error: processingError.message 
+      });
+    }
+  } catch (error) {
+    console.error('Error uploading cover:', error);
+    res.status(500).json({ message: 'Failed to upload cover' });
+  }
+});
+
+// Delete custom cover (requires auth)
+router.delete('/:isbn/cover/custom', auth, async (req, res) => {
+  try {
+    const { isbn } = req.params;
+    
+    const book = await Book.findOne({ isbn });
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+    
+    // Remove custom cover
+    book.customCoverImage = null;
+    book.coverThumbnail = null;
+    
+    // Revert to API cover if available
+    if (book.coverImageSource === 'user') {
+      // Try to find an API cover
+      const apiCovers = await coverSearchService.searchByISBN(isbn);
+      if (apiCovers && apiCovers.length > 0) {
+        book.coverImage = apiCovers[0].url;
+        book.coverImageSource = apiCovers[0].source.toLowerCase().replace(' ', '');
+      } else {
+        book.coverImage = null;
+        book.coverImageSource = 'none';
+      }
+    }
+    
+    book.lastModified = Date.now();
+    await book.save();
+    
+    res.json({
+      message: 'Custom cover deleted',
+      book
+    });
+  } catch (error) {
+    console.error('Error deleting custom cover:', error);
+    res.status(500).json({ message: 'Failed to delete custom cover' });
+  }
+});
+
+// Get all available covers for a book (requires auth)
+router.get('/:isbn/covers', auth, async (req, res) => {
+  try {
+    const { isbn } = req.params;
+    
+    const book = await Book.findOne({ isbn });
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+    
+    const covers = [];
+    
+    // Add custom cover if exists
+    if (book.customCoverImage) {
+      covers.push({
+        id: 'custom',
+        url: book.customCoverImage,
+        thumbnail: book.coverThumbnail || book.customCoverImage,
+        source: 'User Upload',
+        isActive: book.coverImageSource === 'user'
+      });
+    }
+    
+    // Get API covers
+    try {
+      const apiCovers = await coverSearchService.searchByISBN(isbn);
+      apiCovers.forEach((cover, index) => {
+        covers.push({
+          id: `api-${index}`,
+          url: cover.url,
+          thumbnail: cover.thumbnail || cover.url,
+          source: cover.source,
+          quality: cover.quality,
+          isActive: book.coverImage === cover.url
+        });
+      });
+    } catch (error) {
+      console.error('Error fetching API covers:', error);
+    }
+    
+    res.json({
+      covers,
+      currentCover: book.coverImage,
+      currentSource: book.coverImageSource
+    });
+  } catch (error) {
+    console.error('Error fetching covers:', error);
+    res.status(500).json({ message: 'Failed to fetch covers' });
+  }
+});
+
+// Select a specific cover (requires auth)
+router.post('/:isbn/cover/select', auth, async (req, res) => {
+  try {
+    const { isbn } = req.params;
+    const { coverUrl, source } = req.body;
+    
+    if (!coverUrl) {
+      return res.status(400).json({ message: 'Cover URL is required' });
+    }
+    
+    const book = await Book.findOne({ isbn });
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+    
+    // Update active cover
+    book.coverImage = coverUrl;
+    book.coverImageSource = source || 'other';
+    book.lastModified = Date.now();
+    
+    await book.save();
+    
+    res.json({
+      message: 'Cover selected successfully',
+      book
+    });
+  } catch (error) {
+    console.error('Error selecting cover:', error);
+    res.status(500).json({ message: 'Failed to select cover' });
+  }
+});
+
+// Search for cover suggestions (requires auth)
+router.post('/:isbn/cover/search', auth, async (req, res) => {
+  try {
+    const { isbn } = req.params;
+    const { query } = req.body;
+    
+    const book = await Book.findOne({ isbn });
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+    
+    // Use book title and author if no query provided
+    const searchQuery = query || `${book.title} ${book.authors?.join(' ')}`;
+    
+    // Search for covers
+    const suggestions = await coverSearchService.searchGoogleImages(searchQuery, 8);
+    
+    // Validate which URLs are accessible
+    const validatedSuggestions = [];
+    for (const suggestion of suggestions) {
+      const isValid = await coverSearchService.validateImageUrl(suggestion.url);
+      if (isValid) {
+        validatedSuggestions.push({
+          ...suggestion,
+          valid: true
+        });
+      }
+    }
+    
+    res.json({
+      query: searchQuery,
+      suggestions: validatedSuggestions,
+      total: validatedSuggestions.length
+    });
+  } catch (error) {
+    console.error('Error searching for covers:', error);
+    res.status(500).json({ message: 'Failed to search for covers' });
   }
 });
 

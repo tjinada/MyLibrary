@@ -60,6 +60,40 @@ const bookService = {
     const response = await api.get('/stats');
     return response.data;
   },
+
+  // Cover Management
+  async uploadCover(isbn, imageData, imageUrl = null) {
+    const response = await api.post(`/books/${isbn}/cover/upload`, {
+      imageData,
+      imageUrl
+    });
+    return response.data;
+  },
+
+  async deleteCoverImage(isbn) {
+    const response = await api.delete(`/books/${isbn}/cover/custom`);
+    return response.data;
+  },
+
+  async getAllCovers(isbn) {
+    const response = await api.get(`/books/${isbn}/covers`);
+    return response.data;
+  },
+
+  async selectCover(isbn, coverUrl, source) {
+    const response = await api.post(`/books/${isbn}/cover/select`, {
+      coverUrl,
+      source
+    });
+    return response.data;
+  },
+
+  async searchCovers(isbn, query = null) {
+    const response = await api.post(`/books/${isbn}/cover/search`, {
+      query
+    });
+    return response.data;
+  },
 };
 
 export default bookService;

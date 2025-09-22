@@ -64,15 +64,17 @@ const BookSchema = new mongoose.Schema({
     default: 'en'
   },
   coverImage: String,
+  customCoverImage: String,  // Base64 or URL for user-uploaded cover
   coverImageSource: {
     type: String,
-    enum: ['google', 'openlibrary', 'other', 'none'],
+    enum: ['google', 'openlibrary', 'user', 'custom', 'other', 'none'],
     default: 'none'
   },
   coverQualityScore: {
     type: Number,
     default: 0
   },
+  coverThumbnail: String,  // Base64 thumbnail for performance
   
   // Library management fields
   status: {

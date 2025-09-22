@@ -40,8 +40,11 @@ import {
   AutoAwesome as SpecialIcon,
   Star as StarIcon,
   StarBorder as StarBorderIcon,
+  Image as ImageIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
 import BarcodeScanner from '../Scanner/BarcodeScanner';
+import CoverImagePicker from '../CoverImage/CoverImagePicker';
 import bookService from '../../services/bookService';
 import { ALLOWED_GENRES } from '../../constants/bookConstants';
 
@@ -67,6 +70,8 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
   // View states
   const [showScanner, setShowScanner] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showCoverPicker, setShowCoverPicker] = useState(false);
+  const [selectedCoverUrl, setSelectedCoverUrl] = useState(null);
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -156,6 +161,7 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
         tags: customTags,
         edition: selectedEdition,
         rating: bookRating, // Include rating if set
+        coverImage: selectedCoverUrl || bookData.coverImage, // Use selected cover if changed
       };
       
       await bookService.addBook(bookToAdd);
@@ -220,6 +226,8 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
     setNewTag('');
     setSelectedEdition('standard');
     setBookRating(null);
+    setSelectedCoverUrl(null);
+    setShowCoverPicker(false);
     onClose();
   };
 
@@ -241,6 +249,7 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
   };
 
   return (
+    <>
     <Dialog 
       open={open} 
       onClose={handleClose}
@@ -415,18 +424,43 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
               
               <Grid container spacing={2}>
                 {/* Book Cover */}
-                {bookData.coverImage && (
+                {(bookData.coverImage || selectedCoverUrl) && (
                   <Grid item xs={12} sm={4}>
-                    <Card>
+                    <Card sx={{ position: 'relative' }}>
                       <CardMedia
                         component="img"
-                        image={bookData.coverImage}
+                        image={selectedCoverUrl || bookData.coverImage}
                         alt={bookData.title}
                         sx={{ height: 'auto', maxHeight: 300 }}
                         onError={(e) => {
                           e.target.style.display = 'none';
                         }}
                       />
+                      {/* Change Cover Button */}
+                      <Box sx={{ 
+                        position: 'absolute', 
+                        bottom: 0, 
+                        left: 0, 
+                        right: 0,
+                        background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)',
+                        p: 1,
+                        display: 'flex',
+                        justifyContent: 'center'
+                      }}>
+                        <Button
+                          size="small"
+                          startIcon={<ImageIcon />}
+                          onClick={() => setShowCoverPicker(true)}
+                          sx={{ 
+                            color: 'white',
+                            '&:hover': {
+                              bgcolor: 'rgba(255,255,255,0.1)'
+                            }
+                          }}
+                        >
+                          Change Cover
+                        </Button>
+                      </Box>
                     </Card>
                   </Grid>
                 )}
@@ -639,6 +673,19 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
         )}
       </DialogContent>
     </Dialog>
+
+    {/* Cover Image Picker Modal */}
+    <CoverImagePicker
+      open={showCoverPicker}
+      onClose={() => setShowCoverPicker(false)}
+      book={bookData}
+      currentCover={selectedCoverUrl || bookData?.coverImage}
+      onCoverSelected={(coverUrl) => {
+        setSelectedCoverUrl(coverUrl);
+        setShowCoverPicker(false);
+      }}
+    />
+  </>
   );
 };
 
