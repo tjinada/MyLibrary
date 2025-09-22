@@ -8,6 +8,18 @@ const imageProcessingService = require('../services/imageProcessingService');
 const coverSearchService = require('../services/coverSearchService');
 const { body, validationResult } = require('express-validator');
 
+// ==================== DEBUG MIDDLEWARE ====================
+router.use((req, res, next) => {
+  console.log('\n=== BOOKS ROUTER REQUEST ===');
+  console.log('Method:', req.method);
+  console.log('Path:', req.path);
+  console.log('Original URL:', req.originalUrl);
+  console.log('Base URL:', req.baseUrl);
+  console.log('Params:', req.params);
+  console.log('===========================\n');
+  next();
+});
+
 // ==================== ROOT ROUTES ====================
 
 // Get all books with filtering and pagination
@@ -213,8 +225,19 @@ router.post('/validate-covers/batch', auth, async (req, res) => {
 
 // ==================== COVER MANAGEMENT ROUTES (MUST BE BEFORE /:isbn) ====================
 
+// Test route to verify routing is working
+router.get('/test/covers', (req, res) => {
+  console.log('Test covers route hit!');
+  res.json({ message: 'Covers test route is working' });
+});
+
 // Get all available covers for a book (temporarily no auth for testing)
 router.get('/:isbn/covers', async (req, res) => {
+  console.log('=== COVER ROUTE HIT ===');
+  console.log('Request URL:', req.originalUrl);
+  console.log('Request params:', req.params);
+  console.log('ISBN:', req.params.isbn);
+  
   try {
     const { isbn } = req.params;
     
@@ -604,6 +627,16 @@ router.post('/:isbn/validate-cover', auth, async (req, res) => {
 
 // Get single book by ISBN
 router.get('/:isbn', async (req, res) => {
+  console.log('=== GENERIC ISBN ROUTE HIT ===');
+  console.log('Request URL:', req.originalUrl);
+  console.log('ISBN param:', req.params.isbn);
+  console.log('Full URL path:', req.path);
+  
+  // Check if this is actually a cover request that shouldn't be here
+  if (req.params.isbn.includes('/')) {
+    console.log('WARNING: ISBN contains slash, might be a misrouted request');
+  }
+  
   try {
     const book = await Book.findOne({ isbn: req.params.isbn });
     
@@ -676,6 +709,23 @@ router.delete('/:isbn', auth, async (req, res) => {
     console.error('Error deleting book:', error);
     res.status(500).json({ message: 'Failed to delete book' });
   }
+});
+
+// Catch-all 404 for debugging
+router.use('*', (req, res) => {
+  console.log('\n=== 404 IN BOOKS ROUTER ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('Original URL:', req.originalUrl);
+  console.log('Base URL:', req.baseUrl);
+  console.log('Path:', req.path);
+  console.log('This request did not match any route in books.js');
+  console.log('==========================\n');
+  res.status(404).json({ 
+    message: 'Route not found in books router',
+    attempted: req.originalUrl,
+    method: req.method
+  });
 });
 
 module.exports = router;

@@ -28,6 +28,17 @@ const diagnosticRoutes = require('./routes/diagnostic');
 const collectionsRoutes = require('./routes/collections');
 const libraryRoutes = require('./routes/library');
 
+// Debug middleware for all /api/books requests
+app.use('/api/books*', (req, res, next) => {
+  console.log('\n=== SERVER.JS - /api/books* REQUEST ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('Original URL:', req.originalUrl);
+  console.log('Path:', req.path);
+  console.log('=====================================\n');
+  next();
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
