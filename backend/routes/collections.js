@@ -148,8 +148,9 @@ router.post('/:id/books/:bookId', auth, async (req, res) => {
       req.params.bookId
     );
     
-    // Generate cover image if needed
-    if (!result.collection.coverImage) {
+    // Auto-generate composite cover if needed (when we have 2+ books)
+    await result.collection.populate('books', 'coverImage title');
+    if (result.collection.books.length >= 2 && !result.collection.coverImage) {
       await result.collection.generateCoverImage();
       await result.collection.save();
     }
@@ -199,8 +200,9 @@ router.post('/:id/books', auth, [
       bookIds
     );
     
-    // Generate cover image if needed
-    if (!collection.coverImage) {
+    // Auto-generate composite cover if collection is new or has no cover
+    if (!collection.coverImage || collection.books.length === bookIds.length) {
+      await collection.populate('books', 'coverImage title');
       await collection.generateCoverImage();
       await collection.save();
     }

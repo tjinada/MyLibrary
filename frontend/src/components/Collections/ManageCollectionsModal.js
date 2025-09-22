@@ -123,7 +123,7 @@ const ManageCollectionsModal = ({
 
   const handleCollectionCreated = async (newCollection) => {
     // The collection was already created with this book if it was in initialBooks
-    // Just update the local state
+    // The backend will auto-generate a composite cover if applicable
     setCollections(prev => [...prev, newCollection]);
     
     // Check if this book was added to the new collection
@@ -132,6 +132,11 @@ const ManageCollectionsModal = ({
     }
     
     setCreateModalOpen(false);
+    
+    // Show a toast or notification if collection has auto-generated cover
+    if (newCollection.coverImage && newCollection.coverImage.startsWith('data:image')) {
+      console.log('Collection created with auto-generated cover');
+    }
   };
 
   const filteredCollections = collections.filter(collection =>

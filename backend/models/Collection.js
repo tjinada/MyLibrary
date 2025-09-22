@@ -111,14 +111,57 @@ CollectionSchema.methods.reorderBooks = async function(orderedBookIds) {
 
 // Method to generate cover image from book covers
 CollectionSchema.methods.generateCoverImage = async function() {
-  // Use coverBookId if set, otherwise use first book
+  // Check if we should auto-generate a composite
+  const CompositeImageService = require('../services/compositeImageService');
+  
+  // If collection already has a custom cover (not from a book), keep it
+  if (this.coverImage && !this.coverBookId) {
+    return this.coverImage;
+  }
+  
+  // Populate books if not already populated
+  if (this.books.length > 0 && !this.books[0].coverImage) {
+    await this.populate('books', 'coverImage title');
+  }
+  
+  // Check if we should auto-generate
+  if (CompositeImageService.shouldAutoGenerate(this)) {
+    try {
+      // Get cover URLs from books
+      const coverUrls = this.books
+        .filter(book => book.coverImage)
+        .slice(0, 4)
+        .map(book => book.coverImage);
+      
+      if (coverUrls.length >= 2) {
+        console.log(`Auto-generating composite cover for collection: ${this.name}`);
+        
+        // Generate composite image
+        const compositeImage = await CompositeImageService.generateCompositeImage(coverUrls, {
+          width: 400,
+          height: 600,
+          quality: 85
+        });
+        
+        // Save the composite image
+        this.coverImage = compositeImage;
+        this.coverBookId = null; // Clear any book ID reference
+        
+        return this.coverImage;
+      }
+    } catch (error) {
+      console.error('Failed to generate composite image:', error);
+      // Fall back to using first book cover
+    }
+  }
+  
+  // Fallback: Use coverBookId if set, otherwise use first book
   if (this.coverBookId) {
     await this.populate('coverBookId', 'coverImage');
     if (this.coverBookId && this.coverBookId.coverImage) {
       this.coverImage = this.coverBookId.coverImage;
     }
   } else if (this.books.length > 0) {
-    await this.populate('books', 'coverImage');
     const covers = this.books
       .slice(0, 4)
       .map(book => book.coverImage)
@@ -128,10 +171,11 @@ CollectionSchema.methods.generateCoverImage = async function() {
       this.coverImage = covers[0];
       // Set the first book as cover if not set
       if (!this.coverBookId) {
-        this.coverBookId = this.books[0];
+        this.coverBookId = this.books[0]._id || this.books[0];
       }
     }
   }
+  
   return this.coverImage;
 };
 
