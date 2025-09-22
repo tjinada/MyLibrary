@@ -265,7 +265,7 @@ class CompositeImageService {
     
     // Auto-generate if no cover is set or if current cover is auto-generated
     return !collection.coverImage || collection.coverImage.startsWith('data:image');
-  },
+  }
 
   /**
    * Check if collection needs cover regeneration based on book count changes
