@@ -45,19 +45,6 @@ router.get('/', async (req, res) => {
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
-    // Debug log to check if covers are being returned
-    console.log('Sample book data being returned:');
-    if (books.length > 0) {
-      const sampleBook = books[0];
-      console.log({
-        title: sampleBook.title,
-        coverImage: sampleBook.coverImage?.substring(0, 100),
-        customCoverImage: sampleBook.customCoverImage?.substring(0, 100),
-        coverThumbnail: sampleBook.coverThumbnail?.substring(0, 100),
-        coverImageSource: sampleBook.coverImageSource
-      });
-    }
-
     const count = await Book.countDocuments(query);
 
     res.json({

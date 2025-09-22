@@ -39,21 +39,11 @@ const BookCard = ({
   // Initialize and update image source
   React.useEffect(() => {
     let timeoutId;
+    // Prefer thumbnail for performance in grid view
     let newSrc = book.coverThumbnail || book.coverImage || book.customCoverImage;
     
-    // Temporary debug log
-    if (book.title.includes('Beauty')) {  // Only log for specific book to reduce noise
-      console.log('BookCard received book:', {
-        title: book.title,
-        coverImage: book.coverImage?.substring(0, 100),
-        customCoverImage: book.customCoverImage?.substring(0, 100),
-        coverThumbnail: book.coverThumbnail?.substring(0, 100),
-        newSrc: newSrc?.substring(0, 100)
-      });
-    }
-    
-    // Add cache busting parameter based on lastModified timestamp
-    if (newSrc && book.lastModified) {
+    // Don't add cache busting to base64 images
+    if (newSrc && !newSrc.startsWith('data:') && book.lastModified) {
       const separator = newSrc.includes('?') ? '&' : '?';
       const timestamp = new Date(book.lastModified).getTime();
       newSrc = `${newSrc}${separator}t=${timestamp}`;
@@ -63,18 +53,24 @@ const BookCard = ({
     setImageError(false);
     
     if (newSrc) {
-      const img = new Image();
-      img.src = newSrc;
-      
-      if (img.complete && img.naturalWidth > 0) {
+      // For base64 images, they're immediately available
+      if (newSrc.startsWith('data:')) {
         setImageLoaded(true);
       } else {
-        setImageLoaded(false);
-        timeoutId = setTimeout(() => {
-          if (imageRef.current && imageRef.current.complete) {
-            setImageLoaded(true);
-          }
-        }, 500);
+        // For URL images, check if they're already loaded
+        const img = new Image();
+        img.src = newSrc;
+        
+        if (img.complete && img.naturalWidth > 0) {
+          setImageLoaded(true);
+        } else {
+          setImageLoaded(false);
+          timeoutId = setTimeout(() => {
+            if (imageRef.current && imageRef.current.complete) {
+              setImageLoaded(true);
+            }
+          }, 500);
+        }
       }
     } else {
       setImageLoaded(false);
@@ -99,8 +95,8 @@ const BookCard = ({
   };
 
   const handleImageError = (e) => {
-    // Try HTTPS if HTTP fails
-    if (imageSrc && imageSrc.startsWith('http://')) {
+    // Try HTTPS if HTTP fails (but not for base64 images)
+    if (imageSrc && !imageSrc.startsWith('data:') && imageSrc.startsWith('http://')) {
       const httpsSrc = imageSrc.replace('http://', 'https://');
       setImageSrc(httpsSrc);
       setImageError(false);
