@@ -36,6 +36,7 @@ import {
 } from '@mui/icons-material';
 import CoverImageUpload from '../CoverImage/CoverImageUpload';
 import EnhancedCoverSearch from '../CoverImage/EnhancedCoverSearch';
+import CompositeImageGenerator from './CompositeImageGenerator';
 import collectionService from '../../services/collectionService';
 
 const CollectionImagePicker = ({ 
@@ -53,6 +54,8 @@ const CollectionImagePicker = ({
   const [selectedImage, setSelectedImage] = useState(null);
   const [tabValue, setTabValue] = useState(0);
   const [showUpload, setShowUpload] = useState(false);
+  const [compositeImage, setCompositeImage] = useState(null);
+  const [generatingComposite, setGeneratingComposite] = useState(false);
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -115,22 +118,28 @@ const CollectionImagePicker = ({
     }
   };
 
-  const generateCompositeImage = () => {
-    // This would ideally create a composite image from multiple book covers
-    // For now, we'll just use the first book's cover
-    if (collection?.books && collection.books.length > 0) {
-      const firstBookWithCover = collection.books.find(book => book.coverImage);
-      if (firstBookWithCover) {
-        return {
-          id: 'composite',
-          url: firstBookWithCover.coverImage,
-          thumbnail: firstBookWithCover.coverImage,
-          source: 'Auto-generated',
-          isComposite: true
-        };
-      }
+  const handleCompositeGenerated = (dataUrl) => {
+    if (dataUrl) {
+      const compositeImageObj = {
+        id: 'composite',
+        url: dataUrl,
+        thumbnail: dataUrl,
+        source: 'Auto-generated Grid',
+        isComposite: true
+      };
+      setCompositeImage(compositeImageObj);
+      setGeneratingComposite(false);
     }
-    return null;
+  };
+
+  const getBookCoversForComposite = () => {
+    if (!collection?.books || collection.books.length === 0) return [];
+    
+    // Get up to 4 book covers for the composite
+    return collection.books
+      .filter(book => book.coverImage)
+      .slice(0, 4)
+      .map(book => book.coverImage);
   };
 
   const handleSelectImage = (image) => {
@@ -245,9 +254,8 @@ const CollectionImagePicker = ({
       );
     }
 
-    // Add auto-generated option if available
-    const composite = generateCompositeImage();
-    const allImages = composite ? [composite, ...availableImages] : availableImages;
+    // Add auto-generated composite if available
+    const allImages = compositeImage ? [compositeImage, ...availableImages] : availableImages;
 
     if (allImages.length === 0) {
       return (
@@ -332,13 +340,14 @@ const CollectionImagePicker = ({
                 {image.isComposite && (
                   <Chip
                     icon={<AutoIcon />}
-                    label="Auto"
+                    label="Grid"
                     size="small"
-                    color="info"
+                    color="secondary"
                     sx={{
                       position: 'absolute',
                       top: 8,
                       left: 8,
+                      fontWeight: 600,
                     }}
                   />
                 )}
@@ -459,9 +468,113 @@ const CollectionImagePicker = ({
             <Tab label="Search Web" icon={<SearchIcon />} iconPosition="start" />
           </Tabs>
 
+          {/* Auto-Generate Section - Always visible on Tab 0 */}
+          {tabValue === 0 && getBookCoversForComposite().length >= 2 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
+                Auto-Generate Collection Cover:
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6} md={4}>
+                  <Card 
+                    sx={{ 
+                      position: 'relative',
+                      border: 2,
+                      borderColor: 'secondary.main',
+                      borderStyle: 'dashed',
+                      bgcolor: 'background.default',
+                      height: 300,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {!compositeImage ? (
+                      <Box sx={{ textAlign: 'center', p: 2 }}>
+                        <AutoIcon sx={{ fontSize: 48, color: 'secondary.main', mb: 1 }} />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                          Generate Grid Cover
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                          Creates a {getBookCoversForComposite().length <= 2 ? '1×2' : '2×2'} grid from book covers
+                        </Typography>
+                        <Button
+                          variant="contained"
+                          color="secondary"
+                          onClick={() => setGeneratingComposite(true)}
+                          disabled={generatingComposite}
+                          startIcon={generatingComposite ? <CircularProgress size={20} /> : <AutoIcon />}
+                        >
+                          {generatingComposite ? 'Generating...' : 'Generate'}
+                        </Button>
+                      </Box>
+                    ) : (
+                      <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
+                        <Box
+                          component="img"
+                          src={compositeImage.url}
+                          alt="Generated composite"
+                          sx={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
+                        />
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            bgcolor: 'rgba(0,0,0,0.7)',
+                            color: 'white',
+                            p: 1,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <Typography variant="caption">Auto-generated Grid</Typography>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            onClick={() => handleSelectImage(compositeImage)}
+                            sx={{ minWidth: 'auto', px: 2 }}
+                          >
+                            Use This
+                          </Button>
+                        </Box>
+                      </Box>
+                    )}
+                  </Card>
+                </Grid>
+              </Grid>
+              
+              {/* Hidden canvas for generation */}
+              {generatingComposite && (
+                <Box sx={{ position: 'absolute', left: -9999 }}>
+                  <CompositeImageGenerator
+                    bookCovers={getBookCoversForComposite()}
+                    width={400}
+                    height={600}
+                    onImageGenerated={handleCompositeGenerated}
+                  />
+                </Box>
+              )}
+            </Box>
+          )}
+
           {/* Tab Content */}
           <Box sx={{ minHeight: 300 }}>
-            {tabValue === 0 && renderImageGrid()}
+            {tabValue === 0 && (
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
+                  Select from Existing Images:
+                </Typography>
+                {renderImageGrid()}
+              </Box>
+            )}
             
             {tabValue === 1 && (
               <Box>
