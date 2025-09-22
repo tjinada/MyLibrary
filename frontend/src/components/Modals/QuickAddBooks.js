@@ -40,8 +40,10 @@ import {
   Diamond as DiamondIcon,
   Star as StarIcon,
   StarBorder as StarBorderIcon,
+  Image as ImageIcon,
 } from '@mui/icons-material';
 import MobileBarcodeScanner from '../Scanner/MobileBarcodeScanner';
+import CoverImagePicker from '../CoverImage/CoverImagePicker';
 import bookService from '../../services/bookService';
 import { ALLOWED_GENRES } from '../../constants/bookConstants';
 
@@ -64,6 +66,8 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
   const [bookStatus, setBookStatus] = useState('to-read');
   const [bookEdition, setBookEdition] = useState('standard');
   const [bookRating, setBookRating] = useState(null);
+  const [showCoverPicker, setShowCoverPicker] = useState(false);
+  const [selectedCoverUrl, setSelectedCoverUrl] = useState(null);
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -169,6 +173,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
         status: bookStatus,
         edition: bookEdition,
         rating: bookRating, // Include rating if set
+        coverImage: selectedCoverUrl || currentBook.coverImage, // Use selected cover if changed
       };
       
       const response = await bookService.addBook(bookToAdd);
@@ -226,6 +231,8 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     setBookStatus('to-read');
     setBookEdition('standard');
     setBookRating(null);
+    setSelectedCoverUrl(null);
+    setShowCoverPicker(false);
     
     // Refocus ISBN input
     if (!isMobile && isbnInputRef.current) {
@@ -251,6 +258,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
         status: bookStatus,
         edition: bookEdition,
         rating: bookRating, // Include rating if set
+        coverImage: selectedCoverUrl || currentBook.coverImage, // Use selected cover if changed
         allowDuplicate: true,
       };
       
@@ -307,6 +315,8 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     setBookStatus('to-read');
     setBookEdition('standard');
     setBookRating(null);
+    setSelectedCoverUrl(null);
+    setShowCoverPicker(false);
     setDuplicateBook(null);
     setShowDuplicateDialog(false);
     if (successTimeoutRef.current) {
@@ -512,28 +522,68 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
               <Grid container spacing={3}>
                 <Grid item xs={12} md={4}>
                   {/* Book cover */}
-                  <Card sx={{ height: '100%' }}>
-                    {currentBook.coverImage ? (
-                      <CardMedia
-                        component="img"
-                        image={currentBook.coverImage}
-                        alt={currentBook.title}
-                        sx={{ 
-                          height: 'auto', 
-                          maxHeight: isMobile ? 300 : 450,
-                          width: '100%',
-                          objectFit: 'contain'
-                        }}
-                      />
+                  <Card sx={{ height: '100%', position: 'relative' }}>
+                    {(currentBook.coverImage || selectedCoverUrl) ? (
+                      <>
+                        <CardMedia
+                          component="img"
+                          image={selectedCoverUrl || currentBook.coverImage}
+                          alt={currentBook.title}
+                          sx={{ 
+                            height: 'auto', 
+                            maxHeight: isMobile ? 300 : 450,
+                            width: '100%',
+                            objectFit: 'contain'
+                          }}
+                        />
+                        {/* Change Cover Button */}
+                        <Box sx={{ 
+                          position: 'absolute', 
+                          bottom: 0, 
+                          left: 0, 
+                          right: 0,
+                          background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)',
+                          p: 1,
+                          display: 'flex',
+                          justifyContent: 'center'
+                        }}>
+                          <Button
+                            size="small"
+                            startIcon={<ImageIcon />}
+                            onClick={() => setShowCoverPicker(true)}
+                            sx={{ 
+                              color: 'white',
+                              '&:hover': {
+                                bgcolor: 'rgba(255,255,255,0.1)'
+                              }
+                            }}
+                          >
+                            Change Cover
+                          </Button>
+                        </Box>
+                      </>
                     ) : (
                       <Box sx={{ 
                         height: isMobile ? 300 : 400, 
                         display: 'flex', 
+                        flexDirection: 'column',
                         alignItems: 'center', 
                         justifyContent: 'center',
-                        bgcolor: 'grey.200'
+                        bgcolor: 'grey.200',
+                        p: 3
                       }}>
-                        <Typography color="text.secondary">No Cover</Typography>
+                        <ImageIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
+                        <Typography color="text.secondary" align="center" gutterBottom>
+                          No Cover
+                        </Typography>
+                        <Button
+                          variant="contained"
+                          startIcon={<ImageIcon />}
+                          onClick={() => setShowCoverPicker(true)}
+                          size="small"
+                        >
+                          Add Cover
+                        </Button>
                       </Box>
                     )}
                   </Card>
@@ -827,6 +877,18 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Cover Image Picker Modal */}
+      <CoverImagePicker
+        open={showCoverPicker}
+        onClose={() => setShowCoverPicker(false)}
+        book={currentBook}
+        currentCover={selectedCoverUrl || currentBook?.coverImage}
+        onCoverSelected={(coverUrl) => {
+          setSelectedCoverUrl(coverUrl);
+          setShowCoverPicker(false);
+        }}
+      />
     </Dialog>
   );
 };
