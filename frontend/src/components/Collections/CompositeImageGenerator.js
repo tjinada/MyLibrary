@@ -27,13 +27,41 @@ const CompositeImageGenerator = ({
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous'; // Enable CORS for external images
-      img.onload = () => resolve(img);
-      img.onerror = () => {
-        console.warn(`Failed to load image: ${src}`);
-        // Return a placeholder or null on error
+      
+      // Set a timeout for image loading
+      const timeout = setTimeout(() => {
+        console.warn(`Image load timeout: ${src}`);
+        resolve(null);
+      }, 5000);
+      
+      img.onload = () => {
+        clearTimeout(timeout);
+        // Verify image loaded properly
+        if (img.width > 0 && img.height > 0) {
+          resolve(img);
+        } else {
+          console.warn(`Invalid image dimensions: ${src}`);
+          resolve(null);
+        }
+      };
+      
+      img.onerror = (error) => {
+        clearTimeout(timeout);
+        console.warn(`Failed to load image: ${src}`, error);
+        // Return null instead of rejecting to continue with other images
         resolve(null);
       };
-      img.src = src;
+      
+      // Handle different URL types
+      if (src && src.startsWith('//')) {
+        // Protocol-relative URL
+        img.src = 'https:' + src;
+      } else if (src && src.startsWith('/')) {
+        // Relative URL - use the current origin
+        img.src = window.location.origin + src;
+      } else {
+        img.src = src;
+      }
     });
   };
 
@@ -77,6 +105,7 @@ const CompositeImageGenerator = ({
       } else if (validImages.length === 3) {
         gridCols = 2;
         gridRows = 2;
+        // For 3 images, we'll leave one cell empty
       } else {
         gridCols = 2;
         gridRows = 2;
@@ -95,6 +124,9 @@ const CompositeImageGenerator = ({
         
         const x = col * (cellWidth + gap);
         const y = row * (cellHeight + gap);
+        
+        // Save the current context state
+        ctx.save();
         
         // Calculate scaling to maintain aspect ratio and cover the cell
         const imgAspect = img.width / img.height;
@@ -115,24 +147,33 @@ const CompositeImageGenerator = ({
           sourceY = (img.height - sourceHeight) / 2;
         }
         
-        // Add a subtle shadow/border effect
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+        // Add a subtle shadow effect
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
         ctx.shadowBlur = 4;
         ctx.shadowOffsetX = 2;
         ctx.shadowOffsetY = 2;
         
-        // Draw the image
-        ctx.drawImage(
-          img,
-          sourceX, sourceY, sourceWidth, sourceHeight, // Source rectangle
-          x, y, cellWidth, cellHeight // Destination rectangle
-        );
+        // Create a clipping region for the cell
+        ctx.beginPath();
+        ctx.rect(x, y, cellWidth, cellHeight);
+        ctx.clip();
         
-        // Reset shadow
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
+        // Draw the image
+        try {
+          ctx.drawImage(
+            img,
+            sourceX, sourceY, sourceWidth, sourceHeight, // Source rectangle
+            x, y, cellWidth, cellHeight // Destination rectangle
+          );
+        } catch (error) {
+          console.error('Error drawing image:', error);
+          // Fill with placeholder color if drawing fails
+          ctx.fillStyle = '#e0e0e0';
+          ctx.fillRect(x, y, cellWidth, cellHeight);
+        }
+        
+        // Restore the context state
+        ctx.restore();
         
         // Add a subtle border
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';

@@ -83,6 +83,11 @@ class CompositeImageService {
         // Handle different URL types
         let imageBuffer;
         
+        if (!url || url === 'null' || url === 'undefined') {
+          console.log('Skipping invalid URL:', url);
+          continue;
+        }
+        
         if (url.startsWith('data:image')) {
           // Handle base64 data URLs
           const base64Data = url.split(',')[1];
@@ -92,19 +97,39 @@ class CompositeImageService {
           const response = await axios.get(url, {
             responseType: 'arraybuffer',
             timeout: 10000,
-            maxContentLength: 10 * 1024 * 1024 // 10MB limit
+            maxContentLength: 10 * 1024 * 1024, // 10MB limit
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; CollectionImageBot/1.0)'
+            }
+          });
+          imageBuffer = Buffer.from(response.data);
+        } else if (url.startsWith('//')) {
+          // Protocol-relative URL
+          const fullUrl = 'https:' + url;
+          const response = await axios.get(fullUrl, {
+            responseType: 'arraybuffer',
+            timeout: 10000,
+            maxContentLength: 10 * 1024 * 1024,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; CollectionImageBot/1.0)'
+            }
           });
           imageBuffer = Buffer.from(response.data);
         } else if (url.startsWith('/')) {
           // Local file path - skip for now
-          console.log('Local file paths not supported in composite generation');
+          console.log('Local file paths not supported in composite generation:', url);
           continue;
         } else {
           console.log('Unsupported URL format:', url);
           continue;
         }
         
-        imageBuffers.push(imageBuffer);
+        // Verify it's a valid image buffer
+        if (imageBuffer && imageBuffer.length > 0) {
+          imageBuffers.push(imageBuffer);
+        } else {
+          console.log('Empty image buffer for URL:', url);
+        }
       } catch (error) {
         console.error('Failed to download image:', url, error.message);
         // Continue with other images
@@ -214,13 +239,18 @@ class CompositeImageService {
    * @returns {Boolean} Whether to auto-generate
    */
   shouldAutoGenerate(collection) {
-    // Auto-generate if:
-    // 1. Collection has no custom cover image
-    // 2. Collection has 2 or more books with covers
-    // 3. Collection is of type 'series' or has auto-generate preference
+    // Always regenerate for series collections when books change
+    if (collection.collectionType === 'series') {
+      const booksWithCovers = collection.books?.filter(book => 
+        book.coverImage && book.coverImage.length > 0
+      ) || [];
+      
+      return booksWithCovers.length >= 2;
+    }
     
-    if (collection.coverImage && !collection.coverBookId) {
-      // Has custom cover, don't auto-generate
+    // For other collections, only generate if no custom cover exists
+    if (collection.coverImage && !collection.coverBookId && !collection.coverImage.startsWith('data:image')) {
+      // Has custom cover (not auto-generated), don't regenerate
       return false;
     }
     
@@ -233,8 +263,39 @@ class CompositeImageService {
       return false;
     }
     
-    // Auto-generate for series or if no cover is set
-    return collection.collectionType === 'series' || !collection.coverImage;
+    // Auto-generate if no cover is set or if current cover is auto-generated
+    return !collection.coverImage || collection.coverImage.startsWith('data:image');
+  },
+
+  /**
+   * Check if collection needs cover regeneration based on book count changes
+   * @param {Object} collection - Collection object
+   * @param {Number} previousBookCount - Previous number of books
+   * @returns {Boolean} Whether to regenerate
+   */
+  shouldRegenerateOnBookChange(collection, previousBookCount) {
+    const currentBookCount = collection.books?.length || 0;
+    
+    // Don't regenerate if collection has a custom cover (non-auto-generated)
+    if (collection.coverImage && !collection.coverImage.startsWith('data:image') && !collection.coverBookId) {
+      return false;
+    }
+    
+    // Key transition points for grid layout:
+    // 1 -> 2: Single to 1x2 grid
+    // 2 -> 3: 1x2 to 2x2 grid (with empty cell)
+    // 3 -> 4: 2x2 with empty to full 2x2 grid
+    const transitionPoints = [1, 2, 3, 4];
+    
+    // Check if we crossed a transition point
+    for (const point of transitionPoints) {
+      if ((previousBookCount < point && currentBookCount >= point) ||
+          (previousBookCount > point && currentBookCount <= point)) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 }
 

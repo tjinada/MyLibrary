@@ -143,14 +143,28 @@ router.delete('/:id', auth, async (req, res) => {
 // Add book to collection (requires auth)
 router.post('/:id/books/:bookId', auth, async (req, res) => {
   try {
+    // Get the collection first to know the previous book count
+    const collection = await Collection.findById(req.params.id).populate('books', 'coverImage');
+    if (!collection) {
+      return res.status(404).json({ message: 'Collection not found' });
+    }
+    
+    const previousBookCount = collection.books.length;
+    
     const result = await CollectionBookService.addBookToCollection(
       req.params.id,
       req.params.bookId
     );
     
-    // Auto-generate composite cover if needed (when we have 2+ books)
+    // Populate books for cover generation
     await result.collection.populate('books', 'coverImage title');
-    if (result.collection.books.length >= 2 && !result.collection.coverImage) {
+    
+    const CompositeImageService = require('../services/compositeImageService');
+    
+    // Check if we should regenerate based on book count transition
+    if (CompositeImageService.shouldRegenerateOnBookChange(result.collection, previousBookCount) ||
+        (result.collection.books.length >= 2 && !result.collection.coverImage)) {
+      console.log(`Regenerating composite cover for collection: ${result.collection.name} (${previousBookCount} -> ${result.collection.books.length} books)`);
       await result.collection.generateCoverImage();
       await result.collection.save();
     }
@@ -168,10 +182,36 @@ router.post('/:id/books/:bookId', auth, async (req, res) => {
 // Remove book from collection (requires auth)
 router.delete('/:id/books/:bookId', auth, async (req, res) => {
   try {
+    // Get the collection first to know the previous book count
+    const collection = await Collection.findById(req.params.id).populate('books', 'coverImage');
+    if (!collection) {
+      return res.status(404).json({ message: 'Collection not found' });
+    }
+    
+    const previousBookCount = collection.books.length;
+    
     const result = await CollectionBookService.removeBookFromCollection(
       req.params.id,
       req.params.bookId
     );
+    
+    // Populate remaining books
+    await result.collection.populate('books', 'coverImage title');
+    
+    const CompositeImageService = require('../services/compositeImageService');
+    
+    // Check if we should regenerate based on book count transition
+    if (result.collection.books.length >= 2 && 
+        CompositeImageService.shouldRegenerateOnBookChange(result.collection, previousBookCount)) {
+      console.log(`Regenerating composite cover after book removal: ${result.collection.name} (${previousBookCount} -> ${result.collection.books.length} books)`);
+      await result.collection.generateCoverImage();
+      await result.collection.save();
+    } else if (result.collection.books.length < 2 && result.collection.coverImage?.startsWith('data:image')) {
+      // Clear auto-generated cover if less than 2 books remain
+      result.collection.coverImage = null;
+      result.collection.coverBookId = null;
+      await result.collection.save();
+    }
     
     res.json(result.collection);
   } catch (error) {
@@ -194,15 +234,30 @@ router.post('/:id/books', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
+    // Get the collection first to know the previous book count
+    const existingCollection = await Collection.findById(req.params.id).populate('books', 'coverImage');
+    if (!existingCollection) {
+      return res.status(404).json({ message: 'Collection not found' });
+    }
+    
+    const previousBookCount = existingCollection.books.length;
+
     const { bookIds } = req.body;
     const collection = await CollectionBookService.bulkAddBooks(
       req.params.id,
       bookIds
     );
     
-    // Auto-generate composite cover if collection is new or has no cover
-    if (!collection.coverImage || collection.books.length === bookIds.length) {
-      await collection.populate('books', 'coverImage title');
+    // Populate books for cover generation
+    await collection.populate('books', 'coverImage title');
+    
+    const CompositeImageService = require('../services/compositeImageService');
+    
+    // Auto-generate or regenerate composite cover based on transitions
+    if (!collection.coverImage || 
+        collection.books.length === bookIds.length || // New collection
+        CompositeImageService.shouldRegenerateOnBookChange(collection, previousBookCount)) {
+      console.log(`Generating/regenerating composite cover for collection: ${collection.name} (${previousBookCount} -> ${collection.books.length} books)`);
       await collection.generateCoverImage();
       await collection.save();
     }
