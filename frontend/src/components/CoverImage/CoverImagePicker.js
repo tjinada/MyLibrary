@@ -445,18 +445,14 @@ const CoverImagePicker = ({
             )}
             
             {tabValue === 2 && (
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Button
-                  variant="contained"
-                  startIcon={<SearchIcon />}
-                  onClick={() => setShowSearch(true)}
-                  size="large"
-                >
-                  Search for Covers
-                </Button>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                  Search Google Images and other sources for book covers
-                </Typography>
+              <Box>
+                {/* Direct search UI without extra dialog */}
+                <CoverSearchDialog
+                  open={false}  // Use inline mode
+                  book={book}
+                  onSelectCover={handleSearchSelect}
+                  mode="inline"
+                />
               </Box>
             )}
           </Box>
