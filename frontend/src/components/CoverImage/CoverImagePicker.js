@@ -60,12 +60,31 @@ const CoverImagePicker = ({
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
+  // Check if book exists in database (has been saved)
+  const bookExists = book?._id ? true : false;
+
   // Fetch available covers on mount
   useEffect(() => {
     if (open && book?.isbn) {
-      fetchAvailableCovers();
+      if (bookExists) {
+        // Book exists in DB, fetch covers normally
+        fetchAvailableCovers();
+      } else {
+        // Book not in DB yet, just show current cover and search options
+        const covers = [];
+        if (currentCover) {
+          covers.push({
+            id: 'current',
+            url: currentCover,
+            thumbnail: currentCover,
+            source: 'Current',
+            isActive: true
+          });
+        }
+        setAvailableCovers(covers);
+      }
     }
-  }, [open, book]);
+  }, [open, book, bookExists, currentCover]);
 
   const fetchAvailableCovers = async () => {
     if (!book?.isbn) return;
@@ -95,7 +114,19 @@ const CoverImagePicker = ({
   };
 
   const handleApplyCover = async () => {
-    if (!selectedCover || !book?.isbn) return;
+    if (!selectedCover) return;
+    
+    // If book doesn't exist in DB yet, just pass the URL back
+    if (!bookExists) {
+      if (onCoverSelected) {
+        onCoverSelected(selectedCover.url, selectedCover.source);
+      }
+      onClose();
+      return;
+    }
+    
+    // Book exists, update in database
+    if (!book?.isbn) return;
     
     setLoading(true);
     setError(null);
@@ -119,12 +150,30 @@ const CoverImagePicker = ({
     }
   };
 
-  const handleUploadSuccess = async (imageData) => {
+  const handleUploadSuccess = async (imageData, imageUrl) => {
     setShowUpload(false);
+    
+    // If book doesn't exist yet, just add to available covers
+    if (!bookExists) {
+      const newCover = {
+        id: 'uploaded-' + Date.now(),
+        url: imageUrl || imageData,
+        thumbnail: imageUrl || imageData,
+        source: 'Uploaded',
+        isActive: false
+      };
+      setAvailableCovers(prev => [...prev, newCover]);
+      setSelectedCover(newCover);
+      setTabValue(0);
+      setSuccessMessage('Cover uploaded successfully!');
+      return;
+    }
+    
+    // Book exists, upload to backend
     setLoading(true);
     
     try {
-      await bookService.uploadCover(book.isbn, imageData);
+      await bookService.uploadCover(book.isbn, imageData, imageUrl);
       setSuccessMessage('Cover uploaded successfully!');
       
       // Refresh covers list
@@ -141,7 +190,7 @@ const CoverImagePicker = ({
   };
 
   const handleDeleteCustomCover = async () => {
-    if (!book?.isbn) return;
+    if (!book?.isbn || !bookExists) return;
     
     if (!window.confirm('Are you sure you want to delete your custom cover?')) {
       return;
@@ -166,6 +215,24 @@ const CoverImagePicker = ({
 
   const handleSearchSelect = async (coverUrl) => {
     setShowSearch(false);
+    
+    // If book doesn't exist yet, just add to available covers
+    if (!bookExists) {
+      const newCover = {
+        id: 'search-' + Date.now(),
+        url: coverUrl,
+        thumbnail: coverUrl,
+        source: 'Web Search',
+        isActive: false
+      };
+      setAvailableCovers(prev => [...prev, newCover]);
+      setSelectedCover(newCover);
+      setTabValue(0);
+      setSuccessMessage('Cover added successfully!');
+      return;
+    }
+    
+    // Book exists, upload to backend
     setLoading(true);
     
     try {

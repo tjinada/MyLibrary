@@ -54,18 +54,42 @@ const CoverSearchDialog = ({
   }, [open, book]);
 
   const handleSearch = async () => {
-    if (!searchQuery.trim() || !book?.isbn) return;
+    if (!searchQuery.trim()) return;
     
     setLoading(true);
     setError(null);
     setHasSearched(true);
     
     try {
-      const response = await bookService.searchCovers(book.isbn, searchQuery);
-      setSearchResults(response.suggestions || []);
-      
-      if (response.suggestions.length === 0) {
-        setError('No covers found. Try different search terms.');
+      // If book doesn't exist in DB, use alternative search
+      if (!book?._id) {
+        // Use the fallback search service directly
+        const searchService = require('../../services/bookService').default;
+        // Search using Google Books API or other sources
+        const results = await searchService.searchGoogleBooks(searchQuery);
+        
+        // Convert results to our format
+        const suggestions = results.items?.map(item => ({
+          url: item.volumeInfo?.imageLinks?.thumbnail?.replace('http://', 'https://'),
+          thumbnail: item.volumeInfo?.imageLinks?.thumbnail?.replace('http://', 'https://'),
+          title: item.volumeInfo?.title,
+          source: 'Google Books',
+          valid: true
+        })).filter(s => s.url) || [];
+        
+        setSearchResults(suggestions);
+        
+        if (suggestions.length === 0) {
+          setError('No covers found. Try different search terms.');
+        }
+      } else {
+        // Book exists, use normal search
+        const response = await bookService.searchCovers(book.isbn, searchQuery);
+        setSearchResults(response.suggestions || []);
+        
+        if (response.suggestions.length === 0) {
+          setError('No covers found. Try different search terms.');
+        }
       }
     } catch (err) {
       console.error('Error searching covers:', err);

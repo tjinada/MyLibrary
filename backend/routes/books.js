@@ -241,8 +241,12 @@ router.get('/:isbn/covers', async (req, res) => {
   try {
     const { isbn } = req.params;
     
+    console.log('Searching for book with ISBN:', isbn);
     const book = await Book.findOne({ isbn });
+    console.log('Book found:', book ? 'YES' : 'NO');
+    
     if (!book) {
+      console.log('Book not found, returning 404');
       return res.status(404).json({ message: 'Book not found' });
     }
     
@@ -431,12 +435,20 @@ router.post('/:isbn/cover/select', async (req, res) => {
 
 // Search for cover suggestions (no auth required for searching)
 router.post('/:isbn/cover/search', async (req, res) => {
+  console.log('=== COVER SEARCH ROUTE HIT ===');
+  console.log('ISBN:', req.params.isbn);
+  console.log('Body:', req.body);
+  
   try {
     const { isbn } = req.params;
     const { query } = req.body;
     
+    console.log('Searching for book with ISBN:', isbn);
     const book = await Book.findOne({ isbn });
+    console.log('Book found:', book ? 'YES' : 'NO');
+    
     if (!book) {
+      console.log('Book not found, returning 404');
       return res.status(404).json({ message: 'Book not found' });
     }
     
