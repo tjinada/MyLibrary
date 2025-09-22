@@ -34,6 +34,46 @@ const CoverImageUpload = ({
   const fileInputRef = useRef(null);
   const theme = useTheme();
 
+  // Compress image before uploading
+  const compressImage = (base64String) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Calculate new dimensions (max 1200px width/height while maintaining aspect ratio)
+        let { width, height } = img;
+        const maxSize = 1200;
+        
+        if (width > height) {
+          if (width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to base64 with compression (0.8 quality)
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+        resolve(compressedBase64);
+      };
+      
+      img.onerror = reject;
+      img.src = base64String;
+    });
+  };
+
   // Handle file selection
   const handleFileSelect = (files) => {
     if (files && files[0]) {
@@ -134,14 +174,27 @@ const CoverImageUpload = ({
       if (previewUrl.startsWith('http')) {
         await onUploadSuccess(null, previewUrl);
       } else {
-        // It's a base64 image
-        await onUploadSuccess(previewUrl);
+        // It's a base64 image - compress it first
+        const compressedImage = await compressImage(previewUrl);
+        
+        // Check size after compression
+        const sizeInBytes = (compressedImage.length * 3) / 4; // Approximate size
+        const sizeInMB = sizeInBytes / (1024 * 1024);
+        
+        if (sizeInMB > 8) {
+          onError('Image is too large even after compression. Please choose a smaller image.');
+          setLoading(false);
+          return;
+        }
+        
+        await onUploadSuccess(compressedImage);
       }
       
       // Clear preview
       setPreviewUrl(null);
       setImageUrl('');
     } catch (err) {
+      console.error('Upload error:', err);
       onError('Failed to upload image');
     } finally {
       setLoading(false);
