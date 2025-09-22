@@ -57,10 +57,12 @@ import {
   Star as StarIcon,
   Diamond as DiamondIcon,
   AutoAwesome as SpecialIcon,
+  PhotoLibrary as PhotoLibraryIcon,
 } from '@mui/icons-material';
 import bookService from '../../services/bookService';
 import StatusPills from './StatusPills';
 import BookStatusChip, { BookEditionBadge } from '../Books/BookStatusChip';
+import CoverImagePicker from '../CoverImage/CoverImagePicker';
 import { ALLOWED_GENRES } from '../../constants/bookConstants';
 
 const BookDetailsModal = ({ 
@@ -79,6 +81,7 @@ const BookDetailsModal = ({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteQuantity, setDeleteQuantity] = useState(1);
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+  const [showCoverPicker, setShowCoverPicker] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
@@ -198,6 +201,37 @@ const BookDetailsModal = ({
       }
     } catch (err) {
       setError('Failed to update status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCoverSelected = async (coverUrl, source) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Update the cover image
+      const updatedBook = await bookService.updateBook(book.isbn, { 
+        coverImage: coverUrl,
+        coverImageSource: source 
+      });
+      
+      setCurrentBookData(updatedBook);
+      setEditedBook(prev => ({ ...prev, coverImage: coverUrl }));
+      
+      // Regenerate cover options with new cover
+      const options = generateCoverOptions(updatedBook);
+      setCoverOptions(options);
+      setSelectedCoverIndex(0);
+      
+      if (onBookUpdated) {
+        onBookUpdated(updatedBook);
+      }
+      
+      setShowCoverPicker(false);
+    } catch (err) {
+      setError('Failed to update cover');
     } finally {
       setLoading(false);
     }
@@ -536,6 +570,17 @@ const BookDetailsModal = ({
                       )
                     )}
                   </Card>
+
+                  {/* Browse Covers Button */}
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    startIcon={<PhotoLibraryIcon />}
+                    onClick={() => setShowCoverPicker(true)}
+                    sx={{ mb: 3 }}
+                  >
+                    Browse Covers
+                  </Button>
 
                   {/* Rating */}
                   <Box sx={{ textAlign: 'center' }}>
@@ -1065,6 +1110,15 @@ const BookDetailsModal = ({
           </Box>
         </Box>
       </Dialog>
+
+      {/* Cover Image Picker Dialog */}
+      <CoverImagePicker
+        open={showCoverPicker}
+        onClose={() => setShowCoverPicker(false)}
+        book={currentBookData || book}
+        currentCover={displayBook.coverImage}
+        onCoverSelected={handleCoverSelected}
+      />
     </>
   );
 };
