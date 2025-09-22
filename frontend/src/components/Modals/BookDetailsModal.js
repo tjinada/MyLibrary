@@ -211,6 +211,12 @@ const BookDetailsModal = ({
       setLoading(true);
       setError(null);
       
+      // Clear image cache for this book
+      if (displayBook.coverImage) {
+        const img = new Image();
+        img.src = coverUrl; // Preload new image
+      }
+      
       // Update the cover image
       const updatedBook = await bookService.updateBook(book.isbn, { 
         coverImage: coverUrl,

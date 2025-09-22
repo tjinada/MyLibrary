@@ -39,7 +39,14 @@ const BookCard = ({
   // Update image source when book prop changes
   React.useEffect(() => {
     let timeoutId;
-    const newSrc = book.coverThumbnail || book.coverImage;
+    let newSrc = book.coverThumbnail || book.coverImage;
+    
+    // Add cache busting parameter based on lastModified timestamp
+    if (newSrc && book.lastModified) {
+      const separator = newSrc.includes('?') ? '&' : '?';
+      const timestamp = new Date(book.lastModified).getTime();
+      newSrc = `${newSrc}${separator}t=${timestamp}`;
+    }
     
     if (newSrc !== imageSrc) {
       setImageSrc(newSrc);

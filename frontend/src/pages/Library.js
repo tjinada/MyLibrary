@@ -473,7 +473,36 @@ const Library = () => {
     setManageCollectionsOpen(true);
   }, []);
 
-  const handleBookUpdated = useCallback(() => {
+  const handleBookUpdated = useCallback((updatedBook) => {
+    // Update the book in the local state immediately for instant feedback
+    if (updatedBook) {
+      setLibraryItems(prev => prev.map(item => {
+        if (item.type === 'book' && item.data.isbn === updatedBook.isbn) {
+          return { ...item, data: updatedBook };
+        }
+        return item;
+      }));
+      
+      setAllLibraryItems(prev => prev.map(item => {
+        if (item.type === 'book' && item.data.isbn === updatedBook.isbn) {
+          return { ...item, data: updatedBook };
+        }
+        return item;
+      }));
+      
+      // Also update the selected book if it's the same
+      setSelectedBook(prev => {
+        if (prev?.isbn === updatedBook.isbn) {
+          return updatedBook;
+        }
+        return prev;
+      });
+    }
+    
+    // Clear image cache to force reload
+    imagePreloader.clearCache();
+    
+    // Then fetch from server to ensure consistency
     fetchLibrary();
   }, []);
 
