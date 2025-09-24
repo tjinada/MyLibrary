@@ -21,10 +21,15 @@ const ActiveFilterChips = ({ filters, onRemoveFilter, onClearAll }) => {
     });
   }
 
-  if (filters.genre !== 'all') {
+  if (filters.genre !== 'all' && (!Array.isArray(filters.genre) || filters.genre.length > 0)) {
+    // Handle both single genre and multiple genres
+    const genreLabel = Array.isArray(filters.genre) 
+      ? filters.genre.join(', ')
+      : filters.genre;
+    
     activeFilters.push({
       key: 'genre',
-      label: `Genre: ${filters.genre}`,
+      label: `Genre: ${genreLabel}`,
       value: filters.genre,
     });
   }

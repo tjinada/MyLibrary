@@ -33,9 +33,14 @@ const FilterPopover = ({
 }) => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState(null);
-  const [selectedGenres, setSelectedGenres] = useState(
-    filters.genre === 'all' ? [] : Array.isArray(filters.genre) ? filters.genre : [filters.genre]
-  );
+  
+  // Derive selectedGenres from filters prop instead of local state
+  // This ensures it stays in sync when filters are cleared externally
+  const selectedGenres = filters.genre === 'all' 
+    ? [] 
+    : Array.isArray(filters.genre) 
+      ? filters.genre 
+      : [filters.genre];
 
   const handleOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -49,7 +54,6 @@ const FilterPopover = ({
 
   const handleFilterUpdate = (filterType, value) => {
     if (filterType === 'genre') {
-      setSelectedGenres(value);
       onFilterChange({ ...filters, genre: value.length === 0 ? 'all' : value });
     } else {
       onFilterChange({ ...filters, [filterType]: value });
@@ -58,12 +62,10 @@ const FilterPopover = ({
 
   const handleGenreChange = (event) => {
     const value = event.target.value;
-    setSelectedGenres(value);
     onFilterChange({ ...filters, genre: value.length === 0 ? 'all' : value });
   };
 
   const clearGenres = () => {
-    setSelectedGenres([]);
     onFilterChange({ ...filters, genre: 'all' });
   };
 
@@ -384,13 +386,12 @@ const FilterPopover = ({
                 variant="outlined"
                 color="error"
                 onClick={() => {
-                  setSelectedGenres([]);
                   onFilterChange({
-                    search: '',
+                    search: filters.search || '',  // Keep search if it exists
                     status: 'all',
                     genre: 'all',
                     edition: 'all',
-                    sort: 'title',
+                    sort: filters.sort || 'title',  // Keep sort preference
                   });
                   handleClose();
                 }}
