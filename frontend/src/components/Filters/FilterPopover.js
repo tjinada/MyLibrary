@@ -96,12 +96,23 @@ const FilterPopover = ({
           vertical: 'top',
           horizontal: 'left',
         }}
+        disablePortal={false}
         PaperProps={{
           sx: {
             width: 320,
             maxHeight: 500,
             borderRadius: 2,
             mt: 1,
+          },
+          onClick: (e) => {
+            // Prevent the popover from closing when clicking inside
+            e.stopPropagation();
+          }
+        }}
+        // Add slotProps to handle backdrop click properly
+        slotProps={{
+          backdrop: {
+            onClick: handleClose
           }
         }}
       >
@@ -125,6 +136,12 @@ const FilterPopover = ({
               <Select
                 value={filters.status}
                 onChange={(e) => handleFilterUpdate('status', e.target.value)}
+                onClose={(e) => e?.stopPropagation()}
+                MenuProps={{
+                  BackdropProps: {
+                    onClick: () => handleClose()
+                  }
+                }}
                 sx={{ borderRadius: 1.5 }}
               >
                 <MenuItem value="all">
@@ -218,6 +235,12 @@ const FilterPopover = ({
               <Select
                 value={filters.edition || 'all'}
                 onChange={(e) => handleFilterUpdate('edition', e.target.value)}
+                onClose={(e) => e?.stopPropagation()}
+                MenuProps={{
+                  BackdropProps: {
+                    onClick: () => handleClose()
+                  }
+                }}
                 sx={{ borderRadius: 1.5 }}
               >
                 <MenuItem value="all">All Editions</MenuItem>
@@ -264,6 +287,36 @@ const FilterPopover = ({
                     multiple
                     value={selectedGenres}
                     onChange={handleGenreChange}
+                    onClose={(e) => {
+                      // Prevent the popover from closing when the select closes
+                      e?.stopPropagation();
+                    }}
+                    MenuProps={{
+                      // Make the dropdown menu appear within the popover's z-index context
+                      disablePortal: false,
+                      anchorOrigin: {
+                        vertical: 'bottom',
+                        horizontal: 'left',
+                      },
+                      transformOrigin: {
+                        vertical: 'top',
+                        horizontal: 'left',
+                      },
+                      PaperProps: {
+                        style: {
+                          maxHeight: 250,
+                        },
+                        onClick: (e) => {
+                          e.stopPropagation();
+                        }
+                      },
+                      // Close both dropdown and popover on backdrop click
+                      BackdropProps: {
+                        onClick: () => {
+                          handleClose();
+                        }
+                      }
+                    }}
                     renderValue={(selected) => (
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                         {selected.length === 0 ? (
@@ -288,13 +341,6 @@ const FilterPopover = ({
                       </Box>
                     )}
                     sx={{ borderRadius: 1.5 }}
-                    MenuProps={{
-                      PaperProps: {
-                        style: {
-                          maxHeight: 250,
-                        },
-                      },
-                    }}
                   >
                     {genres.map((genre) => (
                       <MenuItem key={genre.name} value={genre.name}>
