@@ -694,6 +694,65 @@ router.post('/:isbn/validate-cover', auth, async (req, res) => {
   }
 });
 
+// Remove primaryCategory field from all books (requires auth)
+router.post('/remove-primary-category', auth, async (req, res) => {
+  try {
+    console.log('Starting primaryCategory field removal...');
+    
+    // Count books with primaryCategory
+    const booksWithPrimaryCategory = await Book.countDocuments({ 
+      primaryCategory: { $exists: true } 
+    });
+    
+    if (booksWithPrimaryCategory === 0) {
+      return res.json({
+        message: 'No books have primaryCategory field',
+        removed: 0
+      });
+    }
+    
+    // Find mismatched books for logging
+    const mismatchedBooks = await Book.find({
+      primaryCategory: { $exists: true },
+      genres: { $exists: true, $ne: [] }
+    }).select('isbn title primaryCategory genres categoryType');
+    
+    const mismatches = [];
+    for (const book of mismatchedBooks) {
+      if (book.primaryCategory && !book.genres.includes(book.primaryCategory)) {
+        mismatches.push({
+          isbn: book.isbn,
+          title: book.title,
+          oldPrimaryCategory: book.primaryCategory,
+          genres: book.genres,
+          categoryType: book.categoryType
+        });
+      }
+    }
+    
+    // Remove the field
+    const result = await Book.updateMany(
+      { primaryCategory: { $exists: true } },
+      { $unset: { primaryCategory: "" } }
+    );
+    
+    res.json({
+      message: `Removed primaryCategory from ${result.modifiedCount} books`,
+      totalProcessed: booksWithPrimaryCategory,
+      removed: result.modifiedCount,
+      mismatches: mismatches.length,
+      mismatchDetails: mismatches
+    });
+    
+  } catch (error) {
+    console.error('Error removing primaryCategory:', error);
+    res.status(500).json({ 
+      message: 'Failed to remove primaryCategory',
+      error: error.message 
+    });
+  }
+});
+
 // Fix uncategorized books endpoint (requires auth)
 router.post('/fix-uncategorized', auth, async (req, res) => {
   try {
@@ -727,14 +786,13 @@ router.post('/fix-uncategorized', auth, async (req, res) => {
       try {
         console.log(`Processing book: ${book.title} (ISBN: ${book.isbn})`);
         
-        // Strategy 1: If book already has valid genres, use the first one
+        // Strategy 1: If book already has valid genres, keep them
         if (book.genres && book.genres.length > 0) {
           const validGenres = book.genres.filter(g => g !== 'Uncategorized');
           
           if (validGenres.length > 0) {
             book.genres = validGenres;
-            book.primaryCategory = validGenres[0];
-            console.log(`  Using existing genre: ${book.primaryCategory}`);
+            console.log(`  Using existing genres: ${book.genres.join(', ')}`);
           } else {
             // Re-categorize the book
             const subjects = [];
@@ -754,7 +812,6 @@ router.post('/fix-uncategorized', auth, async (req, res) => {
               
               book.genres = categorization.genres;
               book.categoryType = categorization.categoryType;
-              book.primaryCategory = categorization.genres[0];
             } else {
               const category = improvedCategoryService.categorizeBook(
                 subjects,
@@ -764,9 +821,8 @@ router.post('/fix-uncategorized', auth, async (req, res) => {
               
               book.genres = [category];
               book.categoryType = improvedCategoryService.getParentCategory(category);
-              book.primaryCategory = category;
             }
-            console.log(`  Re-categorized to: ${book.primaryCategory}`);
+            console.log(`  Re-categorized to: ${book.genres.join(', ')}`);
           }
         } else {
           // Re-categorize the book
@@ -787,7 +843,6 @@ router.post('/fix-uncategorized', auth, async (req, res) => {
             
             book.genres = categorization.genres;
             book.categoryType = categorization.categoryType;
-            book.primaryCategory = categorization.genres[0];
           } else {
             const category = improvedCategoryService.categorizeBook(
               subjects,
@@ -797,16 +852,16 @@ router.post('/fix-uncategorized', auth, async (req, res) => {
             
             book.genres = [category];
             book.categoryType = improvedCategoryService.getParentCategory(category);
-            book.primaryCategory = category;
           }
-          console.log(`  Re-categorized to: ${book.primaryCategory}`);
+          console.log(`  Re-categorized to: ${book.genres.join(', ')}`);
         }
         
         // Ensure no "Uncategorized" in genres array
         if (book.genres && book.genres.includes('Uncategorized')) {
           book.genres = book.genres.filter(g => g !== 'Uncategorized');
           if (book.genres.length === 0) {
-            book.genres = [book.primaryCategory];
+            const defaultGenre = book.categoryType === 'Nonfiction' ? 'Nonfiction' : 'Contemporary Fiction';
+            book.genres = [defaultGenre];
           }
         }
         
@@ -815,8 +870,8 @@ router.post('/fix-uncategorized', auth, async (req, res) => {
         results.details.push({
           isbn: book.isbn,
           title: book.title,
-          newCategory: book.primaryCategory,
           genres: book.genres,
+          categoryType: book.categoryType,
           status: 'fixed'
         });
         

@@ -25,12 +25,6 @@ const BookSchema = new mongoose.Schema({
     index: true
   }],
   
-  // Primary category (single, specific genre)
-  primaryCategory: {
-    type: String,
-    index: true
-  },
-  
   // Category type (Fiction or Nonfiction)
   categoryType: {
     type: String,
@@ -143,25 +137,21 @@ const BookSchema = new mongoose.Schema({
 
 // Pre-save validation and cleanup
 BookSchema.pre('save', function(next) {
-  // Prevent saving "Uncategorized" as primaryCategory
-  if (this.primaryCategory === 'Uncategorized') {
-    // Try to use first genre if available
-    if (this.genres && this.genres.length > 0 && this.genres[0] !== 'Uncategorized') {
-      this.primaryCategory = this.genres[0];
-    } else {
-      // Use intelligent default based on categoryType
-      this.primaryCategory = this.categoryType === 'Nonfiction' ? 'Nonfiction' : 'Contemporary Fiction';
-    }
-    console.warn(`Prevented saving "Uncategorized" for book: ${this.title}, using: ${this.primaryCategory}`);
-  }
-  
-  // Also ensure genres array doesn't contain "Uncategorized"
+  // Ensure genres array doesn't contain "Uncategorized"
   if (this.genres && this.genres.includes('Uncategorized')) {
     this.genres = this.genres.filter(g => g !== 'Uncategorized');
-    // If no genres left, add a default
+    // If no genres left, add a default based on categoryType
     if (this.genres.length === 0) {
-      this.genres = [this.primaryCategory || 'Contemporary Fiction'];
+      const defaultGenre = this.categoryType === 'Nonfiction' ? 'Nonfiction' : 'Contemporary Fiction';
+      this.genres = [defaultGenre];
     }
+  }
+  
+  // Ensure we always have at least one genre
+  if (!this.genres || this.genres.length === 0) {
+    const defaultGenre = this.categoryType === 'Nonfiction' ? 'Nonfiction' : 'Contemporary Fiction';
+    this.genres = [defaultGenre];
+    console.warn(`No genres for book: ${this.title}, using default: ${defaultGenre}`);
   }
   
   // Update lastModified timestamp

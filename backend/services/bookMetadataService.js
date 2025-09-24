@@ -125,10 +125,6 @@ class BookMetadataService {
         enhancedBook.genres = categorization.genres;
         enhancedBook.genreReasons = categorization.genreReasons;
         
-        // Set primaryCategory for backward compatibility
-        // Note: multiGenreCategoryService now guarantees at least one genre
-        enhancedBook.primaryCategory = categorization.genres[0] || 'Contemporary Fiction';
-        
         console.log('Category Type:', categorization.categoryType);
         console.log('Genres:', categorization.genres);
       } else if (useBISAC) {
@@ -152,7 +148,6 @@ class BookMetadataService {
           );
           console.log('Category from ImprovedCategoryService:', category);
           enhancedBook.genres = [category];
-          enhancedBook.primaryCategory = category;
           enhancedBook.categoryType = improvedCategoryService.getParentCategory(category);
         }
       } else {
@@ -166,7 +161,6 @@ class BookMetadataService {
         console.log('Category Result:', category);
         console.log('Category Type:', improvedCategoryService.getParentCategory(category));
         enhancedBook.genres = [category];
-        enhancedBook.primaryCategory = category;
         enhancedBook.categoryType = improvedCategoryService.getParentCategory(category);
         enhancedBook.bisacCategories = [];
         
@@ -175,7 +169,6 @@ class BookMetadataService {
       }
       
       console.log('Final Genres:', enhancedBook.genres);
-      console.log('Primary Category:', enhancedBook.primaryCategory);
       console.log('Category Type:', enhancedBook.categoryType);
       console.log('=== End Categorization Debug ===\n');
       
@@ -260,7 +253,6 @@ class BookMetadataService {
                   categoryType: categorization.categoryType,
                   genres: categorization.genres,
                   genreReasons: categorization.genreReasons,
-                  primaryCategory: categorization.genres[0] || 'Contemporary Fiction',
                   rawSubjects: {
                     google: book.genres || [],
                     openLibrary: openLibData?.subjects || []
@@ -283,9 +275,6 @@ class BookMetadataService {
                   genres: bisacCategories.length > 0 
                     ? this.extractSimpleGenres(bisacCategories)
                     : [improvedCategoryService.categorizeBook(allSubjects, book.title, book.description)],
-                  primaryCategory: bisacCategories.length > 0
-                    ? this.extractSimpleGenres(bisacCategories)[0]
-                    : improvedCategoryService.categorizeBook(allSubjects, book.title, book.description),
                   dataSource: 'enhanced'
                 });
               } else {
@@ -305,7 +294,6 @@ class BookMetadataService {
                     openLibrary: openLibData?.subjects || []
                   },
                   genres: [category],
-                  primaryCategory: category,
                   categoryType: improvedCategoryService.getParentCategory(category),
                   allSubjects,
                   dataSource: 'enhanced'
@@ -328,8 +316,7 @@ class BookMetadataService {
                   coverQualityScore: bestCover ? bestCover.score : 0,
                   categoryType: categorization.categoryType,
                   genres: categorization.genres,
-                  genreReasons: categorization.genreReasons,
-                  primaryCategory: categorization.genres[0] || 'Contemporary Fiction'
+                  genreReasons: categorization.genreReasons
                 });
               } else if (useBISAC) {
                 const bisacCategories = bisacMappingService.mapToBISAC(book.genres || []);
@@ -344,8 +331,7 @@ class BookMetadataService {
                   bisacCategories,
                   genres: bisacCategories.length > 0 
                     ? this.extractSimpleGenres(bisacCategories)
-                    : [category],
-                  primaryCategory: category
+                    : [category]
                 });
               } else {
                 // No Open Library data, use improved categorization
@@ -359,7 +345,6 @@ class BookMetadataService {
                   coverImage: bestCover ? bestCover.url : null,
                   coverQualityScore: bestCover ? bestCover.score : 0,
                   genres: [category],
-                  primaryCategory: category,
                   categoryType: improvedCategoryService.getParentCategory(category)
                 });
               }
@@ -394,8 +379,7 @@ class BookMetadataService {
                 coverQualityScore: bestCover ? bestCover.score : 0,
                 categoryType: categorization.categoryType,
                 genres: categorization.genres,
-                genreReasons: categorization.genreReasons,
-                primaryCategory: categorization.genres[0] || 'Contemporary Fiction'
+                genreReasons: categorization.genreReasons
               });
             } else if (useBISAC) {
               const bisacCategories = bisacMappingService.mapToBISAC(book.genres || []);
@@ -410,8 +394,7 @@ class BookMetadataService {
                 bisacCategories,
                 genres: bisacCategories.length > 0 
                   ? this.extractSimpleGenres(bisacCategories)
-                  : [category],
-                primaryCategory: category
+                  : [category]
               });
             } else {
               // Use improved categorization
@@ -425,7 +408,6 @@ class BookMetadataService {
                 coverImage: bestCover ? bestCover.url : null,
                 coverQualityScore: bestCover ? bestCover.score : 0,
                 genres: [category],
-                primaryCategory: category,
                 categoryType: improvedCategoryService.getParentCategory(category)
               });
             }
@@ -444,8 +426,7 @@ class BookMetadataService {
             enhancedBooks.push({
               ...book,
               categoryType: categorization.categoryType,
-              genres: categorization.genres,
-              primaryCategory: categorization.genres[0] || 'Contemporary Fiction'
+              genres: categorization.genres
             });
           } else if (useBISAC) {
             const bisacCategories = bisacMappingService.mapToBISAC(book.genres || []);
@@ -458,8 +439,7 @@ class BookMetadataService {
               bisacCategories,
               genres: bisacCategories.length > 0 
                 ? this.extractSimpleGenres(bisacCategories)
-                : [category],
-              primaryCategory: category
+                : [category]
             });
           } else {
             // Use improved categorization for remaining books
@@ -471,7 +451,6 @@ class BookMetadataService {
             enhancedBooks.push({
               ...book,
               genres: [category],
-              primaryCategory: category,
               categoryType: improvedCategoryService.getParentCategory(category)
             });
           }
