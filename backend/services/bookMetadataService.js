@@ -126,7 +126,8 @@ class BookMetadataService {
         enhancedBook.genreReasons = categorization.genreReasons;
         
         // Set primaryCategory for backward compatibility
-        enhancedBook.primaryCategory = categorization.genres[0] || 'Uncategorized';
+        // Note: multiGenreCategoryService now guarantees at least one genre
+        enhancedBook.primaryCategory = categorization.genres[0] || 'Contemporary Fiction';
         
         console.log('Category Type:', categorization.categoryType);
         console.log('Genres:', categorization.genres);
@@ -259,7 +260,7 @@ class BookMetadataService {
                   categoryType: categorization.categoryType,
                   genres: categorization.genres,
                   genreReasons: categorization.genreReasons,
-                  primaryCategory: categorization.genres[0] || 'Uncategorized',
+                  primaryCategory: categorization.genres[0] || 'Contemporary Fiction',
                   rawSubjects: {
                     google: book.genres || [],
                     openLibrary: openLibData?.subjects || []
@@ -328,7 +329,7 @@ class BookMetadataService {
                   categoryType: categorization.categoryType,
                   genres: categorization.genres,
                   genreReasons: categorization.genreReasons,
-                  primaryCategory: categorization.genres[0] || 'Uncategorized'
+                  primaryCategory: categorization.genres[0] || 'Contemporary Fiction'
                 });
               } else if (useBISAC) {
                 const bisacCategories = bisacMappingService.mapToBISAC(book.genres || []);
@@ -394,7 +395,7 @@ class BookMetadataService {
                 categoryType: categorization.categoryType,
                 genres: categorization.genres,
                 genreReasons: categorization.genreReasons,
-                primaryCategory: categorization.genres[0] || 'Uncategorized'
+                primaryCategory: categorization.genres[0] || 'Contemporary Fiction'
               });
             } else if (useBISAC) {
               const bisacCategories = bisacMappingService.mapToBISAC(book.genres || []);
@@ -444,7 +445,7 @@ class BookMetadataService {
               ...book,
               categoryType: categorization.categoryType,
               genres: categorization.genres,
-              primaryCategory: categorization.genres[0] || 'Uncategorized'
+              primaryCategory: categorization.genres[0] || 'Contemporary Fiction'
             });
           } else if (useBISAC) {
             const bisacCategories = bisacMappingService.mapToBISAC(book.genres || []);

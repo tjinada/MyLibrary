@@ -694,6 +694,165 @@ router.post('/:isbn/validate-cover', auth, async (req, res) => {
   }
 });
 
+// Fix uncategorized books endpoint (requires auth)
+router.post('/fix-uncategorized', auth, async (req, res) => {
+  try {
+    const multiGenreCategoryService = require('../services/multiGenreCategoryService');
+    const improvedCategoryService = require('../services/improvedCategoryService');
+    
+    console.log('Starting fix for uncategorized books...');
+    
+    // Find all uncategorized books
+    const uncategorizedBooks = await Book.find({ 
+      primaryCategory: 'Uncategorized' 
+    });
+    
+    const results = {
+      total: uncategorizedBooks.length,
+      fixed: 0,
+      failed: 0,
+      details: []
+    };
+    
+    if (uncategorizedBooks.length === 0) {
+      return res.json({
+        message: 'No uncategorized books found',
+        results
+      });
+    }
+    
+    const useMultiGenre = process.env.USE_MULTI_GENRE === 'true';
+    
+    for (const book of uncategorizedBooks) {
+      try {
+        console.log(`Processing book: ${book.title} (ISBN: ${book.isbn})`);
+        
+        // Strategy 1: If book already has valid genres, use the first one
+        if (book.genres && book.genres.length > 0) {
+          const validGenres = book.genres.filter(g => g !== 'Uncategorized');
+          
+          if (validGenres.length > 0) {
+            book.genres = validGenres;
+            book.primaryCategory = validGenres[0];
+            console.log(`  Using existing genre: ${book.primaryCategory}`);
+          } else {
+            // Re-categorize the book
+            const subjects = [];
+            if (book.rawSubjects) {
+              if (book.rawSubjects.google) subjects.push(...book.rawSubjects.google);
+              if (book.rawSubjects.openLibrary) subjects.push(...book.rawSubjects.openLibrary);
+            }
+            if (book.allSubjects) subjects.push(...book.allSubjects);
+            
+            if (useMultiGenre) {
+              const categorization = multiGenreCategoryService.categorizeBook(
+                subjects,
+                book.title,
+                book.description,
+                book.authors
+              );
+              
+              book.genres = categorization.genres;
+              book.categoryType = categorization.categoryType;
+              book.primaryCategory = categorization.genres[0];
+            } else {
+              const category = improvedCategoryService.categorizeBook(
+                subjects,
+                book.title,
+                book.description
+              );
+              
+              book.genres = [category];
+              book.categoryType = improvedCategoryService.getParentCategory(category);
+              book.primaryCategory = category;
+            }
+            console.log(`  Re-categorized to: ${book.primaryCategory}`);
+          }
+        } else {
+          // Re-categorize the book
+          const subjects = [];
+          if (book.rawSubjects) {
+            if (book.rawSubjects.google) subjects.push(...book.rawSubjects.google);
+            if (book.rawSubjects.openLibrary) subjects.push(...book.rawSubjects.openLibrary);
+          }
+          if (book.allSubjects) subjects.push(...book.allSubjects);
+          
+          if (useMultiGenre) {
+            const categorization = multiGenreCategoryService.categorizeBook(
+              subjects,
+              book.title,
+              book.description,
+              book.authors
+            );
+            
+            book.genres = categorization.genres;
+            book.categoryType = categorization.categoryType;
+            book.primaryCategory = categorization.genres[0];
+          } else {
+            const category = improvedCategoryService.categorizeBook(
+              subjects,
+              book.title,
+              book.description
+            );
+            
+            book.genres = [category];
+            book.categoryType = improvedCategoryService.getParentCategory(category);
+            book.primaryCategory = category;
+          }
+          console.log(`  Re-categorized to: ${book.primaryCategory}`);
+        }
+        
+        // Ensure no "Uncategorized" in genres array
+        if (book.genres && book.genres.includes('Uncategorized')) {
+          book.genres = book.genres.filter(g => g !== 'Uncategorized');
+          if (book.genres.length === 0) {
+            book.genres = [book.primaryCategory];
+          }
+        }
+        
+        await book.save();
+        results.fixed++;
+        results.details.push({
+          isbn: book.isbn,
+          title: book.title,
+          newCategory: book.primaryCategory,
+          genres: book.genres,
+          status: 'fixed'
+        });
+        
+        console.log(`  ✓ Fixed successfully`);
+      } catch (error) {
+        console.error(`  ✗ Failed to fix book: ${error.message}`);
+        results.failed++;
+        results.details.push({
+          isbn: book.isbn,
+          title: book.title,
+          error: error.message,
+          status: 'failed'
+        });
+      }
+    }
+    
+    // Verify no more uncategorized books
+    const remainingUncategorized = await Book.countDocuments({ 
+      primaryCategory: 'Uncategorized' 
+    });
+    
+    res.json({
+      message: `Fixed ${results.fixed} books, ${results.failed} failures`,
+      remainingUncategorized,
+      results
+    });
+    
+  } catch (error) {
+    console.error('Error fixing uncategorized books:', error);
+    res.status(500).json({ 
+      message: 'Failed to fix uncategorized books',
+      error: error.message 
+    });
+  }
+});
+
 // ==================== GENERIC ISBN ROUTES (MUST BE AFTER SPECIFIC ROUTES) ====================
 
 // Get single book by ISBN

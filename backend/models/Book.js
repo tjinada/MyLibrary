@@ -141,8 +141,30 @@ const BookSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Update lastModified on save
+// Pre-save validation and cleanup
 BookSchema.pre('save', function(next) {
+  // Prevent saving "Uncategorized" as primaryCategory
+  if (this.primaryCategory === 'Uncategorized') {
+    // Try to use first genre if available
+    if (this.genres && this.genres.length > 0 && this.genres[0] !== 'Uncategorized') {
+      this.primaryCategory = this.genres[0];
+    } else {
+      // Use intelligent default based on categoryType
+      this.primaryCategory = this.categoryType === 'Nonfiction' ? 'Nonfiction' : 'Contemporary Fiction';
+    }
+    console.warn(`Prevented saving "Uncategorized" for book: ${this.title}, using: ${this.primaryCategory}`);
+  }
+  
+  // Also ensure genres array doesn't contain "Uncategorized"
+  if (this.genres && this.genres.includes('Uncategorized')) {
+    this.genres = this.genres.filter(g => g !== 'Uncategorized');
+    // If no genres left, add a default
+    if (this.genres.length === 0) {
+      this.genres = [this.primaryCategory || 'Contemporary Fiction'];
+    }
+  }
+  
+  // Update lastModified timestamp
   this.lastModified = Date.now();
   next();
 });

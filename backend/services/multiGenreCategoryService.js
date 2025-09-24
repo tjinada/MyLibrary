@@ -340,6 +340,14 @@ class MultiGenreCategoryService {
   }
 
   /**
+   * Get default genre based on category type
+   * This ensures we ALWAYS have at least one genre
+   */
+  getDefaultGenre(categoryType) {
+    return categoryType === 'Nonfiction' ? 'Nonfiction' : 'Contemporary Fiction';
+  }
+
+  /**
    * Main categorization method
    */
   categorizeBook(apiGenres = [], title = '', description = '', authors = []) {
@@ -361,7 +369,15 @@ class MultiGenreCategoryService {
     // Step 2: Find all applicable genres
     const genreResults = this.findGenres(normalizedApiGenres, allText, categoryType, title);
     
-    // Step 3: Log reasoning
+    // Step 3: ENSURE we have at least one genre
+    if (genreResults.genres.length === 0) {
+      const defaultGenre = this.getDefaultGenre(categoryType);
+      genreResults.genres = [defaultGenre];
+      genreResults.reasons[defaultGenre] = [`Default ${categoryType.toLowerCase()} category (no specific genre matched)`];
+      console.log(`No specific genres found, using default: ${defaultGenre}`);
+    }
+    
+    // Step 4: Log reasoning
     console.log('\nGenres Found:', genreResults.genres);
     console.log('Reasoning:');
     Object.entries(genreResults.reasons).forEach(([genre, reasons]) => {
@@ -592,11 +608,8 @@ class MultiGenreCategoryService {
       finalReasons[item.genre] = item.reasons;
     });
     
-    // If Fiction but no specific genres found, default to Contemporary Fiction
-    if (categoryType === 'Fiction' && finalGenres.length === 0) {
-      finalGenres.push('Contemporary Fiction');
-      finalReasons['Contemporary Fiction'] = ['Default fiction category (no specific genre matched)'];
-    }
+    // Note: Default genre handling is now done in categorizeBook() method
+    // to ensure we ALWAYS have at least one genre
     
     return {
       genres: finalGenres,
