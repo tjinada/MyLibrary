@@ -74,10 +74,24 @@ export const statusColors = {
 // Design tokens
 export const spacing = {
   cardPadding: 12,
+  cardPaddingCompact: 8,  // NEW - for compact mode
   gridGap: 16,
+  gridGapCompact: 12,  // NEW - for compact mode
   sectionMargin: 24,
   filterBarHeight: 64,
   mobileFilterBarHeight: 56,
+};
+
+// Card size configuration
+export const cardSizes = {
+  compact: {
+    minWidth: 120,
+    maxWidth: 140,
+  },
+  normal: {
+    minWidth: 160,
+    maxWidth: 200,
+  }
 };
 
 export const dimensions = {

@@ -142,8 +142,8 @@ const BookCard = ({
         <Box
           sx={{
             position: 'absolute',
-            top: 6,
-            left: 6,
+            top: 4,
+            left: 4,
             zIndex: 3,
           }}
         >
@@ -178,8 +178,8 @@ const BookCard = ({
           <Box
             sx={{
               position: 'absolute',
-              top: 6,
-              right: 6,
+              top: 4,
+              right: 4,
               zIndex: 3,
             }}
           >
@@ -198,8 +198,8 @@ const BookCard = ({
               zIndex: 3,
               bgcolor: 'rgba(255, 255, 255, 0.95)',
               borderRadius: 2,
-              px: 1.5,
-              py: 0.5,
+              px: 1,
+              py: 0.3,
               boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
             }}
           >
@@ -208,7 +208,7 @@ const BookCard = ({
               sx={{ 
                 fontWeight: 'bold',
                 color: theme.palette.secondary.main,
-                fontSize: '0.75rem',
+                fontSize: '0.7rem',
               }}
             >
               {book.quantity} copies
@@ -330,10 +330,10 @@ const BookCard = ({
           flexGrow: 1, 
           display: 'flex', 
           flexDirection: 'column',
-          p: 1,
-          pb: '8px !important',
-          minHeight: 60,
-          maxHeight: 80,
+          p: 0.75,
+          pb: '6px !important',
+          minHeight: 50,
+          maxHeight: 70,
         }}
       >
         <Typography 
@@ -347,7 +347,7 @@ const BookCard = ({
             WebkitBoxOrient: 'vertical',
             fontWeight: 600,
             lineHeight: 1.2,
-            fontSize: '0.75rem',
+            fontSize: '0.7rem',
             color: 'text.primary',
             mb: 0.25,
           }}
@@ -364,7 +364,7 @@ const BookCard = ({
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
               color: 'text.secondary',
-              fontSize: '0.65rem',
+              fontSize: '0.6rem',
               mb: 'auto',
             }}
             title={book.authors?.join(', ')}
@@ -382,7 +382,7 @@ const BookCard = ({
               size="small"
               precision={0.5}
               sx={{ 
-                fontSize: '0.75rem',
+                fontSize: '0.7rem',
                 color: theme.palette.warning.main,
               }}
             />

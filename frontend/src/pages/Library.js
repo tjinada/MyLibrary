@@ -86,7 +86,7 @@ const Library = () => {
     sort: 'title',
   });
 
-  const itemsPerPage = viewMode === 'grid' ? 24 : 20;
+  const itemsPerPage = viewMode === 'grid' ? 50 : 20;
 
   // Selection hook
   const {
@@ -787,7 +787,7 @@ const Library = () => {
                     timeout={300 + index * 50}
                     style={{ transformOrigin: '0 0 0' }}
                   >
-                    <Grid item xs={6} sm={4} md={3} lg={2}>
+                    <Grid item xs={4} sm={3} md={2} lg={1.2} xl={1.2}>
                       {item.type === 'collection' ? (
                         <CollectionCard
                           collection={item.data}

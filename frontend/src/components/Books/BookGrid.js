@@ -4,9 +4,9 @@ import BookCard from './BookCard';
 
 const BookGrid = ({ books, onBookClick, onQuickEdit, onAddToCollection, showRemoveButton, onRemoveBook }) => {
   return (
-    <Grid container spacing={3}>
+    <Grid container spacing={2}>
       {books.map((book) => (
-        <Grid item key={book._id || book.isbn} xs={6} sm={4} md={3} lg={2}>
+        <Grid item key={book._id || book.isbn} xs={4} sm={3} md={2} lg={1.2} xl={1.2}>
           <MemoizedBookCard 
             book={book} 
             onClick={onBookClick}
