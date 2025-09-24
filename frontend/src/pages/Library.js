@@ -703,26 +703,29 @@ const Library = () => {
       <Box
         sx={{
           position: 'sticky',
-          top: 64 + spacing.filterBarHeight, // Below header (64px) + StickyToolbar height
+          top: 112, // Below header (64px) + StickyToolbar (48px)
           zIndex: theme.zIndex.appBar - 2,
           bgcolor: 'background.default',
           borderBottom: `1px solid ${theme.palette.divider}`,
-          pb: 2,
-          pt: 2,
-          boxShadow: theme.shadows[2],
+          py: 1.5,
+          boxShadow: theme.shadows[1],
           backdropFilter: 'blur(8px)',
           backgroundColor: alpha(theme.palette.background.default, 0.95),
         }}
       >
         <Container maxWidth="xl">
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            {/* Library Stats */}
-            <Box sx={{ '& .MuiPaper-root': { mb: 0 } }}>
-              <LibraryStats 
-                totalQuantity={libraryStats.totalBooks}
-                unreadCount={libraryStats.unreadBooks}
-              />
-            </Box>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 2,
+            justifyContent: 'center',
+            flexWrap: isMobile ? 'wrap' : 'nowrap'
+          }}>
+            {/* Library Stats - Compact */}
+            <LibraryStats 
+              totalQuantity={libraryStats.totalBooks}
+              unreadCount={libraryStats.unreadBooks}
+            />
             
             {/* Search Bar */}
             <SearchBar 
@@ -733,7 +736,7 @@ const Library = () => {
         </Container>
       </Box>
 
-      <Container maxWidth="xl" sx={{ py: 3, pb: selectionMode ? 10 : 3 }}>
+      <Container maxWidth="xl" sx={{ py: 2, pb: selectionMode ? 8 : 2 }}>
 
         {/* Active Filter Chips */}
         {hasActiveFilters && (
@@ -750,7 +753,7 @@ const Library = () => {
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center',
-            mb: 3,
+            mb: 2,
           }}>
             <Typography variant="body2" color="text.secondary">
               {(() => {

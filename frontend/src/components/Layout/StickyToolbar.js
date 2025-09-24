@@ -65,7 +65,7 @@ const StickyToolbar = ({
         position: 'sticky',
         top: 64, // Below the main header
         zIndex: 100,
-        mb: 3, 
+        mb: 2, 
         bgcolor: 'background.paper',
         borderRadius: 0,
         borderTop: '1px solid',
@@ -74,12 +74,12 @@ const StickyToolbar = ({
       }}
     >
       <Box sx={{ 
-        p: 2,
+        p: 1.5,
         display: 'flex', 
-        gap: 2, 
+        gap: 1.5, 
         alignItems: 'center',
         flexWrap: isTablet ? 'wrap' : 'nowrap',
-        minHeight: isMobile ? spacing.mobileFilterBarHeight : spacing.filterBarHeight,
+        minHeight: 48,
       }}>
         {/* Primary Actions */}
         <Box sx={{ display: 'flex', gap: 1 }}>
@@ -87,13 +87,13 @@ const StickyToolbar = ({
             variant="contained"
             startIcon={<QuickAddIcon />}
             onClick={handleQuickAdd}
-            size={isMobile ? 'medium' : 'large'}
+            size="small"
             sx={{ 
               fontWeight: 600,
               background: `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.success.dark} 100%)`,
-              boxShadow: theme.shadows[3],
+              boxShadow: theme.shadows[2],
               '&:hover': {
-                boxShadow: theme.shadows[6],
+                boxShadow: theme.shadows[4],
                 background: `linear-gradient(135deg, ${theme.palette.success.dark} 0%, ${theme.palette.success.main} 100%)`,
               }
             }}
@@ -106,10 +106,10 @@ const StickyToolbar = ({
               variant="outlined"
               startIcon={<CollectionsIcon />}
               onClick={onCreateCollection}
-              size="large"
+              size="small"
               sx={{ 
                 fontWeight: 600,
-                borderWidth: 1.5,
+                borderWidth: 1,
               }}
             >
               Create Collection

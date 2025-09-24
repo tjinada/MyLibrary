@@ -42,9 +42,9 @@ const SearchBar = ({
     <Box 
       sx={{ 
         width: '100%', 
-        maxWidth: 600,
+        maxWidth: 500,
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        transform: isFocused ? 'scale(1.02)' : 'scale(1)',
+        transform: isFocused ? 'scale(1.01)' : 'scale(1)',
       }}
     >
       <TextField
@@ -93,12 +93,13 @@ const SearchBar = ({
         sx={{
           '& .MuiOutlinedInput-root': {
             bgcolor: 'background.paper',
-            borderRadius: 3,
+            borderRadius: 2,
             transition: 'all 0.2s',
-            boxShadow: isFocused ? '0 0 0 3px ' + alpha('#6366F1', 0.1) : '0 1px 3px rgba(0,0,0,0.1)',
+            height: 40,
+            boxShadow: isFocused ? '0 0 0 2px ' + alpha('#6366F1', 0.1) : '0 1px 2px rgba(0,0,0,0.05)',
             '& fieldset': {
               borderColor: isFocused ? 'primary.main' : 'divider',
-              borderWidth: isFocused ? 2 : 1.5,
+              borderWidth: isFocused ? 2 : 1,
               transition: 'all 0.2s',
             },
             '&:hover fieldset': {
@@ -110,8 +111,9 @@ const SearchBar = ({
             },
           },
           '& .MuiInputBase-input': {
-            fontSize: '0.95rem',
+            fontSize: '0.9rem',
             fontWeight: 500,
+            py: 0.5,
             '&::placeholder': {
               opacity: 0.6,
             },

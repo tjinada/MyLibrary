@@ -73,13 +73,13 @@ export const statusColors = {
 
 // Design tokens
 export const spacing = {
-  cardPadding: 12,
-  cardPaddingCompact: 8,  // NEW - for compact mode
-  gridGap: 16,
-  gridGapCompact: 12,  // NEW - for compact mode
-  sectionMargin: 24,
-  filterBarHeight: 64,
-  mobileFilterBarHeight: 56,
+  cardPadding: 8,
+  cardPaddingCompact: 6,
+  gridGap: 12,
+  gridGapCompact: 8,
+  sectionMargin: 16,
+  filterBarHeight: 48,
+  mobileFilterBarHeight: 44,
 };
 
 // Card size configuration
