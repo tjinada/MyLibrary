@@ -119,43 +119,68 @@ const StickyToolbar = ({
 
         {!isMobile && <Divider orientation="vertical" flexItem />}
 
-        {/* View Mode Toggle */}
-        <Box sx={{ 
-          display: 'flex', 
-          bgcolor: theme.palette.action.hover,
-          borderRadius: 1.5,
-          p: 0.5,
-        }}>
-          <Tooltip title="Grid View">
-            <IconButton 
+        {/* View Mode and Selection Toggle */}
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Box sx={{ 
+            display: 'flex', 
+            bgcolor: theme.palette.action.hover,
+            borderRadius: 1.5,
+            p: 0.5,
+          }}>
+            <Tooltip title="Grid View">
+              <IconButton 
+                size="small"
+                onClick={() => onViewModeChange('grid')}
+                sx={{
+                  color: viewMode === 'grid' ? 'primary.main' : 'text.secondary',
+                  bgcolor: viewMode === 'grid' ? 'background.paper' : 'transparent',
+                  borderRadius: 1,
+                  '&:hover': {
+                    bgcolor: viewMode === 'grid' ? 'background.paper' : theme.palette.action.hover,
+                  }
+                }}
+              >
+                <GridIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="List View">
+              <IconButton 
+                size="small"
+                onClick={() => onViewModeChange('list')}
+                sx={{
+                  color: viewMode === 'list' ? 'primary.main' : 'text.secondary',
+                  bgcolor: viewMode === 'list' ? 'background.paper' : 'transparent',
+                  borderRadius: 1,
+                  '&:hover': {
+                    bgcolor: viewMode === 'list' ? 'background.paper' : theme.palette.action.hover,
+                  }
+                }}
+              >
+                <ListIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+          
+          {/* Selection Mode Toggle - Simple Checkbox Style */}
+          <Tooltip title={selectionMode ? 'Exit selection mode' : 'Select multiple books'}>
+            <IconButton
               size="small"
-              onClick={() => onViewModeChange('grid')}
+              onClick={onToggleSelectionMode}
               sx={{
-                color: viewMode === 'grid' ? 'primary.main' : 'text.secondary',
-                bgcolor: viewMode === 'grid' ? 'background.paper' : 'transparent',
+                bgcolor: selectionMode ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                color: selectionMode ? 'primary.main' : 'text.secondary',
+                border: '1px solid',
+                borderColor: selectionMode ? 'primary.main' : 'divider',
                 borderRadius: 1,
                 '&:hover': {
-                  bgcolor: viewMode === 'grid' ? 'background.paper' : theme.palette.action.hover,
-                }
+                  bgcolor: selectionMode 
+                    ? alpha(theme.palette.primary.main, 0.2)
+                    : alpha(theme.palette.action.hover, 0.5),
+                  borderColor: 'primary.main',
+                },
               }}
             >
-              <GridIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="List View">
-            <IconButton 
-              size="small"
-              onClick={() => onViewModeChange('list')}
-              sx={{
-                color: viewMode === 'list' ? 'primary.main' : 'text.secondary',
-                bgcolor: viewMode === 'list' ? 'background.paper' : 'transparent',
-                borderRadius: 1,
-                '&:hover': {
-                  bgcolor: viewMode === 'list' ? 'background.paper' : theme.palette.action.hover,
-                }
-              }}
-            >
-              <ListIcon />
+              <SelectIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </Box>
@@ -227,30 +252,7 @@ const StickyToolbar = ({
           </FormControl>
         </Box>
 
-        {!isMobile && <Divider orientation="vertical" flexItem />}
 
-        {/* Selection Mode Toggle */}
-        <Tooltip title={selectionMode ? 'Exit selection mode' : 'Select multiple items'}>
-          <Button
-            variant={selectionMode ? 'contained' : 'outlined'}
-            startIcon={<SelectIcon />}
-            onClick={onToggleSelectionMode}
-            sx={{
-              borderRadius: 2,
-              textTransform: 'none',
-              fontWeight: 500,
-              bgcolor: selectionMode ? theme.palette.secondary.main : 'transparent',
-              color: selectionMode ? 'white' : 'text.primary',
-              borderColor: selectionMode ? theme.palette.secondary.main : 'divider',
-              '&:hover': {
-                bgcolor: selectionMode ? theme.palette.secondary.dark : alpha(theme.palette.secondary.main, 0.08),
-                borderColor: theme.palette.secondary.main,
-              },
-            }}
-          >
-            {!isMobile && 'Select'}
-          </Button>
-        </Tooltip>
 
         {/* Filters */}
         <FilterPopover

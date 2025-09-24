@@ -178,6 +178,7 @@ const BookDetailsModal = ({
       setTabValue(0);
       setEditMode(openInEditMode);
       setNewTag('');
+      setError(null);
     }
   }, [book, openInEditMode]);
 
@@ -273,7 +274,12 @@ const BookDetailsModal = ({
         onBookUpdated(updatedBook);
       }
       
-      setEditMode(false);
+      // If opened in edit mode (quick edit), close the modal after saving
+      if (openInEditMode) {
+        onClose();
+      } else {
+        setEditMode(false);
+      }
     } catch (err) {
       setError('Failed to update book');
     } finally {

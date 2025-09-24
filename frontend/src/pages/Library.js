@@ -105,6 +105,7 @@ const Library = () => {
   // Fetch library data
   useEffect(() => {
     fetchLibrary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.status, filters.genre, filters.edition, filters.sort]);
 
   // Save view preferences
@@ -486,16 +487,72 @@ const Library = () => {
   const handleBookUpdated = useCallback((updatedBook) => {
     // Update the book in the local state immediately for instant feedback
     if (updatedBook) {
-      setLibraryItems(prev => prev.map(item => {
-        if (item.type === 'book' && item.data.isbn === updatedBook.isbn) {
-          return { ...item, data: updatedBook };
-        }
-        return item;
-      }));
+      // Update in allBooksForGenres which is used for filtering
+      setAllBooksForGenres(prev => {
+        const updatedBooks = prev.books.map(book => 
+          book.isbn === updatedBook.isbn ? updatedBook : book
+        );
+        return { ...prev, books: updatedBooks };
+      });
       
+      // Check if the book should still be visible with current filters
+      let bookMatchesFilters = true;
+      
+      // Check status filter
+      if (filters.status !== 'all' && updatedBook.status !== filters.status) {
+        bookMatchesFilters = false;
+      }
+      
+      // Check genre filter
+      if (filters.genre !== 'all') {
+        const genreFilters = Array.isArray(filters.genre) ? filters.genre : [filters.genre];
+        const bookGenres = new Set();
+        if (updatedBook.primaryCategory) bookGenres.add(updatedBook.primaryCategory);
+        if (updatedBook.genres && Array.isArray(updatedBook.genres)) {
+          updatedBook.genres.forEach(genre => bookGenres.add(genre));
+        }
+        if (bookGenres.size === 0) bookGenres.add('Uncategorized');
+        
+        if (!genreFilters.every(filterGenre => bookGenres.has(filterGenre))) {
+          bookMatchesFilters = false;
+        }
+      }
+      
+      // Check edition filter
+      if (filters.edition !== 'all' && updatedBook.edition !== filters.edition) {
+        bookMatchesFilters = false;
+      }
+      
+      // Update or remove the book from library items based on filter match
+      setLibraryItems(prev => {
+        if (bookMatchesFilters) {
+          // Update the book if it matches filters
+          return prev.map(item => {
+            if (item.type === 'book' && item.data.isbn === updatedBook.isbn) {
+              return { 
+                ...item, 
+                data: updatedBook,
+                sortKey: updatedBook.title.toLowerCase().replace(/^(the |a |an )/i, ''),
+              };
+            }
+            return item;
+          });
+        } else {
+          // Remove the book if it doesn't match filters anymore
+          return prev.filter(item => 
+            !(item.type === 'book' && item.data.isbn === updatedBook.isbn)
+          );
+        }
+      });
+      
+      // Always update in allLibraryItems
       setAllLibraryItems(prev => prev.map(item => {
         if (item.type === 'book' && item.data.isbn === updatedBook.isbn) {
-          return { ...item, data: updatedBook };
+          return { 
+            ...item, 
+            data: updatedBook,
+            sortKey: updatedBook.title.toLowerCase().replace(/^(the |a |an )/i, ''),
+          };
         }
         return item;
       }));
@@ -512,9 +569,8 @@ const Library = () => {
     // Clear image cache to force reload
     imagePreloader.clearCache();
     
-    // Then fetch from server to ensure consistency
-    fetchLibrary();
-  }, []);
+    // Don't fetch from server - just update local state to maintain filters
+  }, [filters]);
 
   const handleBookDeleted = useCallback(() => {
     fetchLibrary();
