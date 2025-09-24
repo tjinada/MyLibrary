@@ -220,10 +220,61 @@ const CollectionDetails = () => {
 
   const displayBooks = useMemo(() => {
     if (!collection) return [];
+    
+    let books = [];
     if (collection.collectionType === 'series' && collection.bookOrder?.length > 0) {
-      return collection.bookOrder;
+      books = collection.bookOrder;
+    } else {
+      books = collection.books || [];
     }
-    return collection.books || [];
+    
+    // Sort books by published date (chronological order)
+    // Parse dates and handle various formats
+    const sortedBooks = [...books].sort((a, b) => {
+      // Get published dates
+      const dateA = a.publishedDate;
+      const dateB = b.publishedDate;
+      
+      // If both dates are missing, maintain original order
+      if (!dateA && !dateB) return 0;
+      
+      // Put books without dates at the end
+      if (!dateA) return 1;
+      if (!dateB) return -1;
+      
+      // Parse dates - handle various formats (YYYY, YYYY-MM, YYYY-MM-DD)
+      const parseDate = (dateStr) => {
+        if (!dateStr) return null;
+        
+        // If it's just a year (e.g., "2020")
+        if (/^\d{4}$/.test(dateStr)) {
+          return new Date(parseInt(dateStr), 0, 1);
+        }
+        
+        // If it's year-month (e.g., "2020-06")
+        if (/^\d{4}-\d{2}$/.test(dateStr)) {
+          const [year, month] = dateStr.split('-');
+          return new Date(parseInt(year), parseInt(month) - 1, 1);
+        }
+        
+        // Try to parse as full date
+        const parsed = new Date(dateStr);
+        return isNaN(parsed.getTime()) ? null : parsed;
+      };
+      
+      const parsedDateA = parseDate(dateA);
+      const parsedDateB = parseDate(dateB);
+      
+      // If we couldn't parse one of the dates, put it at the end
+      if (!parsedDateA && !parsedDateB) return 0;
+      if (!parsedDateA) return 1;
+      if (!parsedDateB) return -1;
+      
+      // Sort chronologically (oldest first)
+      return parsedDateA.getTime() - parsedDateB.getTime();
+    });
+    
+    return sortedBooks;
   }, [collection]);
 
   // Calculate collection statistics
