@@ -111,6 +111,8 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
 
     setLoading(true);
     setError(null);
+    // Reset cover selection from previous book
+    setSelectedCoverUrl(null);
 
     try {
       // Look up the book
@@ -192,9 +194,10 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       setCurrentBook({ ...bookToAdd, success: true });
       setConfirmationMode(false);
       
-      // Clear current book after animation
+      // Clear current book and all related states after animation
       successTimeoutRef.current = setTimeout(() => {
         setCurrentBook(null);
+        setSelectedCoverUrl(null); // Clear selected cover
         // Refocus ISBN input for next scan
         if (!isMobile && isbnInputRef.current) {
           isbnInputRef.current.focus();
@@ -279,6 +282,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       // Clear after animation
       successTimeoutRef.current = setTimeout(() => {
         setCurrentBook(null);
+        setSelectedCoverUrl(null); // Clear selected cover
         if (!isMobile && isbnInputRef.current) {
           isbnInputRef.current.focus();
           isbnInputRef.current.select();
