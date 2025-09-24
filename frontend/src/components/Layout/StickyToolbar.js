@@ -9,6 +9,10 @@ import {
   useTheme,
   useMediaQuery,
   alpha,
+  FormControl,
+  Select,
+  MenuItem,
+  Typography,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -17,6 +21,9 @@ import {
   Speed as QuickAddIcon,
   CollectionsBookmark as CollectionsIcon,
   CheckBox as SelectIcon,
+  Sort as SortIcon,
+  ArrowUpward,
+  ArrowDownward,
 } from '@mui/icons-material';
 import FilterPopover from '../Filters/FilterPopover';
 import { spacing } from '../../theme/theme';
@@ -155,6 +162,72 @@ const StickyToolbar = ({
 
         {/* Spacer */}
         <Box sx={{ flexGrow: 1 }} />
+
+        {/* Sort Dropdown - Separated from Filters */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <SortIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
+          <FormControl size="small" sx={{ minWidth: isMobile ? 120 : 150 }}>
+            <Select
+              value={filters.sort}
+              onChange={(e) => onFilterChange({ ...filters, sort: e.target.value })}
+              displayEmpty
+              sx={{ 
+                borderRadius: 2,
+                bgcolor: 'background.paper',
+                '& .MuiSelect-select': {
+                  py: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                },
+              }}
+              renderValue={(value) => {
+                const sortOptions = {
+                  'title': { label: 'Title (A-Z)', icon: <ArrowUpward sx={{ fontSize: 16 }} /> },
+                  '-title': { label: 'Title (Z-A)', icon: <ArrowDownward sx={{ fontSize: 16 }} /> },
+                  '-addedDate': { label: 'Recently Added', icon: <ArrowDownward sx={{ fontSize: 16 }} /> },
+                  'addedDate': { label: 'Oldest First', icon: <ArrowUpward sx={{ fontSize: 16 }} /> },
+                };
+                const option = sortOptions[value] || sortOptions['title'];
+                return (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    {!isMobile && option.icon}
+                    <Typography variant="body2">
+                      {isMobile ? option.label.split(' ')[0] : option.label}
+                    </Typography>
+                  </Box>
+                );
+              }}
+            >
+              <MenuItem value="title">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <ArrowUpward sx={{ fontSize: 16 }} />
+                  Title (A-Z)
+                </Box>
+              </MenuItem>
+              <MenuItem value="-title">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <ArrowDownward sx={{ fontSize: 16 }} />
+                  Title (Z-A)
+                </Box>
+              </MenuItem>
+              <MenuItem value="-addedDate">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <ArrowDownward sx={{ fontSize: 16 }} />
+                  Recently Added
+                </Box>
+              </MenuItem>
+              <MenuItem value="addedDate">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <ArrowUpward sx={{ fontSize: 16 }} />
+                  Oldest First
+                </Box>
+              </MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+
+        {!isMobile && <Divider orientation="vertical" flexItem />}
 
         {/* Selection Mode Toggle */}
         <Tooltip title={selectionMode ? 'Exit selection mode' : 'Select multiple items'}>

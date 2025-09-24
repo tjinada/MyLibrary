@@ -320,33 +320,13 @@ const FilterPopover = ({
                   </Typography>
                 )}
               </Box>
-              <Divider sx={{ my: 2 }} />
             </>
           )}
-
-          {/* Sort Options */}
-          <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'text.secondary' }}>
-              Sort By
-            </Typography>
-            <FormControl fullWidth size="small">
-              <Select
-                value={filters.sort}
-                onChange={(e) => handleFilterUpdate('sort', e.target.value)}
-                sx={{ borderRadius: 1.5 }}
-              >
-                <MenuItem value="title">Title (A-Z)</MenuItem>
-                <MenuItem value="-title">Title (Z-A)</MenuItem>
-                <MenuItem value="-addedDate">Recently Added</MenuItem>
-                <MenuItem value="addedDate">Oldest First</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
 
           {/* Clear Filters Button */}
           {(activeFilterCount > 0 || selectedGenres.length > 0) && (
             <>
-              <Divider sx={{ my: 2 }} />
+              <Divider sx={{ mt: 2, mb: 2 }} />
               <Button
                 fullWidth
                 variant="outlined"
