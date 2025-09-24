@@ -96,7 +96,9 @@ const FilterPopover = ({
           vertical: 'top',
           horizontal: 'left',
         }}
-        disablePortal={false}
+        // This ensures clicks inside the Popover don't close it
+        disableAutoFocus
+        disableEnforceFocus
         PaperProps={{
           sx: {
             width: 320,
@@ -104,16 +106,6 @@ const FilterPopover = ({
             borderRadius: 2,
             mt: 1,
           },
-          onClick: (e) => {
-            // Prevent the popover from closing when clicking inside
-            e.stopPropagation();
-          }
-        }}
-        // Add slotProps to handle backdrop click properly
-        slotProps={{
-          backdrop: {
-            onClick: handleClose
-          }
         }}
       >
         <Box sx={{ p: 2 }}>
@@ -136,11 +128,23 @@ const FilterPopover = ({
               <Select
                 value={filters.status}
                 onChange={(e) => handleFilterUpdate('status', e.target.value)}
-                onClose={(e) => e?.stopPropagation()}
                 MenuProps={{
-                  BackdropProps: {
-                    onClick: () => handleClose()
-                  }
+                  // Prevent the Popover from closing when interacting with Select
+                  disablePortal: false,
+                  // Keep the dropdown menu within the same stacking context
+                  anchorOrigin: {
+                    vertical: 'bottom',
+                    horizontal: 'left',
+                  },
+                  transformOrigin: {
+                    vertical: 'top',
+                    horizontal: 'left',
+                  },
+                  PaperProps: {
+                    onClick: (e) => {
+                      e.stopPropagation();
+                    }
+                  },
                 }}
                 sx={{ borderRadius: 1.5 }}
               >
@@ -235,11 +239,23 @@ const FilterPopover = ({
               <Select
                 value={filters.edition || 'all'}
                 onChange={(e) => handleFilterUpdate('edition', e.target.value)}
-                onClose={(e) => e?.stopPropagation()}
                 MenuProps={{
-                  BackdropProps: {
-                    onClick: () => handleClose()
-                  }
+                  // Prevent the Popover from closing when interacting with Select
+                  disablePortal: false,
+                  // Keep the dropdown menu within the same stacking context
+                  anchorOrigin: {
+                    vertical: 'bottom',
+                    horizontal: 'left',
+                  },
+                  transformOrigin: {
+                    vertical: 'top',
+                    horizontal: 'left',
+                  },
+                  PaperProps: {
+                    onClick: (e) => {
+                      e.stopPropagation();
+                    }
+                  },
                 }}
                 sx={{ borderRadius: 1.5 }}
               >
@@ -287,12 +303,8 @@ const FilterPopover = ({
                     multiple
                     value={selectedGenres}
                     onChange={handleGenreChange}
-                    onClose={(e) => {
-                      // Prevent the popover from closing when the select closes
-                      e?.stopPropagation();
-                    }}
                     MenuProps={{
-                      // Make the dropdown menu appear within the popover's z-index context
+                      // Prevent the Popover from closing when interacting with Select
                       disablePortal: false,
                       anchorOrigin: {
                         vertical: 'bottom',
@@ -310,12 +322,6 @@ const FilterPopover = ({
                           e.stopPropagation();
                         }
                       },
-                      // Close both dropdown and popover on backdrop click
-                      BackdropProps: {
-                        onClick: () => {
-                          handleClose();
-                        }
-                      }
                     }}
                     renderValue={(selected) => (
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
