@@ -343,12 +343,13 @@ const CollectionDetails = () => {
       <Header />
       <MuiToolbar />
       
-      <Container maxWidth="xl" sx={{ py: 3 }}>
+      <Container maxWidth="xl" sx={{ py: 2 }}>
         {/* Back to Library Button */}
-        <Box sx={{ mb: 3 }}>
+        <Box sx={{ mb: 2 }}>
           <Button
             startIcon={<ArrowBack />}
             onClick={() => navigate('/')}
+            size="small"
             sx={{
               textTransform: 'none',
               color: 'text.primary',
@@ -357,8 +358,8 @@ const CollectionDetails = () => {
                 bgcolor: 'action.hover',
                 color: 'primary.main',
               },
-              padding: '6px 12px',
-              borderRadius: 2,
+              padding: '4px 8px',
+              borderRadius: 1,
             }}
           >
             Back to Library
@@ -370,36 +371,36 @@ const CollectionDetails = () => {
           <Paper 
             elevation={0}
             sx={{ 
-              mb: 4,
-              borderRadius: 3,
+              mb: 2,
+              borderRadius: 2,
               overflow: 'hidden',
-              background: `linear-gradient(135deg, ${alpha(getTypeColor(collection.collectionType), 0.08)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
-              border: `1px solid ${alpha(getTypeColor(collection.collectionType), 0.2)}`,
+              background: `linear-gradient(135deg, ${alpha(getTypeColor(collection.collectionType), 0.06)} 0%, ${alpha(theme.palette.background.paper, 0.95)} 100%)`,
+              border: `1px solid ${alpha(getTypeColor(collection.collectionType), 0.15)}`,
             }}
           >
             {/* Hero Section - Compact 2-row design */}
             <Box sx={{ 
-              p: { xs: 3, md: 4 },
-              background: `linear-gradient(135deg, ${alpha(getTypeColor(collection.collectionType), 0.15)} 0%, transparent 100%)`,
+              p: { xs: 2, md: 2.5 },
+              background: `linear-gradient(135deg, ${alpha(getTypeColor(collection.collectionType), 0.1)} 0%, transparent 100%)`,
             }}>
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
                 {/* Icon Container */}
                 <Box
                   sx={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: 2.5,
+                    width: 56,
+                    height: 56,
+                    borderRadius: 1.5,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     background: `linear-gradient(135deg, ${getTypeColor(collection.collectionType)} 0%, ${alpha(getTypeColor(collection.collectionType), 0.8)} 100%)`,
                     color: 'white',
-                    boxShadow: theme.shadows[4],
+                    boxShadow: theme.shadows[2],
                     flexShrink: 0,
                     display: isMobile ? 'none' : 'flex',
                   }}
                 >
-                  {getCollectionIcon(collection.collectionType)}
+                  {React.cloneElement(getCollectionIcon(collection.collectionType), { sx: { fontSize: 28 } })}
                 </Box>
                 
                 {/* Content */}
@@ -408,21 +409,18 @@ const CollectionDetails = () => {
                   <Box sx={{ 
                     display: 'flex', 
                     alignItems: 'center', 
-                    gap: 2, 
-                    mb: 2.5,
+                    gap: 1.5, 
+                    mb: 1.5,
                     flexWrap: 'wrap'
                   }}>
                     {/* Title and Badge */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexGrow: isMobile ? 1 : 0 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: isMobile ? 1 : 0 }}>
                       <Typography 
-                        variant={isMobile ? "h5" : "h4"} 
+                        variant={isMobile ? "h6" : "h5"} 
                         component="h1" 
                         sx={{ 
                           fontWeight: 700,
-                          background: `linear-gradient(135deg, ${theme.palette.text.primary} 0%, ${alpha(theme.palette.text.primary, 0.8)} 100%)`,
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                          backgroundClip: 'text',
+                          color: theme.palette.text.primary,
                         }}
                       >
                         {collection.name}
@@ -431,10 +429,12 @@ const CollectionDetails = () => {
                         label={getTypeLabel(collection.collectionType)}
                         size="small"
                         sx={{
-                          bgcolor: alpha(getTypeColor(collection.collectionType), 0.15),
+                          bgcolor: alpha(getTypeColor(collection.collectionType), 0.12),
                           color: getTypeColor(collection.collectionType),
                           borderColor: getTypeColor(collection.collectionType),
                           fontWeight: 600,
+                          height: 24,
+                          fontSize: '0.75rem',
                         }}
                         variant="outlined"
                       />
@@ -445,20 +445,20 @@ const CollectionDetails = () => {
                     
                     {/* Action Buttons */}
                     {isAuthenticated && (
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                         <Button
                           variant="contained"
                           startIcon={<AddIcon />}
                           onClick={() => setAddBooksModalOpen(true)}
-                          size={isMobile ? "small" : "medium"}
+                          size="small"
                           sx={{
-                            borderRadius: 2,
+                            borderRadius: 1,
                             textTransform: 'none',
                             fontWeight: 600,
                             background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                            boxShadow: theme.shadows[2],
+                            boxShadow: theme.shadows[1],
                             '&:hover': {
-                              boxShadow: theme.shadows[4],
+                              boxShadow: theme.shadows[2],
                             }
                           }}
                         >
@@ -468,9 +468,9 @@ const CollectionDetails = () => {
                           variant="outlined"
                           startIcon={<EditIcon />}
                           onClick={() => setEditDialogOpen(true)}
-                          size={isMobile ? "small" : "medium"}
+                          size="small"
                           sx={{
-                            borderRadius: 2,
+                            borderRadius: 1,
                             textTransform: 'none',
                             fontWeight: 500,
                           }}
@@ -481,9 +481,9 @@ const CollectionDetails = () => {
                           variant="outlined"
                           startIcon={<ImageIcon />}
                           onClick={() => setImagePickerOpen(true)}
-                          size={isMobile ? "small" : "medium"}
+                          size="small"
                           sx={{
-                            borderRadius: 2,
+                            borderRadius: 1,
                             textTransform: 'none',
                             fontWeight: 500,
                           }}
@@ -495,9 +495,9 @@ const CollectionDetails = () => {
                           startIcon={<DeleteIcon />}
                           color="error"
                           onClick={handleDeleteCollection}
-                          size={isMobile ? "small" : "medium"}
+                          size="small"
                           sx={{
-                            borderRadius: 2,
+                            borderRadius: 1,
                             textTransform: 'none',
                             fontWeight: 500,
                           }}
@@ -521,9 +521,9 @@ const CollectionDetails = () => {
                   <Box>
                     {/* Description */}
                     {collection.description && (
-                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 2 }}>
-                        <DescriptionIcon sx={{ fontSize: 20, color: 'text.secondary', mt: 0.3 }} />
-                        <Typography variant="body1" color="text.secondary">
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, mb: 1.5 }}>
+                        <DescriptionIcon sx={{ fontSize: 16, color: 'text.secondary', mt: 0.2 }} />
+                        <Typography variant="body2" color="text.secondary">
                           {collection.description}
                         </Typography>
                       </Box>
@@ -531,20 +531,20 @@ const CollectionDetails = () => {
 
                     {/* Statistics Cards */}
                     {collectionStats && (
-                      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                         <Paper
                           elevation={0}
                           sx={{
-                            px: 2,
-                            py: 1,
-                            borderRadius: 2,
+                            px: 1.5,
+                            py: 0.5,
+                            borderRadius: 1,
                             bgcolor: alpha(theme.palette.primary.main, 0.08),
-                            border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                            border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
                           }}
                         >
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <BookIcon sx={{ fontSize: 18, color: 'primary.main' }} />
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <BookIcon sx={{ fontSize: 14, color: 'primary.main' }} />
+                            <Typography variant="caption" sx={{ fontWeight: 600 }}>
                               {collectionStats.bookCount} {collectionStats.bookCount === 1 ? 'Book' : 'Books'}
                             </Typography>
                           </Box>
@@ -554,16 +554,16 @@ const CollectionDetails = () => {
                           <Paper
                             elevation={0}
                             sx={{
-                              px: 2,
-                              py: 1,
-                              borderRadius: 2,
+                              px: 1.5,
+                              py: 0.5,
+                              borderRadius: 1,
                               bgcolor: alpha(theme.palette.info.main, 0.08),
-                              border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                              border: `1px solid ${alpha(theme.palette.info.main, 0.15)}`,
                             }}
                           >
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <AuthorIcon sx={{ fontSize: 18, color: 'info.main' }} />
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <AuthorIcon sx={{ fontSize: 14, color: 'info.main' }} />
+                              <Typography variant="caption" sx={{ fontWeight: 600 }}>
                                 {collectionStats.authorCount} {collectionStats.authorCount === 1 ? 'Author' : 'Authors'}
                               </Typography>
                             </Box>
@@ -574,14 +574,14 @@ const CollectionDetails = () => {
                           <Paper
                             elevation={0}
                             sx={{
-                              px: 2,
-                              py: 1,
-                              borderRadius: 2,
+                              px: 1.5,
+                              py: 0.5,
+                              borderRadius: 1,
                               bgcolor: alpha(theme.palette.success.main, 0.08),
-                              border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                              border: `1px solid ${alpha(theme.palette.success.main, 0.15)}`,
                             }}
                           >
-                            <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'success.main' }}>
                               {collectionStats.readPercentage}% Read
                             </Typography>
                           </Paper>
@@ -604,18 +604,18 @@ const CollectionDetails = () => {
                 display: 'flex', 
                 justifyContent: 'space-between', 
                 alignItems: 'center',
-                mb: 3,
+                mb: 2,
               }}>
                 <Typography 
-                  variant="h5" 
+                  variant="subtitle1" 
                   sx={{ 
                     fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 1,
+                    gap: 0.5,
                   }}
                 >
-                  <BookIcon sx={{ color: 'primary.main' }} />
+                  <BookIcon sx={{ color: 'primary.main', fontSize: 20 }} />
                   Collection Books
                 </Typography>
                 
@@ -627,23 +627,25 @@ const CollectionDetails = () => {
                   sx={{
                     bgcolor: 'background.paper',
                     border: `1px solid ${theme.palette.divider}`,
-                    borderRadius: 2,
+                    borderRadius: 1,
+                    '& .MuiToggleButton-root': {
+                      py: 0.5,
+                      px: 1.5,
+                    }
                   }}
                 >
                   <ToggleButton 
                     value="grid" 
                     aria-label="grid view"
-                    sx={{ px: 2 }}
                   >
-                    <GridIcon sx={{ mr: 1 }} />
+                    <GridIcon sx={{ mr: 0.5, fontSize: 18 }} />
                     Grid
                   </ToggleButton>
                   <ToggleButton 
                     value="list" 
                     aria-label="list view"
-                    sx={{ px: 2 }}
                   >
-                    <ListIcon sx={{ mr: 1 }} />
+                    <ListIcon sx={{ mr: 0.5, fontSize: 18 }} />
                     List
                   </ToggleButton>
                 </ToggleButtonGroup>
@@ -653,8 +655,8 @@ const CollectionDetails = () => {
               <Paper 
                 elevation={0}
                 sx={{ 
-                  p: viewMode === 'grid' ? 2 : 0,
-                  borderRadius: 2,
+                  p: viewMode === 'grid' ? 1.5 : 0,
+                  borderRadius: 1,
                   bgcolor: 'background.paper',
                   border: `1px solid ${theme.palette.divider}`,
                 }}
@@ -686,31 +688,31 @@ const CollectionDetails = () => {
             <Paper 
               elevation={0} 
               sx={{ 
-                p: 8, 
+                p: 6, 
                 textAlign: 'center',
-                borderRadius: 3,
+                borderRadius: 2,
                 background: `linear-gradient(135deg, ${theme.palette.grey[50]} 0%, white 100%)`,
                 border: `1px solid ${theme.palette.divider}`,
               }}
             >
-              <Box sx={{ mb: 3 }}>
-                <BookIcon sx={{ fontSize: 80, color: 'text.disabled', opacity: 0.5 }} />
+              <Box sx={{ mb: 2 }}>
+                <BookIcon sx={{ fontSize: 60, color: 'text.disabled', opacity: 0.5 }} />
               </Box>
-              <Typography variant="h5" color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
+              <Typography variant="h6" color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
                 No books in this collection yet
               </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
                 Start building your collection by adding books from your library
               </Typography>
               <Button
                 variant="contained"
-                size="large"
+                size="medium"
                 startIcon={<AddIcon />}
                 sx={{ 
-                  borderRadius: 2,
+                  borderRadius: 1,
                   textTransform: 'none',
                   fontWeight: 600,
-                  px: 4,
+                  px: 3,
                   background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
                 }}
                 onClick={() => setAddBooksModalOpen(true)}
