@@ -3,18 +3,18 @@ import {
   Drawer,
   Box,
   Typography,
-  FormControl,
-  Select,
-  MenuItem,
   Divider,
   IconButton,
   Button,
   Chip,
   Checkbox,
-  ListItemText,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
   useTheme,
   alpha,
   Paper,
+  Grid,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -22,6 +22,10 @@ import {
   Diamond as DiamondIcon,
   AutoAwesome as SpecialIcon,
   FilterList as FilterIcon,
+  MenuBook as BookIcon,
+  AutoStories as ReadingIcon,
+  CheckCircle as ReadIcon,
+  Schedule as LoanedIcon,
 } from '@mui/icons-material';
 import { statusColors } from '../../theme/theme';
 
@@ -43,17 +47,25 @@ const FilterDrawer = ({
       ? filters.genre 
       : [filters.genre];
 
-  const handleFilterUpdate = (filterType, value) => {
-    if (filterType === 'genre') {
-      onFilterChange({ ...filters, genre: value.length === 0 ? 'all' : value });
-    } else {
-      onFilterChange({ ...filters, [filterType]: value });
-    }
+  const handleStatusChange = (event) => {
+    onFilterChange({ ...filters, status: event.target.value });
   };
 
-  const handleGenreChange = (event) => {
-    const value = event.target.value;
-    onFilterChange({ ...filters, genre: value.length === 0 ? 'all' : value });
+  const handleEditionChange = (event) => {
+    onFilterChange({ ...filters, edition: event.target.value });
+  };
+
+  const handleGenreToggle = (genreName) => {
+    const currentGenres = [...selectedGenres];
+    const index = currentGenres.indexOf(genreName);
+    
+    if (index > -1) {
+      currentGenres.splice(index, 1);
+    } else {
+      currentGenres.push(genreName);
+    }
+    
+    onFilterChange({ ...filters, genre: currentGenres.length === 0 ? 'all' : currentGenres });
   };
 
   const clearGenres = () => {
@@ -116,289 +128,182 @@ const FilterDrawer = ({
         {/* Scrollable Content */}
         <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
           {/* Status Filter */}
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 2, 
-              mb: 2, 
-              bgcolor: alpha(theme.palette.primary.main, 0.02),
-              border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-              borderRadius: 1,
-            }}
-          >
-            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <BookIcon sx={{ fontSize: 18 }} />
               Reading Status
             </Typography>
-            <FormControl fullWidth size="small">
-              <Select
-                value={filters.status}
-                onChange={(e) => handleFilterUpdate('status', e.target.value)}
-                sx={{ 
-                  bgcolor: 'background.paper',
-                  borderRadius: 1,
-                  '& .MuiSelect-select': {
-                    py: 1.5,
-                  }
-                }}
-              >
-                <MenuItem value="all">
-                  <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                    <Box sx={{ flexGrow: 1 }}>All Books</Box>
-                    <Chip 
-                      label={bookCounts.all}
-                      size="small"
-                      sx={{ height: 18, fontSize: '0.7rem' }}
-                    />
+            <RadioGroup
+              value={filters.status}
+              onChange={handleStatusChange}
+              sx={{ pl: 1 }}
+            >
+              <FormControlLabel 
+                value="all" 
+                control={<Radio size="small" />} 
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2">All Books</Typography>
+                    <Chip label={bookCounts.all} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />
                   </Box>
-                </MenuItem>
-                <MenuItem value="to-read">
-                  <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                    <Box 
-                      sx={{ 
-                        width: 10, 
-                        height: 10, 
-                        borderRadius: '50%', 
-                        bgcolor: statusColors['to-read'],
-                        mr: 1
-                      }} 
-                    />
-                    <Box sx={{ flexGrow: 1 }}>To Read</Box>
-                    <Chip 
-                      label={bookCounts['to-read']}
-                      size="small"
-                      sx={{ height: 18, fontSize: '0.7rem' }}
-                    />
+                }
+              />
+              <FormControlLabel 
+                value="to-read" 
+                control={<Radio size="small" sx={{ color: statusColors['to-read'] }} />} 
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: statusColors['to-read'] }} />
+                    <Typography variant="body2">To Read</Typography>
+                    <Chip label={bookCounts['to-read']} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />
                   </Box>
-                </MenuItem>
-                <MenuItem value="reading">
-                  <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                    <Box 
-                      sx={{ 
-                        width: 10, 
-                        height: 10, 
-                        borderRadius: '50%', 
-                        bgcolor: statusColors['reading'],
-                        mr: 1
-                      }} 
-                    />
-                    <Box sx={{ flexGrow: 1 }}>Reading</Box>
-                    <Chip 
-                      label={bookCounts.reading}
-                      size="small"
-                      sx={{ height: 18, fontSize: '0.7rem' }}
-                    />
+                }
+              />
+              <FormControlLabel 
+                value="reading" 
+                control={<Radio size="small" sx={{ color: statusColors['reading'] }} />} 
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: statusColors['reading'] }} />
+                    <Typography variant="body2">Reading</Typography>
+                    <Chip label={bookCounts.reading} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />
                   </Box>
-                </MenuItem>
-                <MenuItem value="read">
-                  <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                    <Box 
-                      sx={{ 
-                        width: 10, 
-                        height: 10, 
-                        borderRadius: '50%', 
-                        bgcolor: statusColors['read'],
-                        mr: 1
-                      }} 
-                    />
-                    <Box sx={{ flexGrow: 1 }}>Read</Box>
-                    <Chip 
-                      label={bookCounts.read}
-                      size="small"
-                      sx={{ height: 18, fontSize: '0.7rem' }}
-                    />
+                }
+              />
+              <FormControlLabel 
+                value="read" 
+                control={<Radio size="small" sx={{ color: statusColors['read'] }} />} 
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: statusColors['read'] }} />
+                    <Typography variant="body2">Read</Typography>
+                    <Chip label={bookCounts.read} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />
                   </Box>
-                </MenuItem>
-                <MenuItem value="loaned">
-                  <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                    <Box 
-                      sx={{ 
-                        width: 10, 
-                        height: 10, 
-                        borderRadius: '50%', 
-                        bgcolor: statusColors['loaned'],
-                        mr: 1
-                      }} 
-                    />
-                    <Box sx={{ flexGrow: 1 }}>Loaned</Box>
-                    <Chip 
-                      label={bookCounts.loaned}
-                      size="small"
-                      sx={{ height: 18, fontSize: '0.7rem' }}
-                    />
+                }
+              />
+              <FormControlLabel 
+                value="loaned" 
+                control={<Radio size="small" sx={{ color: statusColors['loaned'] }} />} 
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: statusColors['loaned'] }} />
+                    <Typography variant="body2">Loaned</Typography>
+                    <Chip label={bookCounts.loaned} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />
                   </Box>
-                </MenuItem>
-              </Select>
-            </FormControl>
-          </Paper>
+                }
+              />
+            </RadioGroup>
+          </Box>
+
+          <Divider sx={{ my: 2 }} />
 
           {/* Edition Filter */}
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 2, 
-              mb: 2, 
-              bgcolor: alpha(theme.palette.secondary.main, 0.02),
-              border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-              borderRadius: 1,
-            }}
-          >
-            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <SpecialIcon sx={{ fontSize: 18 }} />
               Edition Type
             </Typography>
-            <FormControl fullWidth size="small">
-              <Select
-                value={filters.edition || 'all'}
-                onChange={(e) => handleFilterUpdate('edition', e.target.value)}
-                sx={{ 
-                  bgcolor: 'background.paper',
-                  borderRadius: 1,
-                  '& .MuiSelect-select': {
-                    py: 1.5,
-                  }
-                }}
-              >
-                <MenuItem value="all">
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    All Editions
-                  </Box>
-                </MenuItem>
-                <MenuItem value="signed">
-                  <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                    <SpecialIcon fontSize="small" sx={{ color: theme.palette.warning.main, mr: 1 }} />
-                    <Box sx={{ flexGrow: 1 }}>Signed Edition</Box>
-                  </Box>
-                </MenuItem>
-                <MenuItem value="deluxe">
-                  <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                    <DiamondIcon fontSize="small" sx={{ color: theme.palette.secondary.main, mr: 1 }} />
-                    <Box sx={{ flexGrow: 1 }}>Deluxe Edition</Box>
-                  </Box>
-                </MenuItem>
-              </Select>
-            </FormControl>
-          </Paper>
-
-          {/* Genre Filter - Multiple Selection */}
-          {genres && genres.length > 0 && (
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                p: 2, 
-                mb: 2, 
-                bgcolor: alpha(theme.palette.success.main, 0.02),
-                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                borderRadius: 1,
-              }}
+            <RadioGroup
+              value={filters.edition || 'all'}
+              onChange={handleEditionChange}
+              sx={{ pl: 1 }}
             >
+              <FormControlLabel 
+                value="all" 
+                control={<Radio size="small" />} 
+                label={<Typography variant="body2">All Editions</Typography>}
+              />
+              <FormControlLabel 
+                value="signed" 
+                control={<Radio size="small" sx={{ color: theme.palette.warning.main }} />} 
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <SpecialIcon sx={{ fontSize: 16, color: theme.palette.warning.main }} />
+                    <Typography variant="body2">Signed Edition</Typography>
+                  </Box>
+                }
+              />
+              <FormControlLabel 
+                value="deluxe" 
+                control={<Radio size="small" sx={{ color: theme.palette.secondary.main }} />} 
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <DiamondIcon sx={{ fontSize: 16, color: theme.palette.secondary.main }} />
+                    <Typography variant="body2">Deluxe Edition</Typography>
+                  </Box>
+                }
+              />
+            </RadioGroup>
+          </Box>
+
+          <Divider sx={{ my: 2 }} />
+
+          {/* Genre Filter - Two Column Checkboxes */}
+          {genres && genres.length > 0 && (
+            <Box sx={{ mb: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <ReadingIcon sx={{ fontSize: 18 }} />
                   Genres
+                  {selectedGenres.length > 0 && (
+                    <Chip 
+                      label={selectedGenres.length} 
+                      size="small" 
+                      color="primary"
+                      sx={{ height: 18, minWidth: 18, ml: 0.5 }}
+                    />
+                  )}
                 </Typography>
                 {selectedGenres.length > 0 && (
                   <Button
                     size="small"
-                    startIcon={<ClearIcon sx={{ fontSize: 16 }} />}
                     onClick={clearGenres}
                     sx={{ 
                       textTransform: 'none',
                       fontSize: '0.75rem',
-                      py: 0.25,
+                      py: 0,
+                      minWidth: 'auto',
                     }}
                   >
-                    Clear
+                    Clear all
                   </Button>
                 )}
               </Box>
               
-              <FormControl fullWidth size="small">
-                <Select
-                  multiple
-                  value={selectedGenres}
-                  onChange={handleGenreChange}
-                  renderValue={(selected) => (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                      {selected.length === 0 ? (
-                        <Typography variant="body2" color="text.secondary">
-                          All Genres
-                        </Typography>
-                      ) : (
-                        selected.slice(0, 3).map((value) => (
-                          <Chip 
-                            key={value} 
-                            label={value} 
-                            size="small"
-                            sx={{ 
-                              height: 20,
-                              fontSize: '0.7rem',
-                              bgcolor: theme.palette.success.main,
-                              color: 'white',
-                            }}
-                          />
-                        ))
-                      )}
-                      {selected.length > 3 && (
-                        <Chip 
-                          label={`+${selected.length - 3}`}
+              <Grid container spacing={1} sx={{ pl: 1 }}>
+                {genres.map((genre) => (
+                  <Grid item xs={6} key={genre.name}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
                           size="small"
-                          sx={{ 
-                            height: 20,
-                            fontSize: '0.7rem',
-                            bgcolor: theme.palette.grey[500],
-                            color: 'white',
-                          }}
+                          checked={selectedGenres.includes(genre.name)}
+                          onChange={() => handleGenreToggle(genre.name)}
+                          sx={{ py: 0.5 }}
                         />
-                      )}
-                    </Box>
-                  )}
-                  sx={{ 
-                    bgcolor: 'background.paper',
-                    borderRadius: 1,
-                    '& .MuiSelect-select': {
-                      py: 1.5,
-                    }
-                  }}
-                  MenuProps={{
-                    PaperProps: {
-                      style: {
-                        maxHeight: 300,
-                      },
-                    },
-                  }}
-                >
-                  {genres.map((genre) => (
-                    <MenuItem key={genre.name} value={genre.name}>
-                      <Checkbox 
-                        checked={selectedGenres.indexOf(genre.name) > -1}
-                        size="small"
-                        sx={{ p: 0.5, mr: 1 }}
-                      />
-                      <ListItemText 
-                        primary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Typography variant="body2">{genre.name}</Typography>
-                            <Chip 
-                              label={genre.count}
-                              size="small"
-                              sx={{ 
-                                height: 16,
-                                fontSize: '0.65rem',
-                                ml: 1,
-                              }}
-                            />
-                          </Box>
+                      }
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, width: '100%' }}>
+                          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                            {genre.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                            ({genre.count})
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{ 
+                        m: 0, 
+                        width: '100%',
+                        '& .MuiFormControlLabel-label': {
+                          width: '100%',
                         }
-                      />
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              
-              {selectedGenres.length > 0 && (
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  {selectedGenres.length} genre{selectedGenres.length > 1 ? 's' : ''} selected
-                </Typography>
-              )}
-            </Paper>
+                      }}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
           )}
         </Box>
 
