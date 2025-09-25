@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -13,6 +13,7 @@ import {
   Select,
   MenuItem,
   Typography,
+  Badge,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -24,8 +25,9 @@ import {
   Sort as SortIcon,
   ArrowUpward,
   ArrowDownward,
+  FilterList as FilterIcon,
 } from '@mui/icons-material';
-import FilterPopover from '../Filters/FilterPopover';
+import FilterDrawer from '../Filters/FilterDrawer';
 import { spacing } from '../../theme/theme';
 
 const StickyToolbar = ({
@@ -44,10 +46,12 @@ const StickyToolbar = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
   const activeFilterCount = [
     filters.status !== 'all',
     filters.genre !== 'all' && (Array.isArray(filters.genre) ? filters.genre.length > 0 : true),
+    filters.edition !== 'all',
   ].filter(Boolean).length;
 
   const handleQuickAdd = () => {
@@ -59,7 +63,8 @@ const StickyToolbar = ({
   };
 
   return (
-    <Paper 
+    <>
+      <Paper 
       elevation={2}
       sx={{ 
         position: 'sticky',
@@ -255,15 +260,35 @@ const StickyToolbar = ({
 
 
         {/* Filters */}
-        <FilterPopover
-          filters={filters}
-          onFilterChange={onFilterChange}
-          genres={genres}
-          bookCounts={bookCounts}
-          activeFilterCount={activeFilterCount}
-        />
+        <Badge badgeContent={activeFilterCount} color="primary">
+          <Button
+            variant={activeFilterCount > 0 ? 'contained' : 'outlined'}
+            startIcon={<FilterIcon />}
+            onClick={() => setFilterDrawerOpen(true)}
+            size="small"
+            sx={{
+              borderRadius: 1,
+              textTransform: 'none',
+              fontWeight: 500,
+            }}
+          >
+            Filters
+          </Button>
+        </Badge>
       </Box>
     </Paper>
+
+    {/* Filter Drawer */}
+    <FilterDrawer
+      open={filterDrawerOpen}
+      onClose={() => setFilterDrawerOpen(false)}
+      filters={filters}
+      onFilterChange={onFilterChange}
+      genres={genres}
+      bookCounts={bookCounts}
+      activeFilterCount={activeFilterCount}
+    />
+  </>
   );
 };
 
