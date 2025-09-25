@@ -367,12 +367,12 @@ const BookDetailsModal = ({
       <Dialog 
         open={open} 
         onClose={onClose}
-        maxWidth="lg"
+        maxWidth="md"
         fullWidth
         fullScreen={isMobile}
         PaperProps={{
           sx: {
-            borderRadius: isMobile ? 0 : 3,
+            borderRadius: isMobile ? 0 : 2,
             overflow: 'hidden',
           }
         }}
@@ -382,13 +382,13 @@ const BookDetailsModal = ({
           sx={{
             background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
             color: 'white',
-            p: 2,
+            p: 1.5,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 600, pr: 2 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, pr: 2 }}>
             {displayBook.title}
           </Typography>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
@@ -475,9 +475,9 @@ const BookDetailsModal = ({
           {/* Two Column Layout */}
           <Grid container>
             {/* Left Column - Book Cover & Rating */}
-            <Grid item xs={12} md={4} sx={{ 
+            <Grid item xs={12} md={3} sx={{ 
               bgcolor: isTablet ? 'background.paper' : 'grey.50',
-              p: 3,
+              p: 2,
               borderRight: isTablet ? 'none' : '1px solid',
               borderColor: 'divider',
             }}>
@@ -485,10 +485,10 @@ const BookDetailsModal = ({
                 <Box>
                   {/* Book Cover */}
                   <Card 
-                    elevation={3}
+                    elevation={2}
                     sx={{ 
-                      mb: 3,
-                      borderRadius: 2,
+                      mb: 2,
+                      borderRadius: 1,
                       overflow: 'hidden',
                       position: 'relative',
                     }}
@@ -501,7 +501,7 @@ const BookDetailsModal = ({
                           alt={book.title}
                           sx={{ 
                             height: 'auto',
-                            maxHeight: 500,
+                            maxHeight: 400,
                             width: '100%',
                             objectFit: 'contain',
                             bgcolor: 'grey.100',
@@ -570,7 +570,7 @@ const BookDetailsModal = ({
                           alt={displayBook.title}
                           sx={{ 
                             height: 'auto',
-                            maxHeight: 500,
+                            maxHeight: 400,
                             width: '100%',
                             objectFit: 'contain',
                             bgcolor: 'grey.100',
@@ -587,19 +587,20 @@ const BookDetailsModal = ({
                   <Button
                     fullWidth
                     variant="outlined"
+                    size="small"
                     startIcon={<PhotoLibraryIcon />}
                     onClick={() => setShowCoverPicker(true)}
-                    sx={{ mb: 3 }}
+                    sx={{ mb: 2 }}
                   >
                     Browse Covers
                   </Button>
 
                   {/* Rating */}
                   <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="overline" sx={{ color: 'text.secondary' }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                       Your Rating
                     </Typography>
-                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 0.5 }}>
                       <Rating 
                         value={editMode ? editedBook.rating : displayBook.rating || 0}
                         onChange={(e, newValue) => {
@@ -608,7 +609,7 @@ const BookDetailsModal = ({
                           }
                         }}
                         readOnly={!editMode}
-                        size="large"
+                        size="medium"
                         precision={0.5}
                         icon={<StarIcon fontSize="inherit" />}
                         emptyIcon={<StarIcon fontSize="inherit" />}
@@ -637,11 +638,11 @@ const BookDetailsModal = ({
             </Grid>
 
             {/* Right Column - Book Details */}
-            <Grid item xs={12} md={8} sx={{ p: 3 }}>
+            <Grid item xs={12} md={9} sx={{ p: 2 }}>
               <Grow in timeout={700}>
                 <Box>
                   {/* Status Pills - Always Visible */}
-                  <Box sx={{ mb: 3 }}>
+                  <Box sx={{ mb: 2 }}>
                     <StatusPills
                       status={displayBook.status}
                       onChange={handleQuickStatusChange}
@@ -649,17 +650,19 @@ const BookDetailsModal = ({
                     />
                   </Box>
 
-                  <Divider sx={{ my: 3 }} />
+                  <Divider sx={{ my: 2 }} />
 
                   {/* Tabs for organized content */}
                   <Tabs 
                     value={tabValue} 
                     onChange={(e, v) => setTabValue(v)}
                     sx={{ 
-                      mb: 3,
+                      mb: 2,
                       '& .MuiTab-root': {
                         textTransform: 'none',
                         fontWeight: 600,
+                        minHeight: 40,
+                        py: 1,
                       }
                     }}
                   >
@@ -1007,8 +1010,8 @@ const BookDetailsModal = ({
         </DialogContent>
 
         {/* Dialog Actions - Minimal Footer */}
-        <DialogActions sx={{ p: 2, bgcolor: 'grey.50' }}>
-          <Button onClick={onClose} sx={{ ml: 'auto' }}>
+        <DialogActions sx={{ p: 1, bgcolor: 'grey.50' }}>
+          <Button onClick={onClose} size="small" sx={{ ml: 'auto' }}>
             Close
           </Button>
         </DialogActions>

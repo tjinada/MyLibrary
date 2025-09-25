@@ -333,13 +333,13 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     <Dialog
       open={open}
       onClose={handleClose}
-      maxWidth={confirmationMode ? "lg" : "md"}
+      maxWidth={confirmationMode ? "md" : "sm"}
       fullWidth
       fullScreen={isMobile}
       PaperProps={{
         sx: { 
-          minHeight: isMobile ? '100vh' : confirmationMode ? '600px' : '400px',
-          maxHeight: isMobile ? '100vh' : confirmationMode ? '90vh' : '500px',
+          minHeight: isMobile ? '100vh' : confirmationMode ? '400px' : '300px',
+          maxHeight: isMobile ? '100vh' : confirmationMode ? '80vh' : '400px',
         }
       }}
     >
@@ -349,8 +349,9 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
         justifyContent: 'space-between',
         borderBottom: 1,
         borderColor: 'divider',
+        py: 1.5,
       }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           {confirmationMode && (
             <IconButton onClick={handleCancelConfirmation} size="small">
               <BackIcon />
@@ -378,7 +379,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       <DialogContent sx={{ p: 0 }}>
         {!confirmationMode ? (
           // Scanner Mode
-          <Box sx={{ p: 3 }}>
+          <Box sx={{ p: 2 }}>
             {/* Progress indicator */}
             {loading && <LinearProgress sx={{ mb: 2 }} />}
             
@@ -456,11 +457,11 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                 
                 {/* Recently added - inline for desktop */}
                 {recentlyAdded.length > 0 && (
-                  <Box sx={{ mt: 3 }}>
-                    <Typography variant="subtitle2" gutterBottom>
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="caption" color="text.secondary" gutterBottom>
                       Recently Added ({recentlyAdded.length})
                     </Typography>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
                       {recentlyAdded.map((book, index) => (
                         <Chip
                           key={book.isbn + book.timestamp}
@@ -468,6 +469,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                           variant="outlined"
                           color="success"
                           size="small"
+                          sx={{ height: 24, fontSize: '0.75rem' }}
                           icon={book.quantity > 1 ? <Badge badgeContent={book.quantity} color="secondary" /> : null}
                         />
                       ))}
@@ -511,11 +513,11 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
           </Box>
         ) : (
           // Confirmation Mode
-          <Box sx={{ p: 3 }}>
+          <Box sx={{ p: 2 }}>
             {error && (
               <Alert 
                 severity="error" 
-                sx={{ mb: 2 }}
+                sx={{ mb: 1 }}
                 onClose={() => setError(null)}
               >
                 {error}
@@ -523,7 +525,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
             )}
             
             {currentBook && (
-              <Grid container spacing={3}>
+              <Grid container spacing={2}>
                 <Grid item xs={12} md={4}>
                   {/* Book cover */}
                   <Card sx={{ height: '100%', position: 'relative' }}>
@@ -535,7 +537,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                           alt={currentBook.title}
                           sx={{ 
                             height: 'auto', 
-                            maxHeight: isMobile ? 300 : 450,
+                            maxHeight: isMobile ? 250 : 350,
                             width: '100%',
                             objectFit: 'contain'
                           }}
@@ -568,13 +570,13 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                       </>
                     ) : (
                       <Box sx={{ 
-                        height: isMobile ? 300 : 400, 
+                        height: isMobile ? 250 : 300, 
                         display: 'flex', 
                         flexDirection: 'column',
                         alignItems: 'center', 
                         justifyContent: 'center',
                         bgcolor: 'grey.200',
-                        p: 3
+                        p: 2
                       }}>
                         <ImageIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
                         <Typography color="text.secondary" align="center" gutterBottom>
@@ -594,15 +596,15 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                 </Grid>
                 
                 <Grid item xs={12} md={8}>
-                  <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
                     {currentBook.title}
                   </Typography>
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
+                  <Typography variant="body1" color="text.secondary" gutterBottom>
                     by {currentBook.authors?.join(', ')}
                   </Typography>
                   
-                  <Box sx={{ mt: 3, mb: 3 }}>
-                    <Grid container spacing={2}>
+                  <Box sx={{ mt: 2, mb: 2 }}>
+                    <Grid container spacing={1.5}>
                       <Grid item xs={12} sm={6}>
                         <Typography variant="body2" color="text.secondary">ISBN</Typography>
                         <Typography variant="body1" sx={{ fontWeight: 500 }}>
@@ -621,11 +623,11 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                   </Box>
 
                   {/* Rating - NEW */}
-                  <Box sx={{ mb: 3 }}>
+                  <Box sx={{ mb: 2 }}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       Rating
                     </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                       <Rating
                         value={bookRating}
                         onChange={(event, newValue) => {

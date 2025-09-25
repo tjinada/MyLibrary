@@ -309,8 +309,8 @@ const CreateCollectionModal = ({ open, onClose, onCollectionCreated, initialBook
             </Box>
 
             {/* Book List */}
-            <Paper variant="outlined" sx={{ maxHeight: 400, overflow: 'auto' }}>
-              <List>
+            <Paper variant="outlined" sx={{ maxHeight: 300, overflow: 'auto' }}>
+              <List dense>
                 {filteredBooks.length === 0 ? (
                   <ListItem>
                     <ListItemText 
@@ -333,7 +333,7 @@ const CreateCollectionModal = ({ open, onClose, onCollectionCreated, initialBook
                           disableRipple
                         />
                         <ListItemAvatar>
-                          <Avatar variant="rounded" sx={{ bgcolor: 'primary.light' }}>
+                          <Avatar variant="rounded" sx={{ bgcolor: 'primary.light', width: 32, height: 32 }}>
                             {book.coverImage ? (
                               <img 
                                 src={book.coverImage} 
@@ -341,7 +341,7 @@ const CreateCollectionModal = ({ open, onClose, onCollectionCreated, initialBook
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                               />
                             ) : (
-                              <BookIcon />
+                              <BookIcon sx={{ fontSize: 18 }} />
                             )}
                           </Avatar>
                         </ListItemAvatar>
@@ -426,18 +426,32 @@ const CreateCollectionModal = ({ open, onClose, onCollectionCreated, initialBook
     <Dialog 
       open={open} 
       onClose={handleClose}
-      maxWidth="md"
+      maxWidth="sm"
       fullWidth
       PaperProps={{
         sx: { borderRadius: 2 }
       }}
     >
-      <DialogTitle>
+      <DialogTitle sx={{ pb: 1 }}>
         <Typography variant="h6">Create New Collection</Typography>
-        <Stepper activeStep={activeStep} sx={{ mt: 2 }}>
+        <Stepper activeStep={activeStep} sx={{ mt: 1.5 }}>
           {steps.map((label) => (
             <Step key={label}>
-              <StepLabel>{label}</StepLabel>
+              <StepLabel 
+                StepIconProps={{ 
+                  sx: { 
+                    fontSize: '1.2rem',
+                    '&.MuiStepIcon-root': { width: 28, height: 28 }
+                  } 
+                }}
+                sx={{
+                  '& .MuiStepLabel-label': {
+                    fontSize: '0.85rem',
+                  }
+                }}
+              >
+                {label}
+              </StepLabel>
             </Step>
           ))}
         </Stepper>
