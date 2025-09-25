@@ -253,19 +253,19 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       // - Normal add: response is the book object directly
       // - Duplicate add: response has { book, message, isDuplicate, newQuantity }
       const addedBook = response.book || response;
-      const bookIsbn = addedBook.isbn || bookToAdd.isbn;
+      const bookId = addedBook._id; // Use MongoDB _id for collections
       
-      console.log('Book added successfully:', bookIsbn);
+      console.log('Book added successfully:', addedBook.isbn, 'ID:', bookId);
       
       // Add to selected collections
-      if (selectedCollections.length > 0 && bookIsbn) {
+      if (selectedCollections.length > 0 && bookId) {
         try {
           // Add small delay to ensure book is fully saved in database
           await new Promise(resolve => setTimeout(resolve, 500));
           
           await Promise.all(
             selectedCollections.map(collectionId =>
-              addBooksToCollection(collectionId, [bookIsbn])
+              addBooksToCollection(collectionId, [bookId]) // Use _id not ISBN
                 .catch(err => {
                   console.error(`Failed to add to collection ${collectionId}:`, err);
                   // Don't fail the entire operation if one collection fails
@@ -273,6 +273,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                 })
             )
           );
+          console.log('Book added to', selectedCollections.length, 'collection(s)');
         } catch (collectionError) {
           console.error('Error adding to collections:', collectionError);
           // Don't show error - book was added successfully
@@ -367,21 +368,24 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       
       // Get the actual book from response
       const addedBook = response.book || response;
-      const bookIsbn = addedBook.isbn || bookToAdd.isbn;
+      const bookId = addedBook._id; // Use MongoDB _id for collections
+      
+      console.log('Duplicate book added successfully:', addedBook.isbn, 'ID:', bookId);
       
       // Add to selected collections
-      if (selectedCollections.length > 0 && bookIsbn) {
+      if (selectedCollections.length > 0 && bookId) {
         try {
           await new Promise(resolve => setTimeout(resolve, 500));
           await Promise.all(
             selectedCollections.map(collectionId =>
-              addBooksToCollection(collectionId, [bookIsbn])
+              addBooksToCollection(collectionId, [bookId]) // Use _id not ISBN
                 .catch(err => {
                   console.error(`Failed to add to collection ${collectionId}:`, err);
                   return null;
                 })
             )
           );
+          console.log('Book added to', selectedCollections.length, 'collection(s)');
         } catch (collectionError) {
           console.error('Error adding to collections:', collectionError);
         }
