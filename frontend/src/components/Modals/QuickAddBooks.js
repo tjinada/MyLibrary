@@ -26,6 +26,13 @@ import {
   MenuItem,
   Autocomplete,
   Rating,
+  FormControl,
+  InputLabel,
+  Select,
+  OutlinedInput,
+  ListItemText,
+  Checkbox,
+  Divider,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -41,10 +48,13 @@ import {
   Star as StarIcon,
   StarBorder as StarBorderIcon,
   Image as ImageIcon,
+  CollectionsBookmark as CollectionIcon,
+  AddCircleOutline as AddNewIcon,
 } from '@mui/icons-material';
 import MobileBarcodeScanner from '../Scanner/MobileBarcodeScanner';
 import CoverImagePicker from '../CoverImage/CoverImagePicker';
 import bookService from '../../services/bookService';
+import collectionService from '../../services/collectionService';
 import { ALLOWED_GENRES } from '../../constants/bookConstants';
 
 const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
@@ -69,10 +79,25 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
   const [showCoverPicker, setShowCoverPicker] = useState(false);
   const [selectedCoverUrl, setSelectedCoverUrl] = useState(null);
   
+  // Collections
+  const [availableCollections, setAvailableCollections] = useState([]);
+  const [selectedCollections, setSelectedCollections] = useState([]);
+  const [showNewCollectionDialog, setShowNewCollectionDialog] = useState(false);
+  const [newCollectionName, setNewCollectionName] = useState('');
+  const [newCollectionDescription, setNewCollectionDescription] = useState('');
+  const [creatingCollection, setCreatingCollection] = useState(false);
+  
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isbnInputRef = useRef(null);
   const successTimeoutRef = useRef(null);
+
+  // Fetch collections when modal opens
+  useEffect(() => {
+    if (open) {
+      fetchCollections();
+    }
+  }, [open]);
 
   // Auto-focus ISBN input when not in confirmation mode
   useEffect(() => {
@@ -100,6 +125,45 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       }
     };
   }, []);
+
+  const fetchCollections = async () => {
+    try {
+      const collections = await collectionService.getCollections();
+      setAvailableCollections(collections || []);
+    } catch (error) {
+      console.error('Failed to fetch collections:', error);
+      setAvailableCollections([]);
+    }
+  };
+
+  const handleCreateNewCollection = async () => {
+    if (!newCollectionName.trim()) return;
+    
+    setCreatingCollection(true);
+    try {
+      const newCollection = await collectionService.createCollection({
+        name: newCollectionName,
+        description: newCollectionDescription,
+        displayInLibrary: true
+      });
+      
+      // Add the new collection to available collections
+      setAvailableCollections(prev => [...prev, newCollection]);
+      
+      // Select the new collection
+      setSelectedCollections(prev => [...prev, newCollection._id]);
+      
+      // Close dialog and reset
+      setShowNewCollectionDialog(false);
+      setNewCollectionName('');
+      setNewCollectionDescription('');
+    } catch (error) {
+      console.error('Failed to create collection:', error);
+      setError('Failed to create collection');
+    } finally {
+      setCreatingCollection(false);
+    }
+  };
 
   const handleISBNSubmit = async (scannedISBN) => {
     const isbnToProcess = scannedISBN || isbn;
@@ -182,6 +246,16 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       
       // Check if this was a duplicate that was added
       const finalBook = response.isDuplicate ? response.book : bookToAdd;
+      const bookIsbn = finalBook.isbn || response.isbn;
+      
+      // Add to selected collections
+      if (selectedCollections.length > 0 && bookIsbn) {
+        await Promise.all(
+          selectedCollections.map(collectionId =>
+            collectionService.addBooksToCollection(collectionId, [bookIsbn])
+          )
+        );
+      }
       
       // Add to recently added list
       setRecentlyAdded(prev => [{
@@ -198,6 +272,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       successTimeoutRef.current = setTimeout(() => {
         setCurrentBook(null);
         setSelectedCoverUrl(null); // Clear selected cover
+        setSelectedCollections([]); // Clear selected collections
         // Refocus ISBN input for next scan
         if (!isMobile && isbnInputRef.current) {
           isbnInputRef.current.focus();
@@ -236,6 +311,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     setBookRating(null);
     setSelectedCoverUrl(null);
     setShowCoverPicker(false);
+    setSelectedCollections([]);
     
     // Refocus ISBN input
     if (!isMobile && isbnInputRef.current) {
@@ -323,6 +399,9 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     setShowCoverPicker(false);
     setDuplicateBook(null);
     setShowDuplicateDialog(false);
+    setSelectedCollections([]);
+    setNewCollectionName('');
+    setNewCollectionDescription('');
     if (successTimeoutRef.current) {
       clearTimeout(successTimeoutRef.current);
     }
@@ -718,7 +797,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                   </Box>
 
                   {/* Genres - Using Autocomplete with allowed genres */}
-                  <Box sx={{ mb: 3 }}>
+                  <Box sx={{ mb: 2 }}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       Genres
                     </Typography>
@@ -751,6 +830,90 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                       )}
                     />
                   </Box>
+
+                  {/* Collections */}
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Add to Collections
+                    </Typography>
+                    
+                    <FormControl fullWidth size="small">
+                      <Select
+                        multiple
+                        value={selectedCollections}
+                        onChange={(e) => setSelectedCollections(e.target.value)}
+                        input={<OutlinedInput />}
+                        renderValue={(selected) => (
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                            {selected.length === 0 ? (
+                              <Typography variant="body2" color="text.secondary">
+                                No collections selected
+                              </Typography>
+                            ) : (
+                              selected.map((value) => {
+                                const collection = availableCollections.find(c => c._id === value);
+                                return (
+                                  <Chip
+                                    key={value}
+                                    label={collection?.name || value}
+                                    size="small"
+                                    icon={<CollectionIcon sx={{ fontSize: 16 }} />}
+                                    sx={{ 
+                                      bgcolor: theme.palette.primary.main,
+                                      color: 'white',
+                                      '& .MuiChip-icon': { color: 'white' }
+                                    }}
+                                  />
+                                );
+                              })
+                            )}
+                          </Box>
+                        )}
+                        MenuProps={{
+                          PaperProps: {
+                            style: {
+                              maxHeight: 250,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem
+                          value="__create_new__"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setShowNewCollectionDialog(true);
+                          }}
+                          sx={{ borderBottom: `1px solid ${theme.palette.divider}`, mb: 1 }}
+                        >
+                          <AddNewIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
+                          <Typography color="primary">Create New Collection</Typography>
+                        </MenuItem>
+                        {availableCollections.map((collection) => (
+                          <MenuItem key={collection._id} value={collection._id}>
+                            <Checkbox
+                              size="small"
+                              checked={selectedCollections.includes(collection._id)}
+                              sx={{ p: 0, mr: 1 }}
+                            />
+                            <ListItemText
+                              primary={collection.name}
+                              secondary={`${collection.books?.length || 0} books`}
+                              primaryTypographyProps={{ variant: 'body2' }}
+                              secondaryTypographyProps={{ variant: 'caption' }}
+                            />
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    
+                    {selectedCollections.length > 0 && (
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                        This book will be added to {selectedCollections.length} collection{selectedCollections.length > 1 ? 's' : ''}
+                      </Typography>
+                    )}
+                  </Box>
+
+                  <Divider sx={{ my: 2 }} />
 
                   {/* Tags */}
                   <Box>
@@ -895,6 +1058,57 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
           setShowCoverPicker(false);
         }}
       />
+
+      {/* Create New Collection Dialog */}
+      <Dialog
+        open={showNewCollectionDialog}
+        onClose={() => setShowNewCollectionDialog(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>
+          Create New Collection
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            <TextField
+              fullWidth
+              label="Collection Name"
+              value={newCollectionName}
+              onChange={(e) => setNewCollectionName(e.target.value)}
+              margin="normal"
+              autoFocus
+              required
+            />
+            <TextField
+              fullWidth
+              label="Description (optional)"
+              value={newCollectionDescription}
+              onChange={(e) => setNewCollectionDescription(e.target.value)}
+              margin="normal"
+              multiline
+              rows={2}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setShowNewCollectionDialog(false);
+            setNewCollectionName('');
+            setNewCollectionDescription('');
+          }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCreateNewCollection}
+            variant="contained"
+            disabled={!newCollectionName.trim() || creatingCollection}
+            startIcon={creatingCollection ? <CircularProgress size={16} /> : <AddNewIcon />}
+          >
+            {creatingCollection ? 'Creating...' : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 };
