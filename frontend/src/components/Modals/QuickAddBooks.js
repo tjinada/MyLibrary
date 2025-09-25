@@ -57,6 +57,11 @@ import bookService from '../../services/bookService';
 import collectionService from '../../services/collectionService';
 import { ALLOWED_GENRES } from '../../constants/bookConstants';
 
+// Helper to add books to collection
+const addBooksToCollection = (collectionId, bookIsbns) => {
+  return collectionService.bulkAddBooks(collectionId, bookIsbns);
+};
+
 const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
   const [isbn, setIsbn] = useState('');
   const [loading, setLoading] = useState(false);
@@ -244,24 +249,41 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       
       const response = await bookService.addBook(bookToAdd);
       
-      // Check if this was a duplicate that was added
-      const finalBook = response.isDuplicate ? response.book : bookToAdd;
-      const bookIsbn = finalBook.isbn || response.isbn;
+      // Handle both response formats:
+      // - Normal add: response is the book object directly
+      // - Duplicate add: response has { book, message, isDuplicate, newQuantity }
+      const addedBook = response.book || response;
+      const bookIsbn = addedBook.isbn || bookToAdd.isbn;
+      
+      console.log('Book added successfully:', bookIsbn);
       
       // Add to selected collections
       if (selectedCollections.length > 0 && bookIsbn) {
-        await Promise.all(
-          selectedCollections.map(collectionId =>
-            collectionService.addBooksToCollection(collectionId, [bookIsbn])
-          )
-        );
+        try {
+          // Add small delay to ensure book is fully saved in database
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          await Promise.all(
+            selectedCollections.map(collectionId =>
+              addBooksToCollection(collectionId, [bookIsbn])
+                .catch(err => {
+                  console.error(`Failed to add to collection ${collectionId}:`, err);
+                  // Don't fail the entire operation if one collection fails
+                  return null;
+                })
+            )
+          );
+        } catch (collectionError) {
+          console.error('Error adding to collections:', collectionError);
+          // Don't show error - book was added successfully
+        }
       }
       
       // Add to recently added list
       setRecentlyAdded(prev => [{
-        ...finalBook,
+        ...addedBook,
         timestamp: Date.now(),
-        quantity: response.newQuantity || finalBook.quantity || 1
+        quantity: response.newQuantity || addedBook.quantity || 1
       }, ...prev.slice(0, 4)]); // Keep last 5 books
       
       // Show success animation
@@ -343,15 +365,37 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       
       const response = await bookService.addBook(bookToAdd);
       
+      // Get the actual book from response
+      const addedBook = response.book || response;
+      const bookIsbn = addedBook.isbn || bookToAdd.isbn;
+      
+      // Add to selected collections
+      if (selectedCollections.length > 0 && bookIsbn) {
+        try {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          await Promise.all(
+            selectedCollections.map(collectionId =>
+              addBooksToCollection(collectionId, [bookIsbn])
+                .catch(err => {
+                  console.error(`Failed to add to collection ${collectionId}:`, err);
+                  return null;
+                })
+            )
+          );
+        } catch (collectionError) {
+          console.error('Error adding to collections:', collectionError);
+        }
+      }
+      
       // Add to recently added list with updated quantity
       setRecentlyAdded(prev => [{
-        ...response.book,
+        ...addedBook,
         timestamp: Date.now(),
         quantity: response.newQuantity
       }, ...prev.slice(0, 4)]);
       
       // Show success
-      setCurrentBook({ ...response.book, success: true });
+      setCurrentBook({ ...addedBook, success: true });
       setConfirmationMode(false);
       setDuplicateBook(null);
       
@@ -359,6 +403,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       successTimeoutRef.current = setTimeout(() => {
         setCurrentBook(null);
         setSelectedCoverUrl(null); // Clear selected cover
+        setSelectedCollections([]); // Clear selected collections
         if (!isMobile && isbnInputRef.current) {
           isbnInputRef.current.focus();
           isbnInputRef.current.select();
