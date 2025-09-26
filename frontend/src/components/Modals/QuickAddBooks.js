@@ -33,6 +33,13 @@ import {
   ListItemText,
   Checkbox,
   Divider,
+  ToggleButton,
+  ToggleButtonGroup,
+  List,
+  ListItem,
+  ListItemAvatar,
+  Avatar,
+  InputAdornment,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -50,6 +57,9 @@ import {
   Image as ImageIcon,
   CollectionsBookmark as CollectionIcon,
   AddCircleOutline as AddNewIcon,
+  Search as SearchIcon,
+  Numbers as NumbersIcon,
+  Title as TitleIcon,
 } from '@mui/icons-material';
 import MobileBarcodeScanner from '../Scanner/MobileBarcodeScanner';
 import CoverImagePicker from '../CoverImage/CoverImagePicker';
@@ -73,6 +83,13 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
   const [confirmationMode, setConfirmationMode] = useState(false);
   const [duplicateBook, setDuplicateBook] = useState(null);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  
+  // Search mode state (new)
+  const [searchMode, setSearchMode] = useState('isbn'); // 'isbn' or 'title'
+  const [titleQuery, setTitleQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchingTitle, setSearchingTitle] = useState(false);
+  const [searchDebounceTimer, setSearchDebounceTimer] = useState(null);
   
   // Book editing fields
   const [customGenres, setCustomGenres] = useState([]);
@@ -128,8 +145,34 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       if (successTimeoutRef.current) {
         clearTimeout(successTimeoutRef.current);
       }
+      if (searchDebounceTimer) {
+        clearTimeout(searchDebounceTimer);
+      }
     };
   }, []);
+
+  // Title search with debounce
+  useEffect(() => {
+    if (searchMode === 'title' && titleQuery.length > 2) {
+      if (searchDebounceTimer) {
+        clearTimeout(searchDebounceTimer);
+      }
+      
+      const timer = setTimeout(() => {
+        handleTitleSearch(titleQuery);
+      }, 500); // 500ms debounce
+      
+      setSearchDebounceTimer(timer);
+    } else if (titleQuery.length === 0) {
+      setSearchResults([]);
+    }
+    
+    return () => {
+      if (searchDebounceTimer) {
+        clearTimeout(searchDebounceTimer);
+      }
+    };
+  }, [titleQuery]);
 
   const fetchCollections = async () => {
     try {
@@ -167,6 +210,111 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       setError('Failed to create collection');
     } finally {
       setCreatingCollection(false);
+    }
+  };
+
+  // Handle title search
+  const handleTitleSearch = async (query) => {
+    if (!query || query.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    setSearchingTitle(true);
+    setError(null);
+
+    try {
+      console.log('Searching for books with query:', query);
+      const results = await bookService.searchGoogleBooks(query);
+      console.log('Search results:', results);
+      
+      if (results && results.items) {
+        // Format the results for display
+        const formattedResults = results.items.map(item => ({
+          id: item.id,
+          title: item.volumeInfo?.title || 'Unknown Title',
+          authors: item.volumeInfo?.authors || [],
+          publishedDate: item.volumeInfo?.publishedDate,
+          description: item.volumeInfo?.description,
+          isbn: item.volumeInfo?.industryIdentifiers?.find(id => 
+            id.type === 'ISBN_13' || id.type === 'ISBN_10'
+          )?.identifier,
+          coverImage: item.volumeInfo?.imageLinks?.thumbnail?.replace('http://', 'https://'),
+          publisher: item.volumeInfo?.publisher,
+          categories: item.volumeInfo?.categories || [],
+          pageCount: item.volumeInfo?.pageCount,
+          googleBooksId: item.id
+        })).filter(book => book.isbn); // Only show books with ISBN
+        
+        setSearchResults(formattedResults);
+      } else {
+        setSearchResults([]);
+      }
+    } catch (error) {
+      console.error('Title search failed:', error);
+      setError('Failed to search for books. Please try again.');
+      setSearchResults([]);
+    } finally {
+      setSearchingTitle(false);
+    }
+  };
+
+  // Handle selecting a book from search results
+  const handleSelectSearchResult = async (book) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Try to get more details using the ISBN
+      if (book.isbn) {
+        const detailedBook = await bookService.lookupISBN(book.isbn);
+        setCurrentBook(detailedBook);
+      } else {
+        // Use the book data from search if no ISBN
+        setCurrentBook(book);
+      }
+      
+      // Set up confirmation screen
+      let genres = book.categories || [];
+      const categoryGenre = genres.includes('Fiction') ? 'Fiction' : 'Nonfiction';
+      if (!genres.includes(categoryGenre) && ALLOWED_GENRES.includes(categoryGenre)) {
+        genres = [categoryGenre, ...genres];
+      }
+      genres = genres.filter(g => ALLOWED_GENRES.includes(g));
+      
+      setCustomGenres(genres);
+      setCustomTags([]);
+      setBookStatus('to-read');
+      setBookEdition('standard');
+      setBookRating(null);
+      setConfirmationMode(true);
+      
+      // Clear search
+      setTitleQuery('');
+      setSearchResults([]);
+      
+    } catch (err) {
+      // If ISBN lookup fails, use the search result data
+      setCurrentBook(book);
+      
+      let genres = book.categories || [];
+      genres = genres.filter(g => ALLOWED_GENRES.includes(g));
+      if (genres.length === 0) {
+        genres = ['Fiction']; // Default genre
+      }
+      
+      setCustomGenres(genres);
+      setCustomTags([]);
+      setBookStatus('to-read');
+      setBookEdition('standard');
+      setBookRating(null);
+      setConfirmationMode(true);
+      
+      // Clear search
+      setTitleQuery('');
+      setSearchResults([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -451,6 +599,14 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     setSelectedCollections([]);
     setNewCollectionName('');
     setNewCollectionDescription('');
+    // Clear title search state
+    setSearchMode('isbn');
+    setTitleQuery('');
+    setSearchResults([]);
+    setSearchingTitle(false);
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer);
+    }
     if (successTimeoutRef.current) {
       clearTimeout(successTimeoutRef.current);
     }
@@ -506,10 +662,37 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
 
       <DialogContent sx={{ p: 0 }}>
         {!confirmationMode ? (
-          // Scanner Mode
+          // Scanner/Search Mode
           <Box sx={{ p: 2 }}>
+            {/* Search Mode Toggle */}
+            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
+              <ToggleButtonGroup
+                value={searchMode}
+                exclusive
+                onChange={(e, newMode) => {
+                  if (newMode) {
+                    setSearchMode(newMode);
+                    setError(null);
+                    setSearchResults([]);
+                    setTitleQuery('');
+                    setIsbn('');
+                  }
+                }}
+                size="small"
+              >
+                <ToggleButton value="isbn" aria-label="ISBN search">
+                  <NumbersIcon sx={{ mr: 0.5, fontSize: 18 }} />
+                  ISBN
+                </ToggleButton>
+                <ToggleButton value="title" aria-label="Title search">
+                  <TitleIcon sx={{ mr: 0.5, fontSize: 18 }} />
+                  Title Search
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+
             {/* Progress indicator */}
-            {loading && <LinearProgress sx={{ mb: 2 }} />}
+            {(loading || searchingTitle) && <LinearProgress sx={{ mb: 2 }} />}
             
             {/* Error display */}
             {error && (
@@ -531,111 +714,215 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
               </Zoom>
             )}
 
-            {/* Mobile scanner */}
-            {isMobile && showScanner && (
-              <Box sx={{ mb: 2 }}>
-                <MobileBarcodeScanner
-                  onScan={handleISBNSubmit}
-                  onError={(err) => setError(err.message)}
-                  autoStart={true}
-                />
-              </Box>
-            )}
-
-            {/* Desktop ISBN input */}
-            {!isMobile && (
+            {/* ISBN Search Mode */}
+            {searchMode === 'isbn' && (
               <Box>
-                <Typography variant="subtitle2" gutterBottom>
-                  Scan or type ISBN:
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <TextField
-                    fullWidth
-                    label="ISBN"
-                    variant="outlined"
-                    value={isbn}
-                    onChange={(e) => setIsbn(e.target.value)}
-                    placeholder="Scan with handheld scanner or type"
-                    disabled={loading || processingBook}
-                    inputRef={isbnInputRef}
-                    autoFocus
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter' && !loading) {
-                        handleISBNSubmit();
-                      }
-                    }}
-                    InputProps={{
-                      sx: { 
-                        fontFamily: 'monospace',
-                        fontSize: '1.1rem',
-                      }
-                    }}
-                  />
-                  <Button
-                    variant="contained"
-                    onClick={() => handleISBNSubmit()}
-                    disabled={loading || !isbn || processingBook}
-                  >
-                    Lookup
-                  </Button>
-                </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  💡 Tip: Your handheld scanner should automatically submit after scanning
-                </Typography>
-                
-                {/* Recently added - inline for desktop */}
-                {recentlyAdded.length > 0 && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="caption" color="text.secondary" gutterBottom>
-                      Recently Added ({recentlyAdded.length})
+                {/* Mobile scanner */}
+                {isMobile && showScanner && (
+                  <Box sx={{ mb: 2 }}>
+                    <MobileBarcodeScanner
+                      onScan={handleISBNSubmit}
+                      onError={(err) => setError(err.message)}
+                      autoStart={true}
+                    />
+                  </Box>
+                )}
+
+                {/* Desktop ISBN input */}
+                {!isMobile && (
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Scan or type ISBN:
                     </Typography>
-                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
-                      {recentlyAdded.map((book, index) => (
-                        <Chip
-                          key={book.isbn + book.timestamp}
-                          label={book.title}
-                          variant="outlined"
-                          color="success"
-                          size="small"
-                          sx={{ height: 24, fontSize: '0.75rem' }}
-                          icon={book.quantity > 1 ? <Badge badgeContent={book.quantity} color="secondary" /> : null}
-                        />
-                      ))}
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <TextField
+                        fullWidth
+                        label="ISBN"
+                        variant="outlined"
+                        value={isbn}
+                        onChange={(e) => setIsbn(e.target.value)}
+                        placeholder="Scan with handheld scanner or type"
+                        disabled={loading || processingBook}
+                        inputRef={isbnInputRef}
+                        autoFocus
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && !loading) {
+                            handleISBNSubmit();
+                          }
+                        }}
+                        InputProps={{
+                          sx: { 
+                            fontFamily: 'monospace',
+                            fontSize: '1.1rem',
+                          }
+                        }}
+                      />
+                      <Button
+                        variant="contained"
+                        onClick={() => handleISBNSubmit()}
+                        disabled={loading || !isbn || processingBook}
+                      >
+                        Lookup
+                      </Button>
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      💡 Tip: Your handheld scanner should automatically submit after scanning
+                    </Typography>
+                    
+                    {/* Recently added - inline for desktop */}
+                    {recentlyAdded.length > 0 && (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="caption" color="text.secondary" gutterBottom>
+                          Recently Added ({recentlyAdded.length})
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
+                          {recentlyAdded.map((book, index) => (
+                            <Chip
+                              key={book.isbn + book.timestamp}
+                              label={book.title}
+                              variant="outlined"
+                              color="success"
+                              size="small"
+                              sx={{ height: 24, fontSize: '0.75rem' }}
+                              icon={book.quantity > 1 ? <Badge badgeContent={book.quantity} color="secondary" /> : null}
+                            />
+                          ))}
+                        </Box>
+                      </Box>
+                    )}
+                  </Box>
+                )}
+
+                {/* Mobile manual entry option */}
+                {isMobile && (
+                  <Box sx={{ mt: 3 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Or enter manually:
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="ISBN"
+                        value={isbn}
+                        onChange={(e) => setIsbn(e.target.value)}
+                        disabled={loading || processingBook}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && !loading) {
+                            handleISBNSubmit();
+                          }
+                        }}
+                      />
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={() => handleISBNSubmit()}
+                        disabled={loading || !isbn || processingBook}
+                      >
+                        Lookup
+                      </Button>
                     </Box>
                   </Box>
                 )}
               </Box>
             )}
 
-            {/* Mobile manual entry option */}
-            {isMobile && (
-              <Box sx={{ mt: 3 }}>
+            {/* Title Search Mode */}
+            {searchMode === 'title' && (
+              <Box>
                 <Typography variant="subtitle2" gutterBottom>
-                  Or enter manually:
+                  Search by title, author, or keywords:
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="ISBN"
-                    value={isbn}
-                    onChange={(e) => setIsbn(e.target.value)}
-                    disabled={loading || processingBook}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter' && !loading) {
-                        handleISBNSubmit();
-                      }
-                    }}
-                  />
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={() => handleISBNSubmit()}
-                    disabled={loading || !isbn || processingBook}
-                  >
-                    Lookup
-                  </Button>
-                </Box>
+                <TextField
+                  fullWidth
+                  label="Search books"
+                  variant="outlined"
+                  value={titleQuery}
+                  onChange={(e) => setTitleQuery(e.target.value)}
+                  placeholder="Enter book title, author, or keywords..."
+                  disabled={searchingTitle}
+                  autoFocus
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                
+                {/* Search Results */}
+                {searchResults.length > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Found {searchResults.length} books:
+                    </Typography>
+                    <List sx={{ 
+                      maxHeight: 400, 
+                      overflow: 'auto',
+                      border: 1,
+                      borderColor: 'divider',
+                      borderRadius: 1
+                    }}>
+                      {searchResults.map((book, index) => (
+                        <ListItem
+                          key={book.id || index}
+                          button
+                          onClick={() => handleSelectSearchResult(book)}
+                          disabled={loading}
+                          sx={{ 
+                            '&:hover': { bgcolor: 'action.hover' },
+                            borderBottom: index < searchResults.length - 1 ? 1 : 0,
+                            borderColor: 'divider'
+                          }}
+                        >
+                          <ListItemAvatar>
+                            <Avatar
+                              variant="square"
+                              src={book.coverImage}
+                              sx={{ width: 48, height: 64, mr: 2 }}
+                            >
+                              <ImageIcon />
+                            </Avatar>
+                          </ListItemAvatar>
+                          <ListItemText
+                            primary={book.title}
+                            secondary={
+                              <>
+                                {book.authors?.length > 0 && (
+                                  <Typography variant="caption" display="block">
+                                    by {book.authors.join(', ')}
+                                  </Typography>
+                                )}
+                                {book.isbn && (
+                                  <Typography variant="caption" display="block" sx={{ opacity: 0.7 }}>
+                                    ISBN: {book.isbn}
+                                  </Typography>
+                                )}
+                              </>
+                            }
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Box>
+                )}
+                
+                {/* No results message */}
+                {titleQuery.length > 2 && searchResults.length === 0 && !searchingTitle && (
+                  <Box sx={{ mt: 2, p: 2, textAlign: 'center', bgcolor: 'grey.50', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      No books found. Try different keywords.
+                    </Typography>
+                  </Box>
+                )}
+
+                {/* Help text */}
+                {titleQuery.length === 0 && (
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                    💡 Tip: Start typing to search for books. We'll show books that have ISBNs.
+                  </Typography>
+                )}
               </Box>
             )}
           </Box>
