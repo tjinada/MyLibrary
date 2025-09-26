@@ -89,7 +89,6 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
   const [titleQuery, setTitleQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchingTitle, setSearchingTitle] = useState(false);
-  const [searchDebounceTimer, setSearchDebounceTimer] = useState(null);
   
   // Book editing fields
   const [customGenres, setCustomGenres] = useState([]);
@@ -145,34 +144,8 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       if (successTimeoutRef.current) {
         clearTimeout(successTimeoutRef.current);
       }
-      if (searchDebounceTimer) {
-        clearTimeout(searchDebounceTimer);
-      }
     };
   }, []);
-
-  // Title search with debounce
-  useEffect(() => {
-    if (searchMode === 'title' && titleQuery.length > 2) {
-      if (searchDebounceTimer) {
-        clearTimeout(searchDebounceTimer);
-      }
-      
-      const timer = setTimeout(() => {
-        handleTitleSearch(titleQuery);
-      }, 500); // 500ms debounce
-      
-      setSearchDebounceTimer(timer);
-    } else if (titleQuery.length === 0) {
-      setSearchResults([]);
-    }
-    
-    return () => {
-      if (searchDebounceTimer) {
-        clearTimeout(searchDebounceTimer);
-      }
-    };
-  }, [titleQuery]);
 
   const fetchCollections = async () => {
     try {
@@ -259,63 +232,19 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     }
   };
 
-  // Handle selecting a book from search results
+  // Handle selecting a book from search results - lookup by ISBN
   const handleSelectSearchResult = async (book) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Try to get more details using the ISBN
-      if (book.isbn) {
-        const detailedBook = await bookService.lookupISBN(book.isbn);
-        setCurrentBook(detailedBook);
-      } else {
-        // Use the book data from search if no ISBN
-        setCurrentBook(book);
-      }
-      
-      // Set up confirmation screen
-      let genres = book.categories || [];
-      const categoryGenre = genres.includes('Fiction') ? 'Fiction' : 'Nonfiction';
-      if (!genres.includes(categoryGenre) && ALLOWED_GENRES.includes(categoryGenre)) {
-        genres = [categoryGenre, ...genres];
-      }
-      genres = genres.filter(g => ALLOWED_GENRES.includes(g));
-      
-      setCustomGenres(genres);
-      setCustomTags([]);
-      setBookStatus('to-read');
-      setBookEdition('standard');
-      setBookRating(null);
-      setConfirmationMode(true);
-      
-      // Clear search
-      setTitleQuery('');
-      setSearchResults([]);
-      
-    } catch (err) {
-      // If ISBN lookup fails, use the search result data
-      setCurrentBook(book);
-      
-      let genres = book.categories || [];
-      genres = genres.filter(g => ALLOWED_GENRES.includes(g));
-      if (genres.length === 0) {
-        genres = ['Fiction']; // Default genre
-      }
-      
-      setCustomGenres(genres);
-      setCustomTags([]);
-      setBookStatus('to-read');
-      setBookEdition('standard');
-      setBookRating(null);
-      setConfirmationMode(true);
-      
-      // Clear search
-      setTitleQuery('');
-      setSearchResults([]);
-    } finally {
-      setLoading(false);
+    if (!book.isbn) {
+      setError('This book does not have an ISBN and cannot be added.');
+      return;
     }
+    
+    // Use the existing ISBN lookup function
+    await handleISBNSubmit(book.isbn);
+    
+    // Clear search
+    setTitleQuery('');
+    setSearchResults([]);
   };
 
   const handleISBNSubmit = async (scannedISBN) => {
@@ -604,9 +533,6 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     setTitleQuery('');
     setSearchResults([]);
     setSearchingTitle(false);
-    if (searchDebounceTimer) {
-      clearTimeout(searchDebounceTimer);
-    }
     if (successTimeoutRef.current) {
       clearTimeout(successTimeoutRef.current);
     }
@@ -833,27 +759,42 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                 <Typography variant="subtitle2" gutterBottom>
                   Search by title, author, or keywords:
                 </Typography>
-                <TextField
-                  fullWidth
-                  label="Search books"
-                  variant="outlined"
-                  value={titleQuery}
-                  onChange={(e) => setTitleQuery(e.target.value)}
-                  placeholder="Enter book title, author, or keywords..."
-                  disabled={searchingTitle}
-                  autoFocus
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
+                <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                  <TextField
+                    fullWidth
+                    label="Search books"
+                    variant="outlined"
+                    value={titleQuery}
+                    onChange={(e) => setTitleQuery(e.target.value)}
+                    placeholder="Enter book title, author, or keywords..."
+                    disabled={searchingTitle}
+                    autoFocus
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && !searchingTitle && titleQuery.trim()) {
+                        handleTitleSearch(titleQuery);
+                      }
+                    }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={() => handleTitleSearch(titleQuery)}
+                    disabled={searchingTitle || !titleQuery.trim()}
+                    startIcon={searchingTitle ? <CircularProgress size={16} /> : <SearchIcon />}
+                  >
+                    Search
+                  </Button>
+                </Box>
                 
                 {/* Search Results */}
                 {searchResults.length > 0 && (
-                  <Box sx={{ mt: 2 }}>
+                  <Box>
                     <Typography variant="subtitle2" gutterBottom>
                       Found {searchResults.length} books:
                     </Typography>
@@ -899,9 +840,25 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                                     ISBN: {book.isbn}
                                   </Typography>
                                 )}
+                                {book.publishedDate && (
+                                  <Typography variant="caption" display="block" sx={{ opacity: 0.7 }}>
+                                    Published: {book.publishedDate}
+                                  </Typography>
+                                )}
                               </>
                             }
                           />
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectSearchResult(book);
+                            }}
+                            disabled={!book.isbn || loading}
+                          >
+                            {book.isbn ? 'Select' : 'No ISBN'}
+                          </Button>
                         </ListItem>
                       ))}
                     </List>
@@ -909,18 +866,18 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                 )}
                 
                 {/* No results message */}
-                {titleQuery.length > 2 && searchResults.length === 0 && !searchingTitle && (
+                {searchResults.length === 0 && !searchingTitle && titleQuery && (
                   <Box sx={{ mt: 2, p: 2, textAlign: 'center', bgcolor: 'grey.50', borderRadius: 1 }}>
                     <Typography variant="body2" color="text.secondary">
-                      No books found. Try different keywords.
+                      Click "Search" to find books
                     </Typography>
                   </Box>
                 )}
 
                 {/* Help text */}
                 {titleQuery.length === 0 && (
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    💡 Tip: Start typing to search for books. We'll show books that have ISBNs.
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    💡 Tip: Search for books by title or author. Only books with ISBNs can be added.
                   </Typography>
                 )}
               </Box>
