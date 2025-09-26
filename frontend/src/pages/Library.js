@@ -183,7 +183,14 @@ const Library = () => {
         inCollection: book.collections && book.collections.length > 0
       }));
       
-      const showAllBooks = filters.search !== '' || filters.genre !== 'all' || filters.status !== 'all' || filters.edition !== 'all';
+      // Show all books (including those in collections) when:
+      // - Searching, filtering by genre/status/edition, or sorting by date
+      const showAllBooks = filters.search !== '' || 
+                           filters.genre !== 'all' || 
+                           filters.status !== 'all' || 
+                           filters.edition !== 'all' ||
+                           filters.sort === '-addedDate' || 
+                           filters.sort === 'addedDate';
       const displayBookItems = showAllBooks 
         ? allBookItems
         : allBookItems.filter(item => !item.inCollection);

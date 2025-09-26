@@ -641,7 +641,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
           </Box>
         ) : (
           // Confirmation Mode
-          <Box sx={{ p: 2 }}>
+          <Box sx={{ p: 1.5 }}>
             {error && (
               <Alert 
                 severity="error" 
@@ -653,40 +653,42 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
             )}
             
             {currentBook && (
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                  {/* Book cover */}
-                  <Card sx={{ height: '100%', position: 'relative' }}>
+              <Grid container spacing={1.5}>
+                <Grid item xs={12} md={3}>
+                  {/* Book cover - Compact */}
+                  <Box sx={{ position: 'relative', bgcolor: 'grey.100', borderRadius: 1 }}>
                     {(currentBook.coverImage || selectedCoverUrl) ? (
                       <>
-                        <CardMedia
-                          component="img"
-                          image={selectedCoverUrl || currentBook.coverImage}
+                        <img
+                          src={selectedCoverUrl || currentBook.coverImage}
                           alt={currentBook.title}
-                          sx={{ 
-                            height: 'auto', 
-                            maxHeight: isMobile ? 250 : 350,
+                          style={{ 
                             width: '100%',
-                            objectFit: 'contain'
+                            height: 'auto',
+                            maxHeight: isMobile ? 200 : 250,
+                            objectFit: 'contain',
+                            display: 'block'
                           }}
                         />
-                        {/* Change Cover Button */}
+                        {/* Change Cover Button Overlay */}
                         <Box sx={{ 
                           position: 'absolute', 
                           bottom: 0, 
                           left: 0, 
                           right: 0,
-                          background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)',
-                          p: 1,
+                          background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)',
+                          p: 0.5,
                           display: 'flex',
                           justifyContent: 'center'
                         }}>
                           <Button
                             size="small"
-                            startIcon={<ImageIcon />}
+                            startIcon={<ImageIcon sx={{ fontSize: 16 }} />}
                             onClick={() => setShowCoverPicker(true)}
                             sx={{ 
                               color: 'white',
+                              fontSize: '0.75rem',
+                              py: 0.5,
                               '&:hover': {
                                 bgcolor: 'rgba(255,255,255,0.1)'
                               }
@@ -698,51 +700,53 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                       </>
                     ) : (
                       <Box sx={{ 
-                        height: isMobile ? 250 : 300, 
+                        height: isMobile ? 200 : 250, 
                         display: 'flex', 
                         flexDirection: 'column',
                         alignItems: 'center', 
                         justifyContent: 'center',
                         bgcolor: 'grey.200',
+                        borderRadius: 1,
                         p: 2
                       }}>
-                        <ImageIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
-                        <Typography color="text.secondary" align="center" gutterBottom>
+                        <ImageIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+                        <Typography variant="caption" color="text.secondary" gutterBottom>
                           No Cover
                         </Typography>
                         <Button
                           variant="contained"
-                          startIcon={<ImageIcon />}
+                          startIcon={<ImageIcon sx={{ fontSize: 16 }} />}
                           onClick={() => setShowCoverPicker(true)}
                           size="small"
+                          sx={{ fontSize: '0.75rem', py: 0.5, px: 1 }}
                         >
                           Add Cover
                         </Button>
                       </Box>
                     )}
-                  </Card>
+                  </Box>
                 </Grid>
                 
-                <Grid item xs={12} md={8}>
-                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
+                <Grid item xs={12} md={9}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
                     {currentBook.title}
                   </Typography>
-                  <Typography variant="body1" color="text.secondary" gutterBottom>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                     by {currentBook.authors?.join(', ')}
                   </Typography>
                   
-                  <Box sx={{ mt: 2, mb: 2 }}>
-                    <Grid container spacing={1.5}>
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" color="text.secondary">ISBN</Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  <Box sx={{ mb: 1.5 }}>
+                    <Grid container spacing={1}>
+                      <Grid item xs={6}>
+                        <Typography variant="caption" color="text.secondary">ISBN</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
                           {currentBook.isbn}
                         </Typography>
                       </Grid>
                       {currentBook.publisher && (
-                        <Grid item xs={12} sm={6}>
-                          <Typography variant="body2" color="text.secondary">Publisher</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        <Grid item xs={6}>
+                          <Typography variant="caption" color="text.secondary">Publisher</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
                             {currentBook.publisher}
                           </Typography>
                         </Grid>
@@ -750,54 +754,11 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                     </Grid>
                   </Box>
 
-                  {/* Rating - NEW */}
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Rating
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Rating
-                        value={bookRating}
-                        onChange={(event, newValue) => {
-                          setBookRating(newValue);
-                        }}
-                        size="large"
-                        icon={<StarIcon fontSize="inherit" />}
-                        emptyIcon={<StarBorderIcon fontSize="inherit" />}
-                        sx={{
-                          '& .MuiRating-iconFilled': {
-                            color: theme.palette.warning.main,
-                          },
-                          '& .MuiRating-iconHover': {
-                            color: theme.palette.warning.dark,
-                          },
-                        }}
-                      />
-                      {bookRating && (
-                        <Typography variant="body2" color="text.secondary">
-                          {bookRating} star{bookRating !== 1 ? 's' : ''}
-                        </Typography>
-                      )}
-                      {bookRating && (
-                        <Button
-                          size="small"
-                          onClick={() => setBookRating(null)}
-                          sx={{ textTransform: 'none' }}
-                        >
-                          Clear
-                        </Button>
-                      )}
-                    </Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                      Optional - Rate this book if you've read it
-                    </Typography>
-                  </Box>
-
-                  {/* Status and Edition - Same Row */}
-                  <Box sx={{ mb: 3 }}>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                  {/* Status, Edition, and Rating - Compact Row */}
+                  <Box sx={{ mb: 1.5 }}>
+                    <Grid container spacing={1}>
+                      <Grid item xs={12} sm={4}>
+                        <Typography variant="caption" color="text.secondary" display="block">
                           Status
                         </Typography>
                         <TextField
@@ -807,6 +768,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                           size="small"
                           fullWidth
                           SelectProps={{ native: true }}
+                          sx={{ '& .MuiInputBase-input': { py: 0.75, fontSize: '0.875rem' } }}
                         >
                           <option value="to-read">To Read</option>
                           <option value="reading">Reading</option>
@@ -815,8 +777,8 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                         </TextField>
                       </Grid>
                       
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                      <Grid item xs={12} sm={4}>
+                        <Typography variant="caption" color="text.secondary" display="block">
                           Edition
                         </Typography>
                         <TextField
@@ -826,28 +788,53 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                           size="small"
                           fullWidth
                           SelectProps={{ native: false }}
+                          sx={{ '& .MuiInputBase-input': { py: 0.75, fontSize: '0.875rem' } }}
                         >
-                          <MenuItem value="standard">Standard Edition</MenuItem>
+                          <MenuItem value="standard">Standard</MenuItem>
                           <MenuItem value="signed">
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <SpecialIcon fontSize="small" sx={{ color: theme.palette.warning.main }} />
-                              Signed Edition
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <SpecialIcon sx={{ fontSize: 14, color: theme.palette.warning.main }} />
+                              Signed
                             </Box>
                           </MenuItem>
                           <MenuItem value="deluxe">
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <DiamondIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
-                              Deluxe Edition
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <DiamondIcon sx={{ fontSize: 14, color: theme.palette.secondary.main }} />
+                              Deluxe
                             </Box>
                           </MenuItem>
                         </TextField>
                       </Grid>
+
+                      <Grid item xs={12} sm={4}>
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          Rating (Optional)
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, height: 32 }}>
+                          <Rating
+                            value={bookRating}
+                            onChange={(event, newValue) => setBookRating(newValue)}
+                            size="small"
+                            icon={<StarIcon fontSize="inherit" />}
+                            emptyIcon={<StarBorderIcon fontSize="inherit" />}
+                          />
+                          {bookRating && (
+                            <IconButton 
+                              size="small" 
+                              onClick={() => setBookRating(null)}
+                              sx={{ p: 0.25 }}
+                            >
+                              <CloseIcon sx={{ fontSize: 14 }} />
+                            </IconButton>
+                          )}
+                        </Box>
+                      </Grid>
                     </Grid>
                   </Box>
 
-                  {/* Genres - Using Autocomplete with allowed genres */}
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                  {/* Genres - Compact */}
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" color="text.secondary" display="block">
                       Genres
                     </Typography>
                     
@@ -866,6 +853,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                             label={option}
                             size="small"
                             color="primary"
+                            sx={{ height: 20, '& .MuiChip-label': { px: 1, fontSize: '0.75rem' } }}
                             {...getTagProps({ index })}
                           />
                         ))
@@ -875,15 +863,16 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                           {...params}
                           variant="outlined"
                           placeholder="Select genres..."
+                          sx={{ '& .MuiInputBase-root': { py: 0.5 } }}
                         />
                       )}
                     />
                   </Box>
 
-                  {/* Collections */}
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Add to Collections
+                  {/* Collections - Compact */}
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Collections
                     </Typography>
                     
                     <FormControl fullWidth size="small">
@@ -891,12 +880,12 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                         multiple
                         value={selectedCollections}
                         onChange={(e) => setSelectedCollections(e.target.value)}
-                        input={<OutlinedInput />}
+                        input={<OutlinedInput sx={{ '& .MuiInputBase-input': { py: 0.75 } }} />}
                         renderValue={(selected) => (
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.25 }}>
                             {selected.length === 0 ? (
-                              <Typography variant="body2" color="text.secondary">
-                                No collections selected
+                              <Typography variant="caption" color="text.secondary">
+                                None selected
                               </Typography>
                             ) : (
                               selected.map((value) => {
@@ -906,11 +895,11 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                                     key={value}
                                     label={collection?.name || value}
                                     size="small"
-                                    icon={<CollectionIcon sx={{ fontSize: 16 }} />}
                                     sx={{ 
+                                      height: 20,
+                                      '& .MuiChip-label': { px: 1, fontSize: '0.75rem' },
                                       bgcolor: theme.palette.primary.main,
-                                      color: 'white',
-                                      '& .MuiChip-icon': { color: 'white' }
+                                      color: 'white'
                                     }}
                                   />
                                 );
@@ -921,7 +910,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                         MenuProps={{
                           PaperProps: {
                             style: {
-                              maxHeight: 250,
+                              maxHeight: 200,
                             },
                           },
                         }}
@@ -932,44 +921,38 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                             e.preventDefault();
                             setShowNewCollectionDialog(true);
                           }}
-                          sx={{ borderBottom: `1px solid ${theme.palette.divider}`, mb: 1 }}
+                          sx={{ borderBottom: `1px solid ${theme.palette.divider}`, mb: 0.5, py: 0.5 }}
                         >
-                          <AddNewIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
-                          <Typography color="primary">Create New Collection</Typography>
+                          <AddNewIcon sx={{ mr: 0.5, fontSize: 18, color: theme.palette.primary.main }} />
+                          <Typography variant="body2" color="primary">Create New</Typography>
                         </MenuItem>
                         {availableCollections.map((collection) => (
-                          <MenuItem key={collection._id} value={collection._id}>
+                          <MenuItem key={collection._id} value={collection._id} sx={{ py: 0.5 }}>
                             <Checkbox
                               size="small"
                               checked={selectedCollections.includes(collection._id)}
-                              sx={{ p: 0, mr: 1 }}
+                              sx={{ p: 0, mr: 0.5 }}
                             />
                             <ListItemText
                               primary={collection.name}
                               secondary={`${collection.books?.length || 0} books`}
-                              primaryTypographyProps={{ variant: 'body2' }}
-                              secondaryTypographyProps={{ variant: 'caption' }}
+                              primaryTypographyProps={{ variant: 'body2', fontSize: '0.875rem' }}
+                              secondaryTypographyProps={{ variant: 'caption', fontSize: '0.7rem' }}
                             />
                           </MenuItem>
                         ))}
                       </Select>
                     </FormControl>
-                    
-                    {selectedCollections.length > 0 && (
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                        This book will be added to {selectedCollections.length} collection{selectedCollections.length > 1 ? 's' : ''}
-                      </Typography>
-                    )}
                   </Box>
 
-                  <Divider sx={{ my: 2 }} />
+                  <Divider sx={{ my: 1 }} />
 
-                  {/* Tags */}
+                  {/* Tags - Compact */}
                   <Box>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                    <Typography variant="caption" color="text.secondary" display="block">
                       Tags
                     </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1, minHeight: 24 }}>
                       {customTags.map((tag, index) => (
                         <Chip
                           key={index}
@@ -978,15 +961,16 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                           color="secondary"
                           variant="outlined"
                           onDelete={() => handleRemoveTag(tag)}
+                          sx={{ height: 20, '& .MuiChip-label': { px: 1, fontSize: '0.75rem' } }}
                         />
                       ))}
                       {customTags.length === 0 && (
-                        <Typography variant="body2" color="text.disabled">
-                          No tags added
+                        <Typography variant="caption" color="text.disabled">
+                          No tags
                         </Typography>
                       )}
                     </Box>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
                       <TextField
                         size="small"
                         placeholder="Add tag..."
@@ -998,12 +982,17 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                             handleAddTag();
                           }
                         }}
-                        sx={{ flex: 1, maxWidth: 300 }}
+                        sx={{ 
+                          flex: 1, 
+                          maxWidth: 250,
+                          '& .MuiInputBase-input': { py: 0.5, fontSize: '0.875rem' }
+                        }}
                       />
                       <Button
                         size="small"
                         variant="outlined"
                         onClick={handleAddTag}
+                        sx={{ py: 0.5, minWidth: 50, fontSize: '0.75rem' }}
                       >
                         Add
                       </Button>
@@ -1037,15 +1026,16 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
 
       {/* Confirmation Actions */}
       {confirmationMode && currentBook && (
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={handleCancelConfirmation}>
+        <DialogActions sx={{ p: 1.5 }}>
+          <Button onClick={handleCancelConfirmation} size="small">
             Cancel
           </Button>
           <Button
             variant="contained"
             onClick={handleConfirmAdd}
             disabled={processingBook}
-            startIcon={processingBook ? <CircularProgress size={20} /> : <SaveIcon />}
+            startIcon={processingBook ? <CircularProgress size={16} /> : <SaveIcon sx={{ fontSize: 18 }} />}
+            size="small"
           >
             {processingBook ? 'Adding...' : 'Add to Library'}
           </Button>
