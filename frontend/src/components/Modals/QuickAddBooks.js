@@ -655,75 +655,61 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
             {currentBook && (
               <Grid container spacing={1.5}>
                 <Grid item xs={12} md={3}>
-                  {/* Book cover - Compact */}
-                  <Box sx={{ position: 'relative', bgcolor: 'grey.100', borderRadius: 1 }}>
-                    {(currentBook.coverImage || selectedCoverUrl) ? (
-                      <>
+                  {/* Book cover - Improved */}
+                  <Box>
+                    <Box sx={{ 
+                      bgcolor: 'grey.100', 
+                      borderRadius: 1,
+                      overflow: 'hidden',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: isMobile ? 200 : 280
+                    }}>
+                      {(currentBook.coverImage || selectedCoverUrl) ? (
                         <img
                           src={selectedCoverUrl || currentBook.coverImage}
                           alt={currentBook.title}
                           style={{ 
                             width: '100%',
-                            height: 'auto',
-                            maxHeight: isMobile ? 200 : 250,
-                            objectFit: 'contain',
+                            height: '100%',
+                            objectFit: 'cover',
                             display: 'block'
                           }}
                         />
-                        {/* Change Cover Button Overlay */}
+                      ) : (
                         <Box sx={{ 
-                          position: 'absolute', 
-                          bottom: 0, 
-                          left: 0, 
-                          right: 0,
-                          background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)',
-                          p: 0.5,
-                          display: 'flex',
-                          justifyContent: 'center'
+                          display: 'flex', 
+                          flexDirection: 'column',
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          width: '100%',
+                          height: '100%',
+                          bgcolor: 'grey.200'
                         }}>
-                          <Button
-                            size="small"
-                            startIcon={<ImageIcon sx={{ fontSize: 16 }} />}
-                            onClick={() => setShowCoverPicker(true)}
-                            sx={{ 
-                              color: 'white',
-                              fontSize: '0.75rem',
-                              py: 0.5,
-                              '&:hover': {
-                                bgcolor: 'rgba(255,255,255,0.1)'
-                              }
-                            }}
-                          >
-                            Change Cover
-                          </Button>
+                          <ImageIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+                          <Typography variant="caption" color="text.secondary">
+                            No Cover
+                          </Typography>
                         </Box>
-                      </>
-                    ) : (
-                      <Box sx={{ 
-                        height: isMobile ? 200 : 250, 
-                        display: 'flex', 
-                        flexDirection: 'column',
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        bgcolor: 'grey.200',
-                        borderRadius: 1,
-                        p: 2
-                      }}>
-                        <ImageIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-                        <Typography variant="caption" color="text.secondary" gutterBottom>
-                          No Cover
-                        </Typography>
-                        <Button
-                          variant="contained"
-                          startIcon={<ImageIcon sx={{ fontSize: 16 }} />}
-                          onClick={() => setShowCoverPicker(true)}
-                          size="small"
-                          sx={{ fontSize: '0.75rem', py: 0.5, px: 1 }}
-                        >
-                          Add Cover
-                        </Button>
-                      </Box>
-                    )}
+                      )}
+                    </Box>
+                    {/* Change Cover Button - Below cover */}
+                    <Button
+                      fullWidth
+                      size="small"
+                      variant="outlined"
+                      startIcon={<ImageIcon sx={{ fontSize: 16 }} />}
+                      onClick={() => setShowCoverPicker(true)}
+                      sx={{ 
+                        mt: 1,
+                        fontSize: '0.75rem',
+                        py: 0.5,
+                        textTransform: 'none'
+                      }}
+                    >
+                      Change Cover
+                    </Button>
                   </Box>
                 </Grid>
                 
@@ -731,9 +717,32 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                   <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
                     {currentBook.title}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
                     by {currentBook.authors?.join(', ')}
                   </Typography>
+                  
+                  {/* Rating - Below author */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5, mb: 1.5 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Rating (Optional)
+                    </Typography>
+                    <Rating
+                      value={bookRating}
+                      onChange={(event, newValue) => setBookRating(newValue)}
+                      size="small"
+                      icon={<StarIcon fontSize="inherit" />}
+                      emptyIcon={<StarBorderIcon fontSize="inherit" />}
+                    />
+                    {bookRating && (
+                      <IconButton 
+                        size="small" 
+                        onClick={() => setBookRating(null)}
+                        sx={{ p: 0.25 }}
+                      >
+                        <CloseIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    )}
+                  </Box>
                   
                   <Box sx={{ mb: 1.5 }}>
                     <Grid container spacing={1}>
@@ -754,10 +763,10 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                     </Grid>
                   </Box>
 
-                  {/* Status, Edition, and Rating - Compact Row */}
+                  {/* Status and Edition Row */}
                   <Box sx={{ mb: 1.5 }}>
                     <Grid container spacing={1}>
-                      <Grid item xs={12} sm={4}>
+                      <Grid item xs={12} sm={6}>
                         <Typography variant="caption" color="text.secondary" display="block">
                           Status
                         </Typography>
@@ -777,7 +786,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                         </TextField>
                       </Grid>
                       
-                      <Grid item xs={12} sm={4}>
+                      <Grid item xs={12} sm={6}>
                         <Typography variant="caption" color="text.secondary" display="block">
                           Edition
                         </Typography>
@@ -804,30 +813,6 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                             </Box>
                           </MenuItem>
                         </TextField>
-                      </Grid>
-
-                      <Grid item xs={12} sm={4}>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          Rating (Optional)
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, height: 32 }}>
-                          <Rating
-                            value={bookRating}
-                            onChange={(event, newValue) => setBookRating(newValue)}
-                            size="small"
-                            icon={<StarIcon fontSize="inherit" />}
-                            emptyIcon={<StarBorderIcon fontSize="inherit" />}
-                          />
-                          {bookRating && (
-                            <IconButton 
-                              size="small" 
-                              onClick={() => setBookRating(null)}
-                              sx={{ p: 0.25 }}
-                            >
-                              <CloseIcon sx={{ fontSize: 14 }} />
-                            </IconButton>
-                          )}
-                        </Box>
                       </Grid>
                     </Grid>
                   </Box>
@@ -869,134 +854,117 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                     />
                   </Box>
 
-                  {/* Collections - Compact */}
+                  {/* Collections and Tags Row */}
                   <Box sx={{ mb: 1.5 }}>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      Collections
-                    </Typography>
-                    
-                    <FormControl fullWidth size="small">
-                      <Select
-                        multiple
-                        value={selectedCollections}
-                        onChange={(e) => setSelectedCollections(e.target.value)}
-                        input={<OutlinedInput sx={{ '& .MuiInputBase-input': { py: 0.75 } }} />}
-                        renderValue={(selected) => (
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.25 }}>
-                            {selected.length === 0 ? (
-                              <Typography variant="caption" color="text.secondary">
-                                None selected
-                              </Typography>
-                            ) : (
-                              selected.map((value) => {
-                                const collection = availableCollections.find(c => c._id === value);
-                                return (
-                                  <Chip
-                                    key={value}
-                                    label={collection?.name || value}
-                                    size="small"
-                                    sx={{ 
-                                      height: 20,
-                                      '& .MuiChip-label': { px: 1, fontSize: '0.75rem' },
-                                      bgcolor: theme.palette.primary.main,
-                                      color: 'white'
-                                    }}
-                                  />
-                                );
-                              })
-                            )}
-                          </Box>
-                        )}
-                        MenuProps={{
-                          PaperProps: {
-                            style: {
-                              maxHeight: 200,
-                            },
-                          },
-                        }}
-                      >
-                        <MenuItem
-                          value="__create_new__"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setShowNewCollectionDialog(true);
-                          }}
-                          sx={{ borderBottom: `1px solid ${theme.palette.divider}`, mb: 0.5, py: 0.5 }}
-                        >
-                          <AddNewIcon sx={{ mr: 0.5, fontSize: 18, color: theme.palette.primary.main }} />
-                          <Typography variant="body2" color="primary">Create New</Typography>
-                        </MenuItem>
-                        {availableCollections.map((collection) => (
-                          <MenuItem key={collection._id} value={collection._id} sx={{ py: 0.5 }}>
-                            <Checkbox
-                              size="small"
-                              checked={selectedCollections.includes(collection._id)}
-                              sx={{ p: 0, mr: 0.5 }}
-                            />
-                            <ListItemText
-                              primary={collection.name}
-                              secondary={`${collection.books?.length || 0} books`}
-                              primaryTypographyProps={{ variant: 'body2', fontSize: '0.875rem' }}
-                              secondaryTypographyProps={{ variant: 'caption', fontSize: '0.7rem' }}
-                            />
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Box>
-
-                  <Divider sx={{ my: 1 }} />
-
-                  {/* Tags - Compact */}
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      Tags
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1, minHeight: 24 }}>
-                      {customTags.map((tag, index) => (
-                        <Chip
-                          key={index}
-                          label={tag}
-                          size="small"
-                          color="secondary"
-                          variant="outlined"
-                          onDelete={() => handleRemoveTag(tag)}
-                          sx={{ height: 20, '& .MuiChip-label': { px: 1, fontSize: '0.75rem' } }}
-                        />
-                      ))}
-                      {customTags.length === 0 && (
-                        <Typography variant="caption" color="text.disabled">
-                          No tags
+                    <Grid container spacing={2}>
+                      {/* Collections */}
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          Collections
                         </Typography>
-                      )}
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      <TextField
-                        size="small"
-                        placeholder="Add tag..."
-                        value={newTag}
-                        onChange={(e) => setNewTag(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddTag();
-                          }
-                        }}
-                        sx={{ 
-                          flex: 1, 
-                          maxWidth: 250,
-                          '& .MuiInputBase-input': { py: 0.5, fontSize: '0.875rem' }
-                        }}
-                      />
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={handleAddTag}
-                        sx={{ py: 0.5, minWidth: 50, fontSize: '0.75rem' }}
-                      >
-                        Add
-                      </Button>
-                    </Box>
+                        
+                        <FormControl fullWidth size="small">
+                          <Select
+                            multiple
+                            value={selectedCollections}
+                            onChange={(e) => setSelectedCollections(e.target.value)}
+                            input={<OutlinedInput sx={{ '& .MuiInputBase-input': { py: 0.75 } }} />}
+                            displayEmpty
+                            renderValue={(selected) => {
+                              if (selected.length === 0) {
+                                return <Typography variant="caption" color="text.secondary">None selected</Typography>;
+                              }
+                              return selected.length + ' selected';
+                            }}
+                            MenuProps={{
+                              PaperProps: {
+                                style: {
+                                  maxHeight: 200,
+                                },
+                              },
+                            }}
+                          >
+                            <MenuItem
+                              value="__create_new__"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setShowNewCollectionDialog(true);
+                              }}
+                              sx={{ borderBottom: `1px solid ${theme.palette.divider}`, mb: 0.5, py: 0.5 }}
+                            >
+                              <AddNewIcon sx={{ mr: 0.5, fontSize: 18, color: theme.palette.primary.main }} />
+                              <Typography variant="body2" color="primary">Create New</Typography>
+                            </MenuItem>
+                            {availableCollections.map((collection) => (
+                              <MenuItem key={collection._id} value={collection._id} sx={{ py: 0.5 }}>
+                                <Checkbox
+                                  size="small"
+                                  checked={selectedCollections.includes(collection._id)}
+                                  sx={{ p: 0, mr: 0.5 }}
+                                />
+                                <ListItemText
+                                  primary={collection.name}
+                                  secondary={`${collection.books?.length || 0} books`}
+                                  primaryTypographyProps={{ variant: 'body2', fontSize: '0.875rem' }}
+                                  secondaryTypographyProps={{ variant: 'caption', fontSize: '0.7rem' }}
+                                />
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+
+                      {/* Tags */}
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          Tags
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1, minHeight: 32 }}>
+                          {customTags.map((tag, index) => (
+                            <Chip
+                              key={index}
+                              label={tag}
+                              size="small"
+                              color="secondary"
+                              variant="outlined"
+                              onDelete={() => handleRemoveTag(tag)}
+                              sx={{ height: 20, '& .MuiChip-label': { px: 1, fontSize: '0.75rem' } }}
+                            />
+                          ))}
+                          {customTags.length === 0 && (
+                            <Typography variant="caption" color="text.disabled">
+                              No tags
+                            </Typography>
+                          )}
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
+                          <TextField
+                            size="small"
+                            placeholder="Add tag..."
+                            value={newTag}
+                            onChange={(e) => setNewTag(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddTag();
+                              }
+                            }}
+                            sx={{ 
+                              flex: 1,
+                              '& .MuiInputBase-input': { py: 0.5, fontSize: '0.875rem' }
+                            }}
+                          />
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={handleAddTag}
+                            sx={{ py: 0.5, minWidth: 50, fontSize: '0.75rem' }}
+                          >
+                            Add
+                          </Button>
+                        </Box>
+                      </Grid>
+                    </Grid>
                   </Box>
                 </Grid>
               </Grid>
