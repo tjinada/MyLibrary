@@ -854,117 +854,115 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                     />
                   </Box>
 
-                  {/* Collections and Tags Row */}
+                  {/* Collections and Tags - Vertical Stack */}
                   <Box sx={{ mb: 1.5 }}>
-                    <Grid container spacing={2}>
-                      {/* Collections */}
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          Collections
-                        </Typography>
-                        
-                        <FormControl fullWidth size="small">
-                          <Select
-                            multiple
-                            value={selectedCollections}
-                            onChange={(e) => setSelectedCollections(e.target.value)}
-                            input={<OutlinedInput sx={{ '& .MuiInputBase-input': { py: 0.75 } }} />}
-                            displayEmpty
-                            renderValue={(selected) => {
-                              if (selected.length === 0) {
-                                return <Typography variant="caption" color="text.secondary">None selected</Typography>;
-                              }
-                              return selected.length + ' selected';
-                            }}
-                            MenuProps={{
-                              PaperProps: {
-                                style: {
-                                  maxHeight: 200,
-                                },
+                    {/* Collections */}
+                    <Box sx={{ mb: 1.5 }}>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Collections
+                      </Typography>
+                      
+                      <FormControl fullWidth size="small">
+                        <Select
+                          multiple
+                          value={selectedCollections}
+                          onChange={(e) => setSelectedCollections(e.target.value)}
+                          input={<OutlinedInput sx={{ '& .MuiInputBase-input': { py: 0.75 } }} />}
+                          displayEmpty
+                          renderValue={(selected) => {
+                            if (selected.length === 0) {
+                              return <Typography variant="caption" color="text.secondary">None selected</Typography>;
+                            }
+                            return selected.length + ' selected';
+                          }}
+                          MenuProps={{
+                            PaperProps: {
+                              style: {
+                                maxHeight: 200,
                               },
+                            },
+                          }}
+                        >
+                          <MenuItem
+                            value="__create_new__"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setShowNewCollectionDialog(true);
                             }}
+                            sx={{ borderBottom: `1px solid ${theme.palette.divider}`, mb: 0.5, py: 0.5 }}
                           >
-                            <MenuItem
-                              value="__create_new__"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setShowNewCollectionDialog(true);
-                              }}
-                              sx={{ borderBottom: `1px solid ${theme.palette.divider}`, mb: 0.5, py: 0.5 }}
-                            >
-                              <AddNewIcon sx={{ mr: 0.5, fontSize: 18, color: theme.palette.primary.main }} />
-                              <Typography variant="body2" color="primary">Create New</Typography>
+                            <AddNewIcon sx={{ mr: 0.5, fontSize: 18, color: theme.palette.primary.main }} />
+                            <Typography variant="body2" color="primary">Create New</Typography>
+                          </MenuItem>
+                          {availableCollections.map((collection) => (
+                            <MenuItem key={collection._id} value={collection._id} sx={{ py: 0.5 }}>
+                              <Checkbox
+                                size="small"
+                                checked={selectedCollections.includes(collection._id)}
+                                sx={{ p: 0, mr: 0.5 }}
+                              />
+                              <ListItemText
+                                primary={collection.name}
+                                secondary={`${collection.books?.length || 0} books`}
+                                primaryTypographyProps={{ variant: 'body2', fontSize: '0.875rem' }}
+                                secondaryTypographyProps={{ variant: 'caption', fontSize: '0.7rem' }}
+                              />
                             </MenuItem>
-                            {availableCollections.map((collection) => (
-                              <MenuItem key={collection._id} value={collection._id} sx={{ py: 0.5 }}>
-                                <Checkbox
-                                  size="small"
-                                  checked={selectedCollections.includes(collection._id)}
-                                  sx={{ p: 0, mr: 0.5 }}
-                                />
-                                <ListItemText
-                                  primary={collection.name}
-                                  secondary={`${collection.books?.length || 0} books`}
-                                  primaryTypographyProps={{ variant: 'body2', fontSize: '0.875rem' }}
-                                  secondaryTypographyProps={{ variant: 'caption', fontSize: '0.7rem' }}
-                                />
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-
-                      {/* Tags */}
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          Tags
-                        </Typography>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1, minHeight: 32 }}>
-                          {customTags.map((tag, index) => (
-                            <Chip
-                              key={index}
-                              label={tag}
-                              size="small"
-                              color="secondary"
-                              variant="outlined"
-                              onDelete={() => handleRemoveTag(tag)}
-                              sx={{ height: 20, '& .MuiChip-label': { px: 1, fontSize: '0.75rem' } }}
-                            />
                           ))}
-                          {customTags.length === 0 && (
-                            <Typography variant="caption" color="text.disabled">
-                              No tags
-                            </Typography>
-                          )}
-                        </Box>
-                        <Box sx={{ display: 'flex', gap: 0.5 }}>
-                          <TextField
+                        </Select>
+                      </FormControl>
+                    </Box>
+
+                    {/* Tags */}
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Tags
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1, minHeight: 24 }}>
+                        {customTags.map((tag, index) => (
+                          <Chip
+                            key={index}
+                            label={tag}
                             size="small"
-                            placeholder="Add tag..."
-                            value={newTag}
-                            onChange={(e) => setNewTag(e.target.value)}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleAddTag();
-                              }
-                            }}
-                            sx={{ 
-                              flex: 1,
-                              '& .MuiInputBase-input': { py: 0.5, fontSize: '0.875rem' }
-                            }}
-                          />
-                          <Button
-                            size="small"
+                            color="secondary"
                             variant="outlined"
-                            onClick={handleAddTag}
-                            sx={{ py: 0.5, minWidth: 50, fontSize: '0.75rem' }}
-                          >
-                            Add
-                          </Button>
-                        </Box>
-                      </Grid>
-                    </Grid>
+                            onDelete={() => handleRemoveTag(tag)}
+                            sx={{ height: 20, '& .MuiChip-label': { px: 1, fontSize: '0.75rem' } }}
+                          />
+                        ))}
+                        {customTags.length === 0 && (
+                          <Typography variant="caption" color="text.disabled">
+                            No tags
+                          </Typography>
+                        )}
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                        <TextField
+                          size="small"
+                          placeholder="Add tag..."
+                          value={newTag}
+                          onChange={(e) => setNewTag(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddTag();
+                            }
+                          }}
+                          sx={{ 
+                            flex: 1,
+                            '& .MuiInputBase-input': { py: 0.5, fontSize: '0.875rem' }
+                          }}
+                        />
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={handleAddTag}
+                          sx={{ py: 0.5, minWidth: 50, fontSize: '0.75rem' }}
+                        >
+                          Add
+                        </Button>
+                      </Box>
+                    </Box>
                   </Box>
                 </Grid>
               </Grid>
