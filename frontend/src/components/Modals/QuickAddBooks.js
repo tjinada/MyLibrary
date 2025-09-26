@@ -186,7 +186,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     }
   };
 
-  // Handle title search
+  // Handle title search - Direct from Google Books API
   const handleTitleSearch = async (query) => {
     if (!query || query.length < 3) {
       setSearchResults([]);
@@ -197,16 +197,30 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     setError(null);
 
     try {
-      console.log('Searching for books with query:', query);
-      const results = await bookService.searchGoogleBooks(query);
-      console.log('Raw search results:', results);
+      console.log('Searching Google Books directly for:', query);
       
-      if (results && results.items) {
-        // Format the results for display
-        const formattedResults = results.items.map(item => {
-          const isbn = item.volumeInfo?.industryIdentifiers?.find(id => 
-            id.type === 'ISBN_13' || id.type === 'ISBN_10'
+      // Call Google Books API directly
+      const response = await fetch(
+        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to search books');
+      }
+      
+      const data = await response.json();
+      console.log('Google Books API response:', data);
+      
+      if (data && data.items) {
+        // Format the Google Books results for display
+        const formattedResults = data.items.map(item => {
+          const isbn13 = item.volumeInfo?.industryIdentifiers?.find(id => 
+            id.type === 'ISBN_13'
           )?.identifier;
+          const isbn10 = item.volumeInfo?.industryIdentifiers?.find(id => 
+            id.type === 'ISBN_10'
+          )?.identifier;
+          const isbn = isbn13 || isbn10;
           
           console.log(`Book: ${item.volumeInfo?.title}, ISBN found:`, isbn);
           
@@ -225,16 +239,10 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
           };
         });
         
-        // Show all results first, then we can debug the ISBN issue
-        console.log('Formatted results before filter:', formattedResults);
-        
-        // Temporarily show all books, even without ISBN, so we can see what's happening
-        const resultsToShow = formattedResults; // Remove the .filter(book => book.isbn) for now
-        
-        console.log('Results to show:', resultsToShow);
-        setSearchResults(resultsToShow);
+        console.log('Formatted results:', formattedResults);
+        setSearchResults(formattedResults);
       } else {
-        console.log('No items in results:', results);
+        console.log('No items in Google Books response');
         setSearchResults([]);
       }
     } catch (error) {
