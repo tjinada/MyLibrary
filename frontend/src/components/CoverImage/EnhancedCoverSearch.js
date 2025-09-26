@@ -343,40 +343,8 @@ const EnhancedCoverSearch = ({
           ))}
         </Grid>
 
-        {/* Instructions */}
-        <Paper 
-          variant="outlined" 
-          sx={{ 
-            p: 2, 
-            mb: 3,
-            bgcolor: 'background.default'
-          }}
-        >
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CopyIcon fontSize="small" />
-            How to get image URL:
-          </Typography>
-          <Box component="ol" sx={{ m: 0, pl: 2.5 }}>
-            <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-              Click one of the search buttons above
-            </Typography>
-            <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-              Find the book cover you want
-            </Typography>
-            <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-              Right-click on the cover image
-            </Typography>
-            <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-              Select "Copy image address" (not "Copy image")
-            </Typography>
-            <Typography component="li" variant="body2">
-              Paste the URL below
-            </Typography>
-          </Box>
-        </Paper>
-
-        {/* URL Input */}
-        <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+        {/* URL Input - Moved before instructions */}
+        <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
           <TextField
             fullWidth
             size="small"
@@ -406,6 +374,38 @@ const EnhancedCoverSearch = ({
             {validatingUrl ? 'Checking...' : 'Import'}
           </Button>
         </Box>
+
+        {/* Instructions */}
+        <Paper 
+          variant="outlined" 
+          sx={{ 
+            p: 2, 
+            mb: 3,
+            bgcolor: 'background.default'
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CopyIcon fontSize="small" />
+            How to get image URL:
+          </Typography>
+          <Box component="ol" sx={{ m: 0, pl: 2.5 }}>
+            <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+              Click one of the search buttons above
+            </Typography>
+            <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+              Find the book cover you want
+            </Typography>
+            <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+              Right-click on the cover image
+            </Typography>
+            <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+              Select "Copy image address" (not "Copy image")
+            </Typography>
+            <Typography component="li" variant="body2">
+              Paste the URL above
+            </Typography>
+          </Box>
+        </Paper>
 
         {/* Selected Cover Preview */}
         {selectedCover && (
