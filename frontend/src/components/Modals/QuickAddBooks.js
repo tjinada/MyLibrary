@@ -199,28 +199,42 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     try {
       console.log('Searching for books with query:', query);
       const results = await bookService.searchGoogleBooks(query);
-      console.log('Search results:', results);
+      console.log('Raw search results:', results);
       
       if (results && results.items) {
         // Format the results for display
-        const formattedResults = results.items.map(item => ({
-          id: item.id,
-          title: item.volumeInfo?.title || 'Unknown Title',
-          authors: item.volumeInfo?.authors || [],
-          publishedDate: item.volumeInfo?.publishedDate,
-          description: item.volumeInfo?.description,
-          isbn: item.volumeInfo?.industryIdentifiers?.find(id => 
+        const formattedResults = results.items.map(item => {
+          const isbn = item.volumeInfo?.industryIdentifiers?.find(id => 
             id.type === 'ISBN_13' || id.type === 'ISBN_10'
-          )?.identifier,
-          coverImage: item.volumeInfo?.imageLinks?.thumbnail?.replace('http://', 'https://'),
-          publisher: item.volumeInfo?.publisher,
-          categories: item.volumeInfo?.categories || [],
-          pageCount: item.volumeInfo?.pageCount,
-          googleBooksId: item.id
-        })).filter(book => book.isbn); // Only show books with ISBN
+          )?.identifier;
+          
+          console.log(`Book: ${item.volumeInfo?.title}, ISBN found:`, isbn);
+          
+          return {
+            id: item.id,
+            title: item.volumeInfo?.title || 'Unknown Title',
+            authors: item.volumeInfo?.authors || [],
+            publishedDate: item.volumeInfo?.publishedDate,
+            description: item.volumeInfo?.description,
+            isbn: isbn,
+            coverImage: item.volumeInfo?.imageLinks?.thumbnail?.replace('http://', 'https://'),
+            publisher: item.volumeInfo?.publisher,
+            categories: item.volumeInfo?.categories || [],
+            pageCount: item.volumeInfo?.pageCount,
+            googleBooksId: item.id
+          };
+        });
         
-        setSearchResults(formattedResults);
+        // Show all results first, then we can debug the ISBN issue
+        console.log('Formatted results before filter:', formattedResults);
+        
+        // Temporarily show all books, even without ISBN, so we can see what's happening
+        const resultsToShow = formattedResults; // Remove the .filter(book => book.isbn) for now
+        
+        console.log('Results to show:', resultsToShow);
+        setSearchResults(resultsToShow);
       } else {
+        console.log('No items in results:', results);
         setSearchResults([]);
       }
     } catch (error) {
