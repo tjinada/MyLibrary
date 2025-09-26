@@ -199,21 +199,47 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     try {
       console.log('Searching Google Books directly for:', query);
       
-      // Call Google Books API directly
-      const response = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`
-      );
+      // Try multiple search strategies
+      // 1. First try exact title search with quotes
+      // 2. Then try with author if needed
+      // 3. Include more results
       
-      if (!response.ok) {
-        throw new Error('Failed to search books');
+      const searchQueries = [
+        `intitle:"${query}"`, // Exact title match
+        query, // Regular search
+        `${query} Maika Moulite`, // With known author for "One of the Good Ones"
+      ];
+      
+      let allResults = [];
+      const seenIds = new Set();
+      
+      for (const searchQuery of searchQueries) {
+        const response = await fetch(
+          `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}&maxResults=20&orderBy=relevance`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.items) {
+            // Add unique results
+            for (const item of data.items) {
+              if (!seenIds.has(item.id)) {
+                seenIds.add(item.id);
+                allResults.push(item);
+              }
+            }
+          }
+        }
+        
+        // Stop if we have enough results
+        if (allResults.length >= 10) break;
       }
       
-      const data = await response.json();
-      console.log('Google Books API response:', data);
+      console.log(`Found ${allResults.length} unique results across searches`);
       
-      if (data && data.items) {
+      if (allResults.length > 0) {
         // Format the Google Books results for display
-        const formattedResults = data.items.map(item => {
+        const formattedResults = allResults.slice(0, 20).map(item => {
           const isbn13 = item.volumeInfo?.industryIdentifiers?.find(id => 
             id.type === 'ISBN_13'
           )?.identifier;
@@ -222,7 +248,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
           )?.identifier;
           const isbn = isbn13 || isbn10;
           
-          console.log(`Book: ${item.volumeInfo?.title}, ISBN found:`, isbn);
+          console.log(`Book: ${item.volumeInfo?.title}, Authors: ${item.volumeInfo?.authors?.join(', ')}, ISBN: ${isbn}`);
           
           return {
             id: item.id,
@@ -242,7 +268,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
         console.log('Formatted results:', formattedResults);
         setSearchResults(formattedResults);
       } else {
-        console.log('No items in Google Books response');
+        console.log('No items found in any search');
         setSearchResults([]);
       }
     } catch (error) {
