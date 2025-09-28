@@ -91,6 +91,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
   const [searchingTitle, setSearchingTitle] = useState(false);
   
   // Book editing fields
+  const [customTitle, setCustomTitle] = useState('');
   const [customGenres, setCustomGenres] = useState([]);
   const [customTags, setCustomTags] = useState([]);
   const [newTag, setNewTag] = useState('');
@@ -314,6 +315,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       
       // Set up confirmation screen
       setCurrentBook(bookData);
+      setCustomTitle(bookData.title); // Initialize title for editing
       
       // Add Fiction or Nonfiction to genres based on categoryType
       let genres = bookData.genres || [];
@@ -357,6 +359,12 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
   const handleConfirmAdd = async () => {
     if (!currentBook) return;
     
+    // Validate title
+    if (!customTitle || !customTitle.trim()) {
+      setError('Title is required');
+      return;
+    }
+    
     setProcessingBook(true);
     setError(null);
     
@@ -364,6 +372,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       // Prepare book data with custom fields
       const bookToAdd = {
         ...currentBook,
+        title: customTitle || currentBook.title, // Use custom title if edited
         genres: customGenres,
         tags: customTags,
         status: bookStatus,
@@ -451,6 +460,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
   const handleCancelConfirmation = () => {
     setConfirmationMode(false);
     setCurrentBook(null);
+    setCustomTitle(''); // Reset title
     setCustomGenres([]);
     setCustomTags([]);
     setNewTag('');
@@ -480,6 +490,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       // Add the book with allowDuplicate flag
       const bookToAdd = {
         ...currentBook,
+        title: customTitle || currentBook.title, // Use custom title if edited
         genres: customGenres,
         tags: customTags,
         status: bookStatus,
@@ -563,6 +574,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
     setRecentlyAdded([]);
     setCurrentBook(null);
     setConfirmationMode(false);
+    setCustomTitle(''); // Reset title
     setCustomGenres([]);
     setCustomTags([]);
     setNewTag('');
@@ -1006,9 +1018,26 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                 </Grid>
                 
                 <Grid item xs={12} md={9}>
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-                    {currentBook.title}
-                  </Typography>
+                  {/* Title - Editable */}
+                  <TextField
+                    fullWidth
+                    label="Title"
+                    value={customTitle}
+                    onChange={(e) => setCustomTitle(e.target.value)}
+                    variant="outlined"
+                    size="small"
+                    required
+                    error={!customTitle.trim()}
+                    helperText={!customTitle.trim() ? "Title is required" : ""}
+                    sx={{ 
+                      mb: 1,
+                      '& .MuiInputBase-input': { 
+                        fontWeight: 600,
+                        fontSize: '1.1rem'
+                      }
+                    }}
+                  />
+                  
                   <Typography variant="body2" color="text.secondary">
                     by {currentBook.authors?.join(', ')}
                   </Typography>
@@ -1291,7 +1320,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
           <Button
             variant="contained"
             onClick={handleConfirmAdd}
-            disabled={processingBook}
+            disabled={processingBook || !customTitle?.trim()}
             startIcon={processingBook ? <CircularProgress size={16} /> : <SaveIcon sx={{ fontSize: 18 }} />}
             size="small"
           >
