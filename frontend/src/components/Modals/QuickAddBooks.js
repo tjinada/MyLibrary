@@ -428,9 +428,9 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
         }
       }, 1500);
       
-      // Notify parent
+      // Notify parent with the newly added book
       if (onBooksAdded) {
-        onBooksAdded();
+        onBooksAdded(addedBook);
       }
       
     } catch (err) {
@@ -540,7 +540,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
       }, 1500);
       
       if (onBooksAdded) {
-        onBooksAdded();
+        onBooksAdded(addedBook);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to add duplicate book');

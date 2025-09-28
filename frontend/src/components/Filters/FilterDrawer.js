@@ -26,6 +26,9 @@ import {
   AutoStories as ReadingIcon,
   CheckCircle as ReadIcon,
   Schedule as LoanedIcon,
+  ViewList as ViewListIcon,
+  LibraryBooks as LibraryBooksIcon,
+  Collections as CollectionsIcon,
 } from '@mui/icons-material';
 import { statusColors } from '../../theme/theme';
 
@@ -79,7 +82,12 @@ const FilterDrawer = ({
       genre: 'all',
       edition: 'all',
       sort: filters.sort || 'title',  // Keep sort preference
+      viewType: 'all',
     });
+  };
+
+  const handleViewTypeChange = (event) => {
+    onFilterChange({ ...filters, viewType: event.target.value });
   };
 
   return (
@@ -127,6 +135,52 @@ const FilterDrawer = ({
 
         {/* Scrollable Content */}
         <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+          {/* View Type Filter */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <ViewListIcon sx={{ fontSize: 18 }} />
+              View Type
+            </Typography>
+            <RadioGroup
+              value={filters.viewType || 'all'}
+              onChange={handleViewTypeChange}
+              sx={{ pl: 1 }}
+            >
+              <FormControlLabel 
+                value="all" 
+                control={<Radio size="small" />} 
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2">All Items</Typography>
+                    <Typography variant="caption" color="text.secondary">(Books & Collections)</Typography>
+                  </Box>
+                }
+              />
+              <FormControlLabel 
+                value="books" 
+                control={<Radio size="small" sx={{ color: theme.palette.primary.main }} />} 
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <LibraryBooksIcon sx={{ fontSize: 16, color: theme.palette.primary.main }} />
+                    <Typography variant="body2">Books Only</Typography>
+                  </Box>
+                }
+              />
+              <FormControlLabel 
+                value="collections" 
+                control={<Radio size="small" sx={{ color: theme.palette.secondary.main }} />} 
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CollectionsIcon sx={{ fontSize: 16, color: theme.palette.secondary.main }} />
+                    <Typography variant="body2">Collections Only</Typography>
+                  </Box>
+                }
+              />
+            </RadioGroup>
+          </Box>
+
+          <Divider sx={{ my: 2 }} />
+
           {/* Status Filter */}
           <Box sx={{ mb: 3 }}>
             <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>

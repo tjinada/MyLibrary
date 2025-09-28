@@ -84,6 +84,7 @@ const Library = () => {
     genre: 'all',
     edition: 'all',
     sort: 'title',
+    viewType: 'all', // 'all', 'books', 'collections'
   });
 
   const itemsPerPage = viewMode === 'grid' ? 50 : 20;
@@ -195,18 +196,27 @@ const Library = () => {
         ? allBookItems
         : allBookItems.filter(item => !item.inCollection);
       
-      let collectionItems = [];
-      if (filters.genre === 'all' && filters.status === 'all' && filters.edition === 'all') {
-        collectionItems = (collectionsData || [])
-          .filter(c => c.displayInLibrary !== false)
-          .map(collection => ({
-            type: 'collection',
-            sortKey: (collection.sortName || collection.name).toLowerCase().replace(/^(the |a |an )/i, ''),
-            data: collection
-          }));
-      }
+      // Always prepare collection items, they'll be filtered based on viewType
+      const collectionItems = (collectionsData || [])
+        .filter(c => c.displayInLibrary !== false)
+        .map(collection => ({
+          type: 'collection',
+          sortKey: (collection.sortName || collection.name).toLowerCase().replace(/^(the |a |an )/i, ''),
+          data: collection
+        }));
       
-      const displayItems = [...displayBookItems, ...collectionItems];
+      // Apply viewType filter
+      let displayItems = [];
+      if (filters.viewType === 'collections') {
+        // Show only collections
+        displayItems = collectionItems;
+      } else if (filters.viewType === 'books') {
+        // Show only books
+        displayItems = displayBookItems;
+      } else {
+        // Show all items (default behavior)
+        displayItems = [...displayBookItems, ...collectionItems];
+      }
       
       displayItems.sort((a, b) => {
         if (filters.sort === 'title' || filters.sort === '-title') {
@@ -447,13 +457,100 @@ const Library = () => {
       genre: 'all',
       edition: 'all',
       sort: 'title',
+      viewType: 'all',
     });
   }, []);
 
-  const handleBooksAdded = useCallback(() => {
+  const handleBooksAdded = useCallback((newBooks) => {
+    // Handle both single book and array of books
+    const booksToAdd = Array.isArray(newBooks) ? newBooks : (newBooks ? [newBooks] : []);
+    
+    if (booksToAdd.length === 0) {
+      // If no books provided, fall back to fetching from server
+      imagePreloader.clearCache();
+      fetchLibrary();
+      return;
+    }
+    
+    // Add to allBooksForGenres
+    setAllBooksForGenres(prev => ({
+      ...prev,
+      books: [...prev.books, ...booksToAdd]
+    }));
+    
+    // Process each new book
+    booksToAdd.forEach(newBook => {
+      // Check if book matches current filters
+      let matchesFilters = true;
+      
+      if (filters.status !== 'all' && newBook.status !== filters.status) {
+        matchesFilters = false;
+      }
+      
+      if (filters.genre !== 'all') {
+        const genreFilters = Array.isArray(filters.genre) ? filters.genre : [filters.genre];
+        const bookGenres = new Set();
+        if (newBook.primaryCategory) bookGenres.add(newBook.primaryCategory);
+        if (newBook.genres && Array.isArray(newBook.genres)) {
+          newBook.genres.forEach(genre => bookGenres.add(genre));
+        }
+        if (bookGenres.size === 0) bookGenres.add('Uncategorized');
+        
+        if (!genreFilters.every(filterGenre => bookGenres.has(filterGenre))) {
+          matchesFilters = false;
+        }
+      }
+      
+      if (filters.edition !== 'all' && newBook.edition !== filters.edition) {
+        matchesFilters = false;
+      }
+      
+      // Only add to display if it matches filters and viewType allows books
+      if (matchesFilters && filters.viewType !== 'collections') {
+        const newBookItem = {
+          type: 'book',
+          sortKey: newBook.title.toLowerCase().replace(/^(the |a |an )/i, ''),
+          data: newBook,
+          inCollection: newBook.collections && newBook.collections.length > 0
+        };
+        
+        setLibraryItems(prev => {
+          const updated = [...prev, newBookItem];
+          
+          // Apply current sort
+          updated.sort((a, b) => {
+            if (filters.sort === 'title' || filters.sort === '-title') {
+              const multiplier = filters.sort.startsWith('-') ? -1 : 1;
+              return multiplier * a.sortKey.localeCompare(b.sortKey);
+            }
+            
+            if (filters.sort === '-addedDate' || filters.sort === 'addedDate') {
+              const multiplier = filters.sort.startsWith('-') ? -1 : 1;
+              
+              if (a.type === 'collection' && b.type === 'book') return 1;
+              if (a.type === 'book' && b.type === 'collection') return -1;
+              
+              if (a.type === 'book' && b.type === 'book') {
+                return multiplier * (new Date(a.data.addedDate) - new Date(b.data.addedDate));
+              }
+              
+              return a.sortKey.localeCompare(b.sortKey);
+            }
+            
+            return 0;
+          });
+          
+          return updated;
+        });
+        
+        // Also add to allLibraryItems
+        setAllLibraryItems(prev => [...prev, newBookItem]);
+      }
+    });
+    
+    // Clear image cache
     imagePreloader.clearCache();
-    fetchLibrary();
-  }, []);
+  }, [filters]);
 
   const handleOpenAddModal = useCallback((mode) => {
     if (mode === 'manual') {
@@ -684,7 +781,8 @@ const Library = () => {
   const hasActiveFilters = filters.search !== '' || 
                           filters.status !== 'all' || 
                           filters.genre !== 'all' ||
-                          filters.edition !== 'all';
+                          filters.edition !== 'all' ||
+                          filters.viewType !== 'all';
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>

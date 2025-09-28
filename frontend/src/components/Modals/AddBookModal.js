@@ -214,12 +214,12 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
       
       console.log('Sending book data:', bookToAdd);
 
-      await bookService.addBook(bookToAdd);
+      const addedBook = await bookService.addBook(bookToAdd);
       setActiveStep(2);
       
-      // Notify parent component
+      // Notify parent component with the newly added book
       if (onBookAdded) {
-        onBookAdded();
+        onBookAdded(addedBook);
       }
       
       // Auto close after success

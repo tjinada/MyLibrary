@@ -52,6 +52,7 @@ const StickyToolbar = ({
     filters.status !== 'all',
     filters.genre !== 'all' && (Array.isArray(filters.genre) ? filters.genre.length > 0 : true),
     filters.edition !== 'all',
+    filters.viewType !== 'all',
   ].filter(Boolean).length;
 
   const handleQuickAdd = () => {

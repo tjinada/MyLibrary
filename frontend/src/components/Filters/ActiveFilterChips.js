@@ -45,6 +45,17 @@ const ActiveFilterChips = ({ filters, onRemoveFilter, onClearAll }) => {
     });
   }
 
+  if (filters.viewType && filters.viewType !== 'all') {
+    const viewLabel = filters.viewType === 'books' ? 'Books Only' : 
+                      filters.viewType === 'collections' ? 'Collections Only' : 
+                      filters.viewType;
+    activeFilters.push({
+      key: 'viewType',
+      label: `View: ${viewLabel}`,
+      value: filters.viewType,
+    });
+  }
+
   if (activeFilters.length === 0) return null;
 
   return (

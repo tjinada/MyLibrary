@@ -88,6 +88,7 @@ const BookDetailsModal = ({
   
   // Edit form state
   const [editedBook, setEditedBook] = useState({
+    title: '',
     status: '',
     rating: 0,
     notes: '',
@@ -158,6 +159,7 @@ const BookDetailsModal = ({
   useEffect(() => {
     if (book) {
       const bookData = {
+        title: book.title || '',
         status: book.status || 'to-read',
         rating: book.rating || 0,
         notes: book.notes || '',
@@ -245,6 +247,12 @@ const BookDetailsModal = ({
   };
 
   const handleSave = async () => {
+    // Validate title
+    if (!editedBook.title || !editedBook.title.trim()) {
+      setError('Title is required');
+      return;
+    }
+    
     try {
       setLoading(true);
       setError(null);
@@ -260,6 +268,7 @@ const BookDetailsModal = ({
       
       setCurrentBookData(updatedBook);
       setEditedBook({
+        title: updatedBook.title || '',
         status: updatedBook.status || 'to-read',
         rating: updatedBook.rating || 0,
         notes: updatedBook.notes || '',
@@ -436,6 +445,7 @@ const BookDetailsModal = ({
                     setEditMode(false);
                     const resetBook = currentBookData || book;
                     setEditedBook({
+                    title: resetBook.title || '',
                     status: resetBook.status || 'to-read',
                     rating: resetBook.rating || 0,
                     notes: resetBook.notes || '',
@@ -677,6 +687,31 @@ const BookDetailsModal = ({
                     <Fade in timeout={300}>
                       <Box>
                         <Grid container spacing={2}>
+                          {/* Title */}
+                          <Grid item xs={12}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                              <Typography variant="subtitle2" color="text.secondary">
+                                Title
+                              </Typography>
+                            </Box>
+                            {editMode ? (
+                              <TextField
+                                fullWidth
+                                size="small"
+                                value={editedBook.title}
+                                onChange={(e) => setEditedBook({...editedBook, title: e.target.value})}
+                                variant="outlined"
+                                required
+                                error={!editedBook.title.trim()}
+                                helperText={!editedBook.title.trim() ? "Title is required" : ""}
+                              />
+                            ) : (
+                              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                {displayBook.title}
+                              </Typography>
+                            )}
+                          </Grid>
+
                           {/* Authors */}
                           {book.authors && (
                             <Grid item xs={12}>
