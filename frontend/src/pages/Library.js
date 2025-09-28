@@ -109,7 +109,7 @@ const Library = () => {
   useEffect(() => {
     fetchLibrary();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.status, filters.genre, filters.edition, filters.sort]);
+  }, [filters.status, filters.genre, filters.edition, filters.sort, showCollectionsOnly]);
 
   // Save view preferences
   useEffect(() => {
@@ -443,12 +443,42 @@ const Library = () => {
 
   // Handler functions
   const handleSearch = useCallback((searchTerm) => {
+    // If searching, turn off collections-only mode
+    if (searchTerm && showCollectionsOnly) {
+      setShowCollectionsOnly(false);
+    }
     setFilters(prev => ({ ...prev, search: searchTerm }));
-  }, []);
+  }, [showCollectionsOnly]);
+
+  const handleToggleCollectionsOnly = useCallback(() => {
+    if (!showCollectionsOnly) {
+      // When turning ON collections view, clear all filters
+      setFilters({
+        search: '',
+        status: 'all',
+        genre: 'all',
+        edition: 'all',
+        sort: 'title',
+      });
+      setShowCollectionsOnly(true);
+    } else {
+      // When turning OFF collections view, just toggle it off
+      setShowCollectionsOnly(false);
+    }
+  }, [showCollectionsOnly]);
 
   const handleFilterChange = useCallback((newFilters) => {
+    // If any filter is being set (not 'all'), turn off collections mode
+    const hasActiveFilter = newFilters.status !== 'all' || 
+                           newFilters.genre !== 'all' || 
+                           newFilters.edition !== 'all';
+    
+    if (hasActiveFilter && showCollectionsOnly) {
+      setShowCollectionsOnly(false);
+    }
+    
     setFilters(newFilters);
-  }, []);
+  }, [showCollectionsOnly]);
 
   const handleRemoveFilter = useCallback((filterKey) => {
     setFilters(prev => ({
@@ -815,7 +845,7 @@ const Library = () => {
         selectionMode={selectionMode}
         onToggleSelectionMode={handleToggleSelectionMode}
         showCollectionsOnly={showCollectionsOnly}
-        onToggleCollectionsOnly={() => setShowCollectionsOnly(!showCollectionsOnly)}
+        onToggleCollectionsOnly={handleToggleCollectionsOnly}
       />
       
       {/* Sticky Search and Stats Section */}
@@ -939,12 +969,18 @@ const Library = () => {
                 gutterBottom
                 sx={{ fontWeight: 600 }}
               >
-                {hasActiveFilters ? 'No items match your filters' : 'Your library is empty'}
+                {showCollectionsOnly 
+                  ? 'No collections found' 
+                  : (hasActiveFilters ? 'No items match your filters' : 'Your library is empty')
+                }
               </Typography>
               <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
-                {hasActiveFilters 
-                  ? 'Try adjusting your filters or search terms'
-                  : 'Start by adding some books to your collection'
+                {showCollectionsOnly 
+                  ? 'Create your first collection to organize your books'
+                  : (hasActiveFilters 
+                    ? 'Try adjusting your filters or search terms'
+                    : 'Start by adding some books to your collection'
+                  )
                 }
               </Typography>
               {!hasActiveFilters && (
