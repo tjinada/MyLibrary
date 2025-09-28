@@ -84,8 +84,10 @@ const Library = () => {
     genre: 'all',
     edition: 'all',
     sort: 'title',
-    viewType: 'all', // 'all', 'books', 'collections'
   });
+  
+  // Separate state for showing collections
+  const [showCollectionsOnly, setShowCollectionsOnly] = useState(false);
 
   const itemsPerPage = viewMode === 'grid' ? 50 : 20;
 
@@ -205,20 +207,19 @@ const Library = () => {
           data: collection
         }));
       
-      // Apply viewType filter
+      // Apply view logic
       let displayItems = [];
-      if (filters.viewType === 'collections') {
-        // Show only collections - ignore other filters for collections
+      
+      if (showCollectionsOnly) {
+        // When showing collections only, display all collections
         displayItems = collectionItems;
-      } else if (filters.viewType === 'books') {
-        // Show only books
-        displayItems = displayBookItems;
       } else {
-        // Show all items (default behavior)
-        // Only show collections when no filters are active (except viewType)
+        // Normal behavior - show books and conditionally show collections
         const showCollections = filters.genre === 'all' && 
                                 filters.status === 'all' && 
-                                filters.edition === 'all';
+                                filters.edition === 'all' &&
+                                filters.search === '';
+        
         displayItems = showCollections 
           ? [...displayBookItems, ...collectionItems]
           : displayBookItems;
@@ -463,8 +464,8 @@ const Library = () => {
       genre: 'all',
       edition: 'all',
       sort: 'title',
-      viewType: 'all',
     });
+    setShowCollectionsOnly(false); // Also reset collections view
   }, []);
 
   const handleBooksAdded = useCallback((newBooks) => {
@@ -478,11 +479,17 @@ const Library = () => {
       return;
     }
     
-    // Add to allBooksForGenres
+    // Always update allBooksForGenres for genre counts etc
     setAllBooksForGenres(prev => ({
       ...prev,
       books: [...prev.books, ...booksToAdd]
     }));
+    
+    // Don't add books to display if showing collections only
+    if (showCollectionsOnly) {
+      imagePreloader.clearCache();
+      return;
+    }
     
     // Process each new book
     booksToAdd.forEach(newBook => {
@@ -511,8 +518,8 @@ const Library = () => {
         matchesFilters = false;
       }
       
-      // Only add to display if it matches filters and viewType allows books
-      if (matchesFilters && filters.viewType !== 'collections') {
+      // Only add to display if it matches filters and not in collections-only mode
+      if (matchesFilters && !showCollectionsOnly) {
         const newBookItem = {
           type: 'book',
           sortKey: newBook.title.toLowerCase().replace(/^(the |a |an )/i, ''),
@@ -556,7 +563,7 @@ const Library = () => {
     
     // Clear image cache
     imagePreloader.clearCache();
-  }, [filters]);
+  }, [filters, showCollectionsOnly]);
 
   const handleOpenAddModal = useCallback((mode) => {
     if (mode === 'manual') {
@@ -787,8 +794,7 @@ const Library = () => {
   const hasActiveFilters = filters.search !== '' || 
                           filters.status !== 'all' || 
                           filters.genre !== 'all' ||
-                          filters.edition !== 'all' ||
-                          filters.viewType !== 'all';
+                          filters.edition !== 'all';
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -808,6 +814,8 @@ const Library = () => {
         bookCounts={bookCounts}
         selectionMode={selectionMode}
         onToggleSelectionMode={handleToggleSelectionMode}
+        showCollectionsOnly={showCollectionsOnly}
+        onToggleCollectionsOnly={() => setShowCollectionsOnly(!showCollectionsOnly)}
       />
       
       {/* Sticky Search and Stats Section */}
@@ -868,6 +876,15 @@ const Library = () => {
           }}>
             <Typography variant="body2" color="text.secondary">
               {(() => {
+                // Add indicator when showing collections only
+                if (showCollectionsOnly) {
+                  const collectionCount = filteredItems.length;
+                  if (collectionCount === 0) return 'No collections found';
+                  const itemRange = `${Math.min((page - 1) * itemsPerPage + 1, collectionCount)}-${Math.min(page * itemsPerPage, collectionCount)} of ${collectionCount}`;
+                  return `Showing ${itemRange} collections`;
+                }
+                
+                // Normal display logic
                 const bookCount = filteredItems.filter(item => item.type === 'book')
                   .reduce((sum, item) => sum + (item.data.quantity || 1), 0);
                 const collectionCount = filteredItems.filter(item => item.type === 'collection').length;

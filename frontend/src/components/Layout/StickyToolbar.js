@@ -42,6 +42,8 @@ const StickyToolbar = ({
   bookCounts,
   selectionMode,
   onToggleSelectionMode,
+  showCollectionsOnly,
+  onToggleCollectionsOnly,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -52,7 +54,6 @@ const StickyToolbar = ({
     filters.status !== 'all',
     filters.genre !== 'all' && (Array.isArray(filters.genre) ? filters.genre.length > 0 : true),
     filters.edition !== 'all',
-    filters.viewType !== 'all',
   ].filter(Boolean).length;
 
   const handleQuickAdd = () => {
@@ -125,8 +126,9 @@ const StickyToolbar = ({
 
         {!isMobile && <Divider orientation="vertical" flexItem />}
 
-        {/* View Mode and Selection Toggle */}
+        {/* View Mode, Collections Toggle, and Selection Toggle */}
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          {/* View Mode Toggle */}
           <Box sx={{ 
             display: 'flex', 
             bgcolor: theme.palette.action.hover,
@@ -167,7 +169,35 @@ const StickyToolbar = ({
             </Tooltip>
           </Box>
           
-          {/* Selection Mode Toggle - Simple Checkbox Style */}
+          {/* Collections Toggle Button */}
+          <Tooltip title={showCollectionsOnly ? 'Show all items' : 'Show collections only'}>
+            <Button
+              size="small"
+              onClick={onToggleCollectionsOnly}
+              variant={showCollectionsOnly ? 'contained' : 'outlined'}
+              startIcon={<CollectionsIcon />}
+              sx={{
+                minWidth: 'auto',
+                px: 2,
+                borderRadius: 1,
+                textTransform: 'none',
+                fontWeight: showCollectionsOnly ? 600 : 400,
+                bgcolor: showCollectionsOnly ? 'secondary.main' : 'transparent',
+                color: showCollectionsOnly ? 'white' : 'text.primary',
+                borderColor: showCollectionsOnly ? 'secondary.main' : 'divider',
+                '&:hover': {
+                  bgcolor: showCollectionsOnly 
+                    ? 'secondary.dark'
+                    : alpha(theme.palette.secondary.main, 0.1),
+                  borderColor: 'secondary.main',
+                },
+              }}
+            >
+              {!isMobile && (showCollectionsOnly ? 'Collections' : 'Collections')}
+            </Button>
+          </Tooltip>
+          
+          {/* Selection Mode Toggle */}
           <Tooltip title={selectionMode ? 'Exit selection mode' : 'Select multiple books'}>
             <IconButton
               size="small"
