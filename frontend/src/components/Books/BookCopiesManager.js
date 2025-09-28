@@ -70,10 +70,7 @@ const BookCopiesManager = ({ open, onClose, book, onUpdate }) => {
             copyNumber: i + 1,
             edition: book.edition || 'standard',
             status: book.status || 'to-read',
-            condition: 'good',
             purchaseDate: '',
-            purchasePrice: '',
-            purchaseLocation: '',
             notes: '',
             rating: i === 0 ? (book.rating || 0) : 0, // First copy gets the book's rating
             loanedTo: '',
@@ -118,10 +115,7 @@ const BookCopiesManager = ({ open, onClose, book, onUpdate }) => {
       copyNumber: copies.length + 1,
       edition: 'standard',
       status: 'to-read',
-      condition: 'good',
       purchaseDate: '',
-      purchasePrice: '',
-      purchaseLocation: '',
       notes: '',
       rating: 0,
       loanedTo: '',
@@ -175,17 +169,6 @@ const BookCopiesManager = ({ open, onClose, book, onUpdate }) => {
       'loaned': 'warning'
     };
     return colors[status] || 'default';
-  };
-
-  const getConditionColor = (condition) => {
-    const colors = {
-      'new': 'success',
-      'excellent': 'success',
-      'good': 'primary',
-      'fair': 'warning',
-      'poor': 'error'
-    };
-    return colors[condition] || 'default';
   };
 
   return (
@@ -264,14 +247,6 @@ const BookCopiesManager = ({ open, onClose, book, onUpdate }) => {
                       size="small"
                       color={getStatusColor(displayCopy.status)}
                     />
-                    {displayCopy.condition && (
-                      <Chip 
-                        label={displayCopy.condition} 
-                        size="small"
-                        variant="outlined"
-                        color={getConditionColor(displayCopy.condition)}
-                      />
-                    )}
                   </Box>
                   
                   <Box sx={{ display: 'flex', gap: 1 }}>
@@ -322,8 +297,6 @@ const BookCopiesManager = ({ open, onClose, book, onUpdate }) => {
                             <MenuItem value="standard">Standard</MenuItem>
                             <MenuItem value="signed">Signed</MenuItem>
                             <MenuItem value="deluxe">Deluxe</MenuItem>
-                            <MenuItem value="first">First Edition</MenuItem>
-                            <MenuItem value="limited">Limited Edition</MenuItem>
                           </Select>
                         </FormControl>
                       </Grid>
@@ -349,27 +322,6 @@ const BookCopiesManager = ({ open, onClose, book, onUpdate }) => {
                       </Grid>
 
                       <Grid item xs={12} sm={6} md={3}>
-                        <FormControl fullWidth size="small">
-                          <InputLabel>Condition</InputLabel>
-                          <Select
-                            value={displayCopy.condition || 'good'}
-                            label="Condition"
-                            onChange={(e) => isEditing && setEditingCopy({
-                              ...editingCopy,
-                              condition: e.target.value
-                            })}
-                            disabled={!isEditing}
-                          >
-                            <MenuItem value="new">New</MenuItem>
-                            <MenuItem value="excellent">Excellent</MenuItem>
-                            <MenuItem value="good">Good</MenuItem>
-                            <MenuItem value="fair">Fair</MenuItem>
-                            <MenuItem value="poor">Poor</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Grid>
-
-                      <Grid item xs={12} sm={6} md={3}>
                         <Box>
                           <Typography variant="caption" color="text.secondary">
                             Rating
@@ -384,53 +336,6 @@ const BookCopiesManager = ({ open, onClose, book, onUpdate }) => {
                             size="small"
                           />
                         </Box>
-                      </Grid>
-
-                      {/* Purchase Information */}
-                      <Grid item xs={12} sm={6} md={4}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="Purchase Date"
-                          type="date"
-                          value={displayCopy.purchaseDate || ''}
-                          onChange={(e) => isEditing && setEditingCopy({
-                            ...editingCopy,
-                            purchaseDate: e.target.value
-                          })}
-                          disabled={!isEditing}
-                          InputLabelProps={{ shrink: true }}
-                        />
-                      </Grid>
-
-                      <Grid item xs={12} sm={6} md={4}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="Purchase Price"
-                          value={displayCopy.purchasePrice || ''}
-                          onChange={(e) => isEditing && setEditingCopy({
-                            ...editingCopy,
-                            purchasePrice: e.target.value
-                          })}
-                          disabled={!isEditing}
-                          placeholder="$0.00"
-                        />
-                      </Grid>
-
-                      <Grid item xs={12} sm={6} md={4}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="Purchase Location"
-                          value={displayCopy.purchaseLocation || ''}
-                          onChange={(e) => isEditing && setEditingCopy({
-                            ...editingCopy,
-                            purchaseLocation: e.target.value
-                          })}
-                          disabled={!isEditing}
-                          placeholder="Store name or location"
-                        />
                       </Grid>
 
                       {/* Loan Information */}
