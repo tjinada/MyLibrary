@@ -169,34 +169,6 @@ const StickyToolbar = ({
             </Tooltip>
           </Box>
           
-          {/* Collections Toggle Button */}
-          <Tooltip title={showCollectionsOnly ? 'Show all items' : 'Show collections only'}>
-            <Button
-              size="small"
-              onClick={onToggleCollectionsOnly}
-              variant={showCollectionsOnly ? 'contained' : 'outlined'}
-              startIcon={<CollectionsIcon />}
-              sx={{
-                minWidth: 'auto',
-                px: 2,
-                borderRadius: 1,
-                textTransform: 'none',
-                fontWeight: showCollectionsOnly ? 600 : 400,
-                bgcolor: showCollectionsOnly ? 'secondary.main' : 'transparent',
-                color: showCollectionsOnly ? 'white' : 'text.primary',
-                borderColor: showCollectionsOnly ? 'secondary.main' : 'divider',
-                '&:hover': {
-                  bgcolor: showCollectionsOnly 
-                    ? 'secondary.dark'
-                    : alpha(theme.palette.secondary.main, 0.1),
-                  borderColor: 'secondary.main',
-                },
-              }}
-            >
-              {!isMobile && (showCollectionsOnly ? 'Collections' : 'Collections')}
-            </Button>
-          </Tooltip>
-          
           {/* Selection Mode Toggle */}
           <Tooltip title={selectionMode ? 'Exit selection mode' : 'Select multiple books'}>
             <IconButton
@@ -224,7 +196,35 @@ const StickyToolbar = ({
         {/* Spacer */}
         <Box sx={{ flexGrow: 1 }} />
 
-        {/* Sort Dropdown - Separated from Filters */}
+        {/* Collections Toggle Button */}
+        <Tooltip title={showCollectionsOnly ? 'Show all items' : 'Show collections only'}>
+          <Button
+            size="small"
+            onClick={onToggleCollectionsOnly}
+            variant={showCollectionsOnly ? 'contained' : 'outlined'}
+            startIcon={<CollectionsIcon />}
+            sx={{
+              minWidth: 'auto',
+              px: 2,
+              borderRadius: 1,
+              textTransform: 'none',
+              fontWeight: showCollectionsOnly ? 600 : 400,
+              bgcolor: showCollectionsOnly ? 'secondary.main' : 'transparent',
+              color: showCollectionsOnly ? 'white' : 'text.primary',
+              borderColor: showCollectionsOnly ? 'secondary.main' : 'divider',
+              '&:hover': {
+                bgcolor: showCollectionsOnly 
+                  ? 'secondary.dark'
+                  : alpha(theme.palette.secondary.main, 0.1),
+                borderColor: 'secondary.main',
+              },
+            }}
+          >
+            {!isMobile && (showCollectionsOnly ? 'Collections' : 'Collections')}
+          </Button>
+        </Tooltip>
+
+        {/* Sort Dropdown */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <SortIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
           <FormControl size="small" sx={{ minWidth: isMobile ? 120 : 150 }}>
