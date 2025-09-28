@@ -1,5 +1,31 @@
 const mongoose = require('mongoose');
 
+// Schema for individual book copies
+const BookCopySchema = new mongoose.Schema({
+  copyNumber: { 
+    type: Number, 
+    required: true 
+  },
+  edition: {
+    type: String,
+    enum: ['standard', 'signed', 'deluxe'],
+    default: 'standard'
+  },
+  status: {
+    type: String,
+    enum: ['to-read', 'reading', 'read', 'loaned'],
+    default: 'to-read'
+  },
+  rating: {
+    type: Number,
+    min: 0,
+    max: 5
+  },
+  notes: String,
+  loanedTo: String,
+  loanedDate: Date
+}, { _id: true });
+
 const BookSchema = new mongoose.Schema({
   isbn: {
     type: String,
@@ -86,6 +112,9 @@ const BookSchema = new mongoose.Schema({
     default: 1,
     min: 1
   },
+  
+  // Individual copies tracking
+  copies: [BookCopySchema],
   location: {
     type: String,
     default: ''

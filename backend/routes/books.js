@@ -942,6 +942,57 @@ router.put('/:isbn', auth, async (req, res) => {
     // Clean up the update data
     const updateData = { ...req.body };
     
+    // Special handling for copies array
+    if (updateData.copies && Array.isArray(updateData.copies)) {
+      // Ensure each copy has required fields and clean IDs
+      updateData.copies = updateData.copies.map((copy, index) => {
+        const cleanCopy = {
+          copyNumber: copy.copyNumber || index + 1,
+          edition: copy.edition || 'standard',
+          status: copy.status || 'to-read',
+          rating: copy.rating || 0,
+          notes: copy.notes || '',
+          loanedTo: copy.loanedTo || '',
+          loanedDate: copy.loanedDate || null
+        };
+        
+        // Preserve the MongoDB _id if it exists (for existing copies)
+        if (copy._id && copy._id.length === 24) {
+          cleanCopy._id = copy._id;
+        }
+        
+        return cleanCopy;
+      });
+      
+      // Update quantity to match copies length
+      updateData.quantity = updateData.copies.length;
+      
+      // Update book-level status and edition based on copies
+      // If all copies have the same status/edition, use that; otherwise use 'mixed'
+      const allStatuses = updateData.copies.map(c => c.status);
+      const allEditions = updateData.copies.map(c => c.edition);
+      
+      const uniqueStatuses = [...new Set(allStatuses)];
+      const uniqueEditions = [...new Set(allEditions)];
+      
+      if (uniqueStatuses.length === 1) {
+        updateData.status = uniqueStatuses[0];
+      }
+      
+      if (uniqueEditions.length === 1) {
+        updateData.edition = uniqueEditions[0];
+      } else if (uniqueEditions.length > 1) {
+        // If mixed editions, default to the "highest" edition
+        if (uniqueEditions.includes('deluxe')) {
+          updateData.edition = 'deluxe';
+        } else if (uniqueEditions.includes('signed')) {
+          updateData.edition = 'signed';
+        } else {
+          updateData.edition = 'standard';
+        }
+      }
+    }
+    
     // Remove rating if it's 0 or null (unset it instead of setting to 0)
     if (updateData.rating === 0 || updateData.rating === null) {
       delete updateData.rating;
@@ -973,6 +1024,7 @@ router.put('/:isbn', auth, async (req, res) => {
       return res.status(404).json({ message: 'Book not found' });
     }
 
+    console.log(`Book updated: ${book.title}, Copies: ${book.copies ? book.copies.length : 0}`);
     res.json(book);
   } catch (error) {
     console.error('Error updating book:', error);

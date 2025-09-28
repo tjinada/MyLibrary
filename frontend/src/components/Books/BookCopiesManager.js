@@ -59,9 +59,22 @@ const BookCopiesManager = ({ open, onClose, book, onUpdate }) => {
     if (book) {
       if (book.copies && book.copies.length > 0) {
         // Book already has individual copies tracked
-        setCopies(book.copies);
+        // Map them to ensure they have the id field for UI tracking
+        const mappedCopies = book.copies.map(copy => ({
+          ...copy,
+          id: copy._id || copy.id || `copy_${copy.copyNumber}_${Date.now()}`,
+          // Ensure all fields exist
+          copyNumber: copy.copyNumber,
+          edition: copy.edition || 'standard',
+          status: copy.status || 'to-read',
+          notes: copy.notes || '',
+          rating: copy.rating || 0,
+          loanedTo: copy.loanedTo || '',
+          loanedDate: copy.loanedDate || '',
+        }));
+        setCopies(mappedCopies);
       } else {
-        // Convert quantity to individual copies
+        // Convert quantity to individual copies for first-time setup
         const quantity = book.quantity || 1;
         const initialCopies = [];
         for (let i = 0; i < quantity; i++) {
@@ -70,7 +83,6 @@ const BookCopiesManager = ({ open, onClose, book, onUpdate }) => {
             copyNumber: i + 1,
             edition: book.edition || 'standard',
             status: book.status || 'to-read',
-            purchaseDate: '',
             notes: '',
             rating: i === 0 ? (book.rating || 0) : 0, // First copy gets the book's rating
             loanedTo: '',
@@ -115,7 +127,6 @@ const BookCopiesManager = ({ open, onClose, book, onUpdate }) => {
       copyNumber: copies.length + 1,
       edition: 'standard',
       status: 'to-read',
-      purchaseDate: '',
       notes: '',
       rating: 0,
       loanedTo: '',
@@ -131,20 +142,38 @@ const BookCopiesManager = ({ open, onClose, book, onUpdate }) => {
     setError(null);
     
     try {
+      // Prepare copies for backend - preserve MongoDB _id where it exists
+      const preparedCopies = copies.map(copy => {
+        const preparedCopy = {
+          copyNumber: copy.copyNumber,
+          edition: copy.edition || 'standard',
+          status: copy.status || 'to-read',
+          rating: copy.rating || 0,
+          notes: copy.notes || '',
+          loanedTo: copy.loanedTo || '',
+          loanedDate: copy.loanedDate || null,
+        };
+        
+        // Preserve MongoDB _id if it exists (from backend)
+        if (copy._id) {
+          preparedCopy._id = copy._id;
+        }
+        
+        return preparedCopy;
+      });
+      
       // Update the book with the copies array
       const updatedBook = {
         ...book,
-        copies: copies,
+        copies: preparedCopies,
         quantity: copies.length, // Update quantity based on copies
-        // If all copies have the same edition/status, update the main record
-        edition: copies.every(c => c.edition === copies[0].edition) ? copies[0].edition : 'mixed',
-        status: copies.every(c => c.status === copies[0].status) ? copies[0].status : 'mixed',
       };
       
       await onUpdate(updatedBook);
       onClose();
     } catch (err) {
       setError('Failed to update book copies');
+      console.error('Error saving copies:', err);
     } finally {
       setLoading(false);
     }
@@ -282,7 +311,7 @@ const BookCopiesManager = ({ open, onClose, book, onUpdate }) => {
                   <Box sx={{ mt: 2 }}>
                     <Grid container spacing={2}>
                       {/* Edition and Status */}
-                      <Grid item xs={12} sm={6} md={3}>
+                      <Grid item xs={12} sm={6} md={4}>
                         <FormControl fullWidth size="small">
                           <InputLabel>Edition</InputLabel>
                           <Select
@@ -301,7 +330,7 @@ const BookCopiesManager = ({ open, onClose, book, onUpdate }) => {
                         </FormControl>
                       </Grid>
 
-                      <Grid item xs={12} sm={6} md={3}>
+                      <Grid item xs={12} sm={6} md={4}>
                         <FormControl fullWidth size="small">
                           <InputLabel>Status</InputLabel>
                           <Select
@@ -321,7 +350,7 @@ const BookCopiesManager = ({ open, onClose, book, onUpdate }) => {
                         </FormControl>
                       </Grid>
 
-                      <Grid item xs={12} sm={6} md={3}>
+                      <Grid item xs={12} sm={6} md={4}>
                         <Box>
                           <Typography variant="caption" color="text.secondary">
                             Rating
