@@ -32,6 +32,7 @@ import {
   Select,
   alpha,
   Autocomplete,
+  Badge,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -63,6 +64,7 @@ import bookService from '../../services/bookService';
 import StatusPills from './StatusPills';
 import BookStatusChip, { BookEditionBadge } from '../Books/BookStatusChip';
 import CoverImagePicker from '../CoverImage/CoverImagePicker';
+import BookCopiesManager from '../Books/BookCopiesManager';
 import { ALLOWED_GENRES } from '../../constants/bookConstants';
 
 const BookDetailsModal = ({ 
@@ -82,6 +84,7 @@ const BookDetailsModal = ({
   const [deleteQuantity, setDeleteQuantity] = useState(1);
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [showCoverPicker, setShowCoverPicker] = useState(false);
+  const [showCopiesManager, setShowCopiesManager] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
@@ -632,15 +635,44 @@ const BookDetailsModal = ({
                     </Box>
                   </Box>
 
-                  {/* Quantity Display */}
+                  {/* Quantity Display with Manage Copies Button */}
                   {(displayBook.quantity || 1) > 1 && (
                     <Box sx={{ mt: 3, textAlign: 'center' }}>
-                      <Chip 
-                        label={`${displayBook.quantity} copies in library`}
+                      <Badge 
+                        badgeContent={displayBook.quantity} 
                         color="secondary"
-                        icon={<InventoryIcon />}
-                        sx={{ fontWeight: 600 }}
-                      />
+                        sx={{ 
+                          '& .MuiBadge-badge': { 
+                            fontSize: '1rem',
+                            height: 28,
+                            minWidth: 28,
+                            borderRadius: 14,
+                          }
+                        }}
+                      >
+                        <Button
+                          variant="outlined"
+                          startIcon={<InventoryIcon />}
+                          onClick={() => setShowCopiesManager(true)}
+                          size="small"
+                        >
+                          Manage Copies
+                        </Button>
+                      </Badge>
+                    </Box>
+                  )}
+                  
+                  {/* Single copy with option to add more */}
+                  {(displayBook.quantity || 1) === 1 && (
+                    <Box sx={{ mt: 3, textAlign: 'center' }}>
+                      <Button
+                        variant="outlined"
+                        startIcon={<InventoryIcon />}
+                        onClick={() => setShowCopiesManager(true)}
+                        size="small"
+                      >
+                        Manage Copy
+                      </Button>
                     </Box>
                   )}
                 </Box>
@@ -1168,6 +1200,26 @@ const BookDetailsModal = ({
         book={currentBookData || book}
         currentCover={displayBook.coverImage}
         onCoverSelected={handleCoverSelected}
+      />
+      
+      {/* Book Copies Manager Dialog */}
+      <BookCopiesManager
+        open={showCopiesManager}
+        onClose={() => setShowCopiesManager(false)}
+        book={currentBookData || book}
+        onUpdate={async (updatedBook) => {
+          // Update the book with copies information
+          const response = await bookService.updateBook(book.isbn, {
+            copies: updatedBook.copies,
+            quantity: updatedBook.quantity,
+          });
+          
+          setCurrentBookData(response);
+          if (onBookUpdated) {
+            onBookUpdated(response);
+          }
+          setShowCopiesManager(false);
+        }}
       />
     </>
   );

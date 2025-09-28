@@ -10,62 +10,144 @@ class ExportService {
     const { books = [], collections = [] } = data;
     
     // Prepare books data for CSV with import markers
-    const booksData = books.map(book => ({
-      // Unique Identifier (for reimport)
-      _id: book._id || '', // Include MongoDB ID for reference
-      ISBN: book.isbn || '',
-      
-      // Basic Info
-      Title: book.title || '',
-      Authors: Array.isArray(book.authors) ? book.authors.join('; ') : '',
-      Publisher: book.publisher || '',
-      PublishedDate: book.publishedDate || '',
-      
-      // Book Details
-      PageCount: book.pageCount || 0, // Keep as number
-      Language: book.language || '',
-      Description: book.description ? book.description.replace(/\n/g, '\\n') : '', // Preserve newlines with escape
-      
-      // Categories and Genres
-      PrimaryCategory: book.primaryCategory || '',
-      CategoryType: book.categoryType || '', // Fiction/Nonfiction
-      Genres: Array.isArray(book.genres) ? book.genres.join('; ') : '',
-      Tags: Array.isArray(book.tags) ? book.tags.join('; ') : '',
-      
-      // Status and Reading Info
-      Status: book.status || 'to-read',
-      Rating: book.rating || 0, // Keep as number
-      Notes: book.notes ? book.notes.replace(/\n/g, '\\n') : '', // Preserve newlines
-      
-      // Edition and Quantity
-      Edition: book.edition || 'standard',
-      Quantity: book.quantity || 1,
-      
-      // Collections (with IDs for reimport)
-      Collections: Array.isArray(book.collections) 
-        ? book.collections.map(c => {
-            if (typeof c === 'object') {
-              return `${c.name}|${c._id}`; // Include ID for exact matching
-            }
-            return c;
-          }).join('; ') 
-        : '',
-      CollectionCount: Array.isArray(book.collections) ? book.collections.length : 0,
-      
-      // Metadata (ISO format for reliable parsing)
-      AddedDate: book.addedDate || '',
-      UpdatedDate: book.updatedAt || '',
-      CreatedDate: book.createdAt || '',
-      
-      // Images and External IDs
-      CoverImage: book.coverImage || '',
-      CoverImageSource: book.coverImageSource || '',
-      GoogleBooksId: book.googleBooksId || '',
-      
-      // Additional fields for complete reimport
-      SourceType: book.source || 'manual',
-      ImportDate: new Date().toISOString(), // Track when exported
-    }));
+    const booksData = [];
+    
+    books.forEach(book => {
+      // If book has individual copies tracked, export each copy as a row
+      if (book.copies && book.copies.length > 0) {
+        book.copies.forEach((copy, index) => {
+          booksData.push({
+            // Unique Identifier (for reimport)
+            _id: book._id || '',
+            ISBN: book.isbn || '',
+            CopyId: copy.id || `copy_${index + 1}`,
+            CopyNumber: copy.copyNumber || index + 1,
+            
+            // Basic Info
+            Title: book.title || '',
+            Authors: Array.isArray(book.authors) ? book.authors.join('; ') : '',
+            Publisher: book.publisher || '',
+            PublishedDate: book.publishedDate || '',
+            
+            // Book Details
+            PageCount: book.pageCount || 0,
+            Language: book.language || '',
+            Description: book.description ? book.description.replace(/\n/g, '\\n') : '',
+            
+            // Categories and Genres
+            PrimaryCategory: book.primaryCategory || '',
+            CategoryType: book.categoryType || '',
+            Genres: Array.isArray(book.genres) ? book.genres.join('; ') : '',
+            Tags: Array.isArray(book.tags) ? book.tags.join('; ') : '',
+            
+            // Copy-specific Status and Reading Info
+            Status: copy.status || book.status || 'to-read',
+            Rating: copy.rating || book.rating || 0,
+            Notes: copy.notes || (index === 0 ? (book.notes ? book.notes.replace(/\n/g, '\\n') : '') : ''),
+            
+            // Copy-specific Edition and Details
+            Edition: copy.edition || book.edition || 'standard',
+            Condition: copy.condition || '',
+            PurchaseDate: copy.purchaseDate || '',
+            PurchasePrice: copy.purchasePrice || '',
+            PurchaseLocation: copy.purchaseLocation || '',
+            
+            // Loan Information
+            LoanedTo: copy.loanedTo || '',
+            LoanedDate: copy.loanedDate || '',
+            
+            // Collections (shared across copies)
+            Collections: Array.isArray(book.collections) 
+              ? book.collections.map(c => {
+                  if (typeof c === 'object') {
+                    return `${c.name}|${c._id}`;
+                  }
+                  return c;
+                }).join('; ') 
+              : '',
+            
+            // Metadata
+            AddedDate: book.addedDate || '',
+            UpdatedDate: book.updatedAt || '',
+            CreatedDate: book.createdAt || '',
+            
+            // Images and External IDs
+            CoverImage: book.coverImage || '',
+            CoverImageSource: book.coverImageSource || '',
+            GoogleBooksId: book.googleBooksId || '',
+            
+            // Export tracking
+            TotalCopies: book.copies.length,
+            ExportDate: new Date().toISOString(),
+          });
+        });
+      } else {
+        // Book doesn't have individual copies tracked - export as single row
+        const quantity = book.quantity || 1;
+        for (let i = 0; i < quantity; i++) {
+          booksData.push({
+            // Unique Identifier
+            _id: book._id || '',
+            ISBN: book.isbn || '',
+            CopyId: `copy_${i + 1}`,
+            CopyNumber: i + 1,
+            
+            // Basic Info
+            Title: book.title || '',
+            Authors: Array.isArray(book.authors) ? book.authors.join('; ') : '',
+            Publisher: book.publisher || '',
+            PublishedDate: book.publishedDate || '',
+            
+            // Book Details
+            PageCount: book.pageCount || 0,
+            Language: book.language || '',
+            Description: book.description ? book.description.replace(/\n/g, '\\n') : '',
+            
+            // Categories and Genres
+            PrimaryCategory: book.primaryCategory || '',
+            CategoryType: book.categoryType || '',
+            Genres: Array.isArray(book.genres) ? book.genres.join('; ') : '',
+            Tags: Array.isArray(book.tags) ? book.tags.join('; ') : '',
+            
+            // Status and Reading Info (same for all copies if not individually tracked)
+            Status: book.status || 'to-read',
+            Rating: i === 0 ? (book.rating || 0) : 0, // Only first copy gets rating
+            Notes: i === 0 ? (book.notes ? book.notes.replace(/\n/g, '\\n') : '') : '', // Only first copy gets notes
+            
+            // Edition
+            Edition: book.edition || 'standard',
+            Condition: '', // Not tracked for bulk copies
+            PurchaseDate: '',
+            PurchasePrice: '',
+            PurchaseLocation: '',
+            
+            // Collections
+            Collections: Array.isArray(book.collections) 
+              ? book.collections.map(c => {
+                  if (typeof c === 'object') {
+                    return `${c.name}|${c._id}`;
+                  }
+                  return c;
+                }).join('; ') 
+              : '',
+            
+            // Metadata
+            AddedDate: book.addedDate || '',
+            UpdatedDate: book.updatedAt || '',
+            CreatedDate: book.createdAt || '',
+            
+            // Images and External IDs
+            CoverImage: book.coverImage || '',
+            CoverImageSource: book.coverImageSource || '',
+            GoogleBooksId: book.googleBooksId || '',
+            
+            // Export tracking
+            TotalCopies: quantity,
+            ExportDate: new Date().toISOString(),
+          });
+        }
+      }
+    });
     
     // Prepare collections data for CSV with import markers
     const collectionsData = collections.map(collection => ({
