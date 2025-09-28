@@ -208,14 +208,20 @@ const Library = () => {
       // Apply viewType filter
       let displayItems = [];
       if (filters.viewType === 'collections') {
-        // Show only collections
+        // Show only collections - ignore other filters for collections
         displayItems = collectionItems;
       } else if (filters.viewType === 'books') {
         // Show only books
         displayItems = displayBookItems;
       } else {
         // Show all items (default behavior)
-        displayItems = [...displayBookItems, ...collectionItems];
+        // Only show collections when no filters are active (except viewType)
+        const showCollections = filters.genre === 'all' && 
+                                filters.status === 'all' && 
+                                filters.edition === 'all';
+        displayItems = showCollections 
+          ? [...displayBookItems, ...collectionItems]
+          : displayBookItems;
       }
       
       displayItems.sort((a, b) => {
