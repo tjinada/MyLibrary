@@ -9,8 +9,6 @@ import {
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
-  Add as AddIcon,
-  LibraryBooks as BooksIcon,
 } from '@mui/icons-material';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import dashboardService from '../services/dashboardService';
@@ -67,42 +65,9 @@ const Dashboard = () => {
               Library Dashboard
             </Typography>
           </Box>
-          <Typography variant="body1" sx={{ opacity: 0.9, mb: 3 }}>
+          <Typography variant="body1" sx={{ opacity: 0.9 }}>
             Explore your reading collection with beautiful insights and statistics
           </Typography>
-          
-          {/* Quick Actions */}
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => navigate('/add')}
-              sx={{
-                background: 'rgba(255,255,255,0.2)',
-                backdropFilter: 'blur(10px)',
-                '&:hover': {
-                  background: 'rgba(255,255,255,0.3)',
-                },
-              }}
-            >
-              Add Book
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<BooksIcon />}
-              onClick={() => navigate('/library')}
-              sx={{
-                borderColor: 'rgba(255,255,255,0.5)',
-                color: 'white',
-                '&:hover': {
-                  borderColor: 'white',
-                  background: 'rgba(255,255,255,0.1)',
-                },
-              }}
-            >
-              View Library
-            </Button>
-          </Box>
         </Box>
       </Box>
 

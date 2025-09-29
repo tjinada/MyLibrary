@@ -13,14 +13,14 @@ import {
   ListItemText,
   ListItemButton,
   Divider,
+  Button,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
-  Home as HomeIcon,
-  Dashboard as DashboardIcon,
   LibraryBooks as LibraryIcon,
+  Dashboard as DashboardIcon,
   Add as AddIcon,
   Search as SearchIcon,
   Logout as LogoutIcon,
@@ -37,9 +37,8 @@ const Layout = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const menuItems = [
-    { text: 'Home', icon: <HomeIcon />, path: '/' },
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Library', icon: <LibraryIcon />, path: '/library' },
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Add Book', icon: <AddIcon />, path: '/add' },
     { text: 'Search', icon: <SearchIcon />, path: '/search' },
   ];
@@ -69,6 +68,40 @@ const Layout = () => {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             My Library
           </Typography>
+          
+          {/* Navigation Buttons */}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              color="inherit"
+              startIcon={<LibraryIcon />}
+              onClick={() => navigate('/library')}
+              sx={{
+                textTransform: 'none',
+                bgcolor: location.pathname === '/library' ? 'rgba(255,255,255,0.1)' : 'transparent',
+                '&:hover': {
+                  bgcolor: 'rgba(255,255,255,0.2)',
+                },
+                minWidth: isMobile ? 'auto' : '100px',
+              }}
+            >
+              {!isMobile && 'Library'}
+            </Button>
+            <Button
+              color="inherit"
+              startIcon={<DashboardIcon />}
+              onClick={() => navigate('/dashboard')}
+              sx={{
+                textTransform: 'none',
+                bgcolor: location.pathname === '/dashboard' ? 'rgba(255,255,255,0.1)' : 'transparent',
+                '&:hover': {
+                  bgcolor: 'rgba(255,255,255,0.2)',
+                },
+                minWidth: isMobile ? 'auto' : '110px',
+              }}
+            >
+              {!isMobile && 'Dashboard'}
+            </Button>
+          </Box>
         </Toolbar>
       </AppBar>
 
