@@ -21,6 +21,7 @@ import {
 import {
   AccountCircle,
   LibraryBooks,
+  Dashboard as DashboardIcon,
   Download as DownloadIcon,
   Description as CsvIcon,
   CollectionsBookmark as CollectionsIcon,
@@ -28,7 +29,7 @@ import {
   Assessment as StatsIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import bookService from '../../services/bookService';
 import collectionService from '../../services/collectionService';
 import exportService from '../../services/exportService';
@@ -40,6 +41,7 @@ const Header = () => {
   const [exportSuccess, setExportSuccess] = useState(false);
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -118,6 +120,40 @@ const Header = () => {
         >
           {isMobile ? "Mekala's Library" : "Mekala's Personal Library"}
         </Typography>
+        
+        {/* Navigation Buttons */}
+        <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
+          <Button
+            color="inherit"
+            startIcon={<LibraryBooks />}
+            onClick={() => navigate('/library')}
+            sx={{
+              textTransform: 'none',
+              bgcolor: location.pathname === '/library' ? 'rgba(255,255,255,0.1)' : 'transparent',
+              '&:hover': {
+                bgcolor: 'rgba(255,255,255,0.2)',
+              },
+              minWidth: isMobile ? 'auto' : '100px',
+            }}
+          >
+            {!isMobile && 'Library'}
+          </Button>
+          <Button
+            color="inherit"
+            startIcon={<DashboardIcon />}
+            onClick={() => navigate('/dashboard')}
+            sx={{
+              textTransform: 'none',
+              bgcolor: location.pathname === '/dashboard' ? 'rgba(255,255,255,0.1)' : 'transparent',
+              '&:hover': {
+                bgcolor: 'rgba(255,255,255,0.2)',
+              },
+              minWidth: isMobile ? 'auto' : '110px',
+            }}
+          >
+            {!isMobile && 'Dashboard'}
+          </Button>
+        </Box>
         
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {/* Export Button */}
