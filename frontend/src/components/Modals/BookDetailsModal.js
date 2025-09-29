@@ -87,6 +87,7 @@ const BookDetailsModal = ({
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [showCoverPicker, setShowCoverPicker] = useState(false);
   const [copies, setCopies] = useState([]);
+  const [currentCopyIndex, setCurrentCopyIndex] = useState(0);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
@@ -211,6 +212,7 @@ const BookDetailsModal = ({
       setEditMode(openInEditMode);
       setNewTag('');
       setError(null);
+      setCurrentCopyIndex(0);  // Reset to first copy
     }
   }, [book, openInEditMode]);
 
@@ -296,11 +298,24 @@ const BookDetailsModal = ({
       setError('Cannot remove the last copy');
       return;
     }
+    
+    const currentCopy = copies[currentCopyIndex];
     const updatedCopies = copies.filter(c => c.id !== copyId);
+    
     // Renumber copies
     updatedCopies.forEach((copy, index) => {
       copy.copyNumber = index + 1;
     });
+    
+    // Adjust current index if needed
+    if (currentCopy.id === copyId) {
+      // If we're removing the current copy, move to the previous one or stay at 0
+      setCurrentCopyIndex(Math.max(0, currentCopyIndex - 1));
+    } else if (currentCopyIndex >= updatedCopies.length) {
+      // If the index is now out of bounds, adjust it
+      setCurrentCopyIndex(updatedCopies.length - 1);
+    }
+    
     setCopies(updatedCopies);
     setEditedBook({ ...editedBook, quantity: updatedCopies.length });
   };
@@ -309,6 +324,18 @@ const BookDetailsModal = ({
     setCopies(copies.map(copy => 
       copy.id === copyId ? { ...copy, [field]: value } : copy
     ));
+  };
+
+  const handlePreviousCopy = () => {
+    setCurrentCopyIndex((prev) => (prev > 0 ? prev - 1 : copies.length - 1));
+  };
+
+  const handleNextCopy = () => {
+    setCurrentCopyIndex((prev) => (prev < copies.length - 1 ? prev + 1 : 0));
+  };
+
+  const getCurrentCopy = () => {
+    return copies[currentCopyIndex] || copies[0] || {};
   };
 
   const handleSave = async () => {
@@ -493,9 +520,58 @@ const BookDetailsModal = ({
             justifyContent: 'space-between',
           }}
         >
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, pr: 2 }}>
-            {displayBook.title}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              {displayBook.title}
+            </Typography>
+            
+            {/* Copy Navigation */}
+            {copies.length > 1 && (
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1,
+                ml: 'auto',
+                mr: 2,
+                bgcolor: alpha(theme.palette.common.white, 0.1),
+                borderRadius: 2,
+                px: 1,
+                py: 0.5,
+              }}>
+                <IconButton 
+                  size="small" 
+                  onClick={handlePreviousCopy}
+                  sx={{ 
+                    color: 'white',
+                    p: 0.5,
+                    '&:hover': {
+                      bgcolor: alpha(theme.palette.common.white, 0.2),
+                    }
+                  }}
+                >
+                  <PrevIcon fontSize="small" />
+                </IconButton>
+                
+                <Typography variant="body2" sx={{ mx: 1, minWidth: 60, textAlign: 'center' }}>
+                  Copy {currentCopyIndex + 1} of {copies.length}
+                </Typography>
+                
+                <IconButton 
+                  size="small" 
+                  onClick={handleNextCopy}
+                  sx={{ 
+                    color: 'white',
+                    p: 0.5,
+                    '&:hover': {
+                      bgcolor: alpha(theme.palette.common.white, 0.2),
+                    }
+                  }}
+                >
+                  <NextIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            )}
+          </Box>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             {!editMode ? (
               <>
@@ -540,17 +616,45 @@ const BookDetailsModal = ({
                   onClick={() => {
                     setEditMode(false);
                     const resetBook = currentBookData || book;
+                    
+                    // Reset book data
                     setEditedBook({
-                    title: resetBook.title || '',
-                    status: resetBook.status || 'to-read',
-                    rating: resetBook.rating || 0,
-                    notes: resetBook.notes || '',
-                    tags: resetBook.tags || [],
-                    genres: resetBook.genres || [],
-                    coverImage: resetBook.coverImage || '',
-                    quantity: resetBook.quantity || 1,
+                      title: resetBook.title || '',
+                      status: resetBook.status || 'to-read',
+                      rating: resetBook.rating || 0,
+                      notes: resetBook.notes || '',
+                      tags: resetBook.tags || [],
+                      genres: resetBook.genres || [],
+                      coverImage: resetBook.coverImage || '',
+                      quantity: resetBook.quantity || 1,
                       edition: resetBook.edition || 'standard',
-      });
+                    });
+                    
+                    // Reset copies to original state
+                    if (resetBook.copies && resetBook.copies.length > 0) {
+                      setCopies(resetBook.copies.map(copy => ({
+                        ...copy,
+                        id: copy._id || `copy_${copy.copyNumber}`,
+                      })));
+                    } else {
+                      // Recreate default copies
+                      const quantity = resetBook.quantity || 1;
+                      const defaultCopies = [];
+                      for (let i = 0; i < quantity; i++) {
+                        defaultCopies.push({
+                          id: `copy_${i + 1}`,
+                          copyNumber: i + 1,
+                          edition: resetBook.edition || 'standard',
+                          status: resetBook.status || 'to-read',
+                          rating: i === 0 ? (resetBook.rating || 0) : 0,
+                          notes: i === 0 ? (resetBook.notes || '') : '',
+                          loanedTo: '',
+                          loanedDate: null,
+                        });
+                      }
+                      setCopies(defaultCopies);
+                    }
+                    
                     setSelectedCoverIndex(0);
                   }}
                   size="small"
@@ -728,151 +832,196 @@ const BookDetailsModal = ({
                     </Box>
                   </Box>
 
-                  {/* Copies Section */}
-                  <Box sx={{ mt: 3 }}>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between',
-                      mb: 1.5
-                    }}>
-                      <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                        Copies
-                      </Typography>
-                      {editMode && (
-                        <IconButton 
-                          size="small"
-                          onClick={handleAddCopy}
-                          sx={{ 
-                            bgcolor: theme.palette.primary.main,
-                            color: 'white',
-                            '&:hover': {
-                              bgcolor: theme.palette.primary.dark,
-                            },
-                            width: 24,
-                            height: 24,
-                          }}
-                        >
-                          <AddIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                    </Box>
-                    
-                    {copies.map((copy, index) => (
-                      <Paper 
-                        key={copy.id} 
-                        variant="outlined" 
-                        sx={{ 
-                          p: 1,
-                          mb: 1,
-                          borderRadius: 1,
-                          bgcolor: theme.palette.grey[50],
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="caption" sx={{ fontWeight: 600, minWidth: 20 }}>
-                            #{copy.copyNumber}
-                          </Typography>
-                          
-                          {/* Edition Select */}
-                          <FormControl size="small" sx={{ minWidth: 90 }}>
-                            <Select
-                              value={copy.edition || 'standard'}
-                              onChange={(e) => handleCopyUpdate(copy.id, 'edition', e.target.value)}
-                              disabled={!editMode}
-                              sx={{ 
-                                height: 28,
-                                fontSize: '0.75rem',
-                                '& .MuiSelect-select': {
-                                  py: 0.5,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                }
-                              }}
-                            >
-                              <MenuItem value="standard">
-                                <Typography variant="caption">Standard</Typography>
-                              </MenuItem>
-                              <MenuItem value="signed">
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                  <SpecialIcon sx={{ fontSize: 14, color: theme.palette.warning.main }} />
-                                  <Typography variant="caption">Signed</Typography>
-                                </Box>
-                              </MenuItem>
-                              <MenuItem value="deluxe">
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                  <DiamondIcon sx={{ fontSize: 14, color: theme.palette.secondary.main }} />
-                                  <Typography variant="caption">Deluxe</Typography>
-                                </Box>
-                              </MenuItem>
-                            </Select>
-                          </FormControl>
-                          
-                          {/* Status Select */}
-                          <FormControl size="small" sx={{ minWidth: 80, flexGrow: 1 }}>
-                            <Select
-                              value={copy.status || 'to-read'}
-                              onChange={(e) => handleCopyUpdate(copy.id, 'status', e.target.value)}
-                              disabled={!editMode}
-                              sx={{ 
-                                height: 28,
-                                fontSize: '0.75rem',
-                                '& .MuiSelect-select': {
-                                  py: 0.5,
-                                }
-                              }}
-                            >
-                              <MenuItem value="to-read">
-                                <Typography variant="caption">To Read</Typography>
-                              </MenuItem>
-                              <MenuItem value="reading">
-                                <Typography variant="caption">Reading</Typography>
-                              </MenuItem>
-                              <MenuItem value="read">
-                                <Typography variant="caption">Read</Typography>
-                              </MenuItem>
-                              <MenuItem value="loaned">
-                                <Typography variant="caption">Loaned</Typography>
-                              </MenuItem>
-                            </Select>
-                          </FormControl>
-                          
-                          {/* Delete button */}
-                          {editMode && copies.length > 1 && (
-                            <IconButton 
+                  {/* Current Copy Details */}
+                  {copies.length > 0 && (
+                    <Box sx={{ mt: 3 }}>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between',
+                        mb: 2
+                      }}>
+                        <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                          Copy Details
+                        </Typography>
+                        {editMode && (
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
                               size="small"
-                              onClick={() => handleRemoveCopy(copy.id)}
-                              sx={{ 
-                                color: theme.palette.error.main,
-                                p: 0.5,
-                              }}
+                              startIcon={<AddIcon />}
+                              onClick={handleAddCopy}
+                              variant="outlined"
+                              sx={{ textTransform: 'none' }}
                             >
-                              <RemoveIcon fontSize="small" />
-                            </IconButton>
-                          )}
-                        </Box>
-                        
-                        {/* Show loaned info if status is loaned */}
-                        {copy.status === 'loaned' && editMode && (
-                          <Box sx={{ mt: 1, pl: 3 }}>
-                            <TextField
-                              size="small"
-                              placeholder="Loaned to..."
-                              value={copy.loanedTo || ''}
-                              onChange={(e) => handleCopyUpdate(copy.id, 'loanedTo', e.target.value)}
-                              sx={{ 
-                                '& .MuiInputBase-input': {
-                                  fontSize: '0.75rem',
-                                  py: 0.5,
-                                }
-                              }}
-                              fullWidth
-                            />
+                              Add Copy
+                            </Button>
+                            {copies.length > 1 && (
+                              <Button
+                                size="small"
+                                startIcon={<RemoveIcon />}
+                                onClick={() => handleRemoveCopy(getCurrentCopy().id)}
+                                variant="outlined"
+                                color="error"
+                                sx={{ textTransform: 'none' }}
+                              >
+                                Remove Copy
+                              </Button>
+                            )}
                           </Box>
                         )}
-                      </Paper>
-                    ))}
-                  </Box>
+                      </Box>
+                      
+                      {(() => {
+                        const currentCopy = getCurrentCopy();
+                        return (
+                          <Paper 
+                            variant="outlined" 
+                            sx={{ 
+                              p: 2,
+                              borderRadius: 1,
+                              bgcolor: theme.palette.grey[50],
+                            }}
+                          >
+                            <Grid container spacing={2}>
+                              {/* Edition */}
+                              <Grid item xs={12} sm={6}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                                  Edition Type
+                                </Typography>
+                                {editMode ? (
+                                  <FormControl fullWidth size="small">
+                                    <Select
+                                      value={currentCopy.edition || 'standard'}
+                                      onChange={(e) => handleCopyUpdate(currentCopy.id, 'edition', e.target.value)}
+                                      sx={{ 
+                                        bgcolor: 'background.paper',
+                                      }}
+                                    >
+                                      <MenuItem value="standard">Standard Edition</MenuItem>
+                                      <MenuItem value="signed">
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <SpecialIcon fontSize="small" sx={{ color: theme.palette.warning.main }} />
+                                          Signed Edition
+                                        </Box>
+                                      </MenuItem>
+                                      <MenuItem value="deluxe">
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <DiamondIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
+                                          Deluxe Edition
+                                        </Box>
+                                      </MenuItem>
+                                    </Select>
+                                  </FormControl>
+                                ) : (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    {currentCopy.edition === 'signed' && <SpecialIcon fontSize="small" sx={{ color: theme.palette.warning.main }} />}
+                                    {currentCopy.edition === 'deluxe' && <DiamondIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />}
+                                    <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                                      {currentCopy.edition || 'standard'} Edition
+                                    </Typography>
+                                  </Box>
+                                )}
+                              </Grid>
+
+                              {/* Status */}
+                              <Grid item xs={12} sm={6}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                                  Reading Status
+                                </Typography>
+                                {editMode ? (
+                                  <FormControl fullWidth size="small">
+                                    <Select
+                                      value={currentCopy.status || 'to-read'}
+                                      onChange={(e) => handleCopyUpdate(currentCopy.id, 'status', e.target.value)}
+                                      sx={{ 
+                                        bgcolor: 'background.paper',
+                                      }}
+                                    >
+                                      <MenuItem value="to-read">To Read</MenuItem>
+                                      <MenuItem value="reading">Reading</MenuItem>
+                                      <MenuItem value="read">Read</MenuItem>
+                                      <MenuItem value="loaned">Loaned</MenuItem>
+                                    </Select>
+                                  </FormControl>
+                                ) : (
+                                  <Chip 
+                                    label={currentCopy.status ? currentCopy.status.replace('-', ' ') : 'to-read'}
+                                    size="small"
+                                    color={currentCopy.status === 'read' ? 'success' : currentCopy.status === 'loaned' ? 'warning' : 'default'}
+                                    sx={{ textTransform: 'capitalize' }}
+                                  />
+                                )}
+                              </Grid>
+
+                              {/* Loaned To (if status is loaned) */}
+                              {currentCopy.status === 'loaned' && (
+                                <Grid item xs={12}>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                                    Loaned To
+                                  </Typography>
+                                  {editMode ? (
+                                    <TextField
+                                      fullWidth
+                                      size="small"
+                                      placeholder="Person's name..."
+                                      value={currentCopy.loanedTo || ''}
+                                      onChange={(e) => handleCopyUpdate(currentCopy.id, 'loanedTo', e.target.value)}
+                                      sx={{ bgcolor: 'background.paper' }}
+                                    />
+                                  ) : (
+                                    <Typography variant="body2">
+                                      {currentCopy.loanedTo || 'Not specified'}
+                                    </Typography>
+                                  )}
+                                </Grid>
+                              )}
+
+                              {/* Copy-specific Rating */}
+                              <Grid item xs={12}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                                  Copy Rating
+                                </Typography>
+                                <Rating 
+                                  value={currentCopy.rating || 0}
+                                  onChange={(e, newValue) => {
+                                    if (editMode) {
+                                      handleCopyUpdate(currentCopy.id, 'rating', newValue);
+                                    }
+                                  }}
+                                  readOnly={!editMode}
+                                  size="small"
+                                  precision={0.5}
+                                />
+                              </Grid>
+
+                              {/* Copy-specific Notes */}
+                              <Grid item xs={12}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                                  Copy Notes
+                                </Typography>
+                                {editMode ? (
+                                  <TextField
+                                    fullWidth
+                                    multiline
+                                    rows={2}
+                                    size="small"
+                                    placeholder="Notes specific to this copy..."
+                                    value={currentCopy.notes || ''}
+                                    onChange={(e) => handleCopyUpdate(currentCopy.id, 'notes', e.target.value)}
+                                    sx={{ bgcolor: 'background.paper' }}
+                                  />
+                                ) : (
+                                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                                    {currentCopy.notes || 'No notes for this copy'}
+                                  </Typography>
+                                )}
+                              </Grid>
+                            </Grid>
+                          </Paper>
+                        );
+                      })()}
+                    </Box>
+                  )}
                 </Box>
               </Fade>
             </Grid>
