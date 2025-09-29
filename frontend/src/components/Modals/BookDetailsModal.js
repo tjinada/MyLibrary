@@ -181,11 +181,22 @@ const BookDetailsModal = ({
       
       // Initialize copies
       if (book.copies && book.copies.length > 0) {
+        console.log('Loading existing copies:', book.copies); // Debug log
         setCopies(book.copies.map(copy => ({
           ...copy,
-          id: copy._id || `copy_${copy.copyNumber}`,
+          id: copy._id || copy.id || `copy_${copy.copyNumber}`,
+          // Ensure all fields exist with their values
+          copyNumber: copy.copyNumber,
+          edition: copy.edition || 'standard',
+          status: copy.status || 'to-read',
+          rating: copy.rating || 0,
+          notes: copy.notes || '',
+          loanedTo: copy.loanedTo || '',
+          loanedDate: copy.loanedDate || null,
+          _id: copy._id // Preserve the MongoDB _id
         })));
       } else {
+        console.log('Creating default copies for quantity:', book.quantity || 1); // Debug log
         // Create default copies based on quantity
         const quantity = book.quantity || 1;
         const defaultCopies = [];
@@ -321,7 +332,7 @@ const BookDetailsModal = ({
   };
 
   const handleCopyUpdate = (copyId, field, value) => {
-    setCopies(copies.map(copy => 
+    setCopies(prevCopies => prevCopies.map(copy => 
       copy.id === copyId ? { ...copy, [field]: value } : copy
     ));
   };
@@ -349,10 +360,10 @@ const BookDetailsModal = ({
       setLoading(true);
       setError(null);
       
-      // Prepare copies for backend
-      const preparedCopies = copies.map(copy => {
+      // Prepare copies for backend - ensure all copies are included
+      const preparedCopies = copies.map((copy, index) => {
         const preparedCopy = {
-          copyNumber: copy.copyNumber,
+          copyNumber: copy.copyNumber || index + 1,
           edition: copy.edition || 'standard',
           status: copy.status || 'to-read',
           rating: copy.rating || 0,
@@ -361,13 +372,15 @@ const BookDetailsModal = ({
           loanedDate: copy.loanedDate || null,
         };
         
-        // Preserve MongoDB _id if it exists
-        if (copy._id) {
+        // Preserve MongoDB _id if it exists (important for updates)
+        if (copy._id && typeof copy._id === 'string' && copy._id.length === 24) {
           preparedCopy._id = copy._id;
         }
         
         return preparedCopy;
       });
+      
+      console.log('Saving copies:', preparedCopies); // Debug log
       
       const updates = {
         ...editedBook,
@@ -380,13 +393,23 @@ const BookDetailsModal = ({
       
       const updatedBook = await bookService.updateBook(book.isbn, updates);
       
+      console.log('Book updated, received:', updatedBook); // Debug log
+      
       setCurrentBookData(updatedBook);
       
-      // Update copies from response
+      // Update copies from response to get any new _id values
       if (updatedBook.copies && updatedBook.copies.length > 0) {
         setCopies(updatedBook.copies.map(copy => ({
           ...copy,
-          id: copy._id || `copy_${copy.copyNumber}`,
+          id: copy._id || copy.id || `copy_${copy.copyNumber}`,
+          // Ensure all fields exist
+          copyNumber: copy.copyNumber,
+          edition: copy.edition || 'standard',
+          status: copy.status || 'to-read',
+          rating: copy.rating || 0,
+          notes: copy.notes || '',
+          loanedTo: copy.loanedTo || '',
+          loanedDate: copy.loanedDate || null,
         })));
       }
       
@@ -413,6 +436,7 @@ const BookDetailsModal = ({
         setEditMode(false);
       }
     } catch (err) {
+      console.error('Error saving book:', err);
       setError('Failed to update book');
     } finally {
       setLoading(false);

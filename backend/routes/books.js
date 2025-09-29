@@ -939,6 +939,14 @@ router.get('/:isbn', async (req, res) => {
 // Update book (requires auth)
 router.put('/:isbn', auth, async (req, res) => {
   try {
+    console.log('\n=== UPDATE BOOK REQUEST ===');
+    console.log('ISBN:', req.params.isbn);
+    console.log('Has copies:', req.body.copies ? 'Yes' : 'No');
+    if (req.body.copies) {
+      console.log('Copies count:', req.body.copies.length);
+      console.log('Copies data:', JSON.stringify(req.body.copies, null, 2));
+    }
+    
     // Clean up the update data
     const updateData = { ...req.body };
     
@@ -957,18 +965,20 @@ router.put('/:isbn', auth, async (req, res) => {
         };
         
         // Preserve the MongoDB _id if it exists (for existing copies)
-        if (copy._id && copy._id.length === 24) {
+        if (copy._id && typeof copy._id === 'string' && copy._id.length === 24) {
           cleanCopy._id = copy._id;
         }
         
         return cleanCopy;
       });
       
+      console.log('Processed copies:', JSON.stringify(updateData.copies, null, 2));
+      
       // Update quantity to match copies length
       updateData.quantity = updateData.copies.length;
       
       // Update book-level status and edition based on copies
-      // If all copies have the same status/edition, use that; otherwise use 'mixed'
+      // If all copies have the same status/edition, use that; otherwise keep existing
       const allStatuses = updateData.copies.map(c => c.status);
       const allEditions = updateData.copies.map(c => c.edition);
       
@@ -1010,6 +1020,7 @@ router.put('/:isbn', auth, async (req, res) => {
         return res.status(404).json({ message: 'Book not found' });
       }
       
+      console.log(`Book updated with ${book.copies ? book.copies.length : 0} copies`);
       return res.json(book);
     }
     
@@ -1028,7 +1039,7 @@ router.put('/:isbn', auth, async (req, res) => {
     res.json(book);
   } catch (error) {
     console.error('Error updating book:', error);
-    res.status(500).json({ message: 'Failed to update book' });
+    res.status(500).json({ message: 'Failed to update book', error: error.message });
   }
 });
 
