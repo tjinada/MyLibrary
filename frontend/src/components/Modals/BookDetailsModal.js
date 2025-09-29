@@ -1058,7 +1058,7 @@ const BookDetailsModal = ({
                           {getCurrentCopy().status === 'loaned' && (
                             <Grid item xs={12}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                                <PersonIcon fontSize="small" color="action" />
+                                <AuthorIcon fontSize="small" color="action" />
                                 <Typography variant="subtitle2" color="text.secondary">
                                   Loaned To
                                 </Typography>
