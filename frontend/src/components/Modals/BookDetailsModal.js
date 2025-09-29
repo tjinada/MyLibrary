@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +29,7 @@ import {
   Grow,
   Tooltip,
   FormControl,
+  InputLabel,
   Select,
   alpha,
   Autocomplete,
@@ -59,12 +60,13 @@ import {
   Diamond as DiamondIcon,
   AutoAwesome as SpecialIcon,
   PhotoLibrary as PhotoLibraryIcon,
+  ContentCopy as CopyIcon,
+  Check as CheckIcon,
 } from '@mui/icons-material';
 import bookService from '../../services/bookService';
 import StatusPills from './StatusPills';
 import BookStatusChip, { BookEditionBadge } from '../Books/BookStatusChip';
 import CoverImagePicker from '../CoverImage/CoverImagePicker';
-import BookCopiesManager from '../Books/BookCopiesManager';
 import { ALLOWED_GENRES } from '../../constants/bookConstants';
 
 const BookDetailsModal = ({ 
@@ -84,7 +86,7 @@ const BookDetailsModal = ({
   const [deleteQuantity, setDeleteQuantity] = useState(1);
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [showCoverPicker, setShowCoverPicker] = useState(false);
-  const [showCopiesManager, setShowCopiesManager] = useState(false);
+  const [copies, setCopies] = useState([]);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
@@ -176,6 +178,31 @@ const BookDetailsModal = ({
       setEditedBook(bookData);
       setCurrentBookData(book);
       
+      // Initialize copies
+      if (book.copies && book.copies.length > 0) {
+        setCopies(book.copies.map(copy => ({
+          ...copy,
+          id: copy._id || `copy_${copy.copyNumber}`,
+        })));
+      } else {
+        // Create default copies based on quantity
+        const quantity = book.quantity || 1;
+        const defaultCopies = [];
+        for (let i = 0; i < quantity; i++) {
+          defaultCopies.push({
+            id: `copy_${i + 1}`,
+            copyNumber: i + 1,
+            edition: book.edition || 'standard',
+            status: book.status || 'to-read',
+            rating: i === 0 ? (book.rating || 0) : 0,
+            notes: i === 0 ? (book.notes || '') : '',
+            loanedTo: '',
+            loanedDate: null,
+          });
+        }
+        setCopies(defaultCopies);
+      }
+      
       const options = generateCoverOptions(book);
       setCoverOptions(options);
       setSelectedCoverIndex(0);
@@ -249,6 +276,41 @@ const BookDetailsModal = ({
     }
   };
 
+  const handleAddCopy = () => {
+    const newCopy = {
+      id: `copy_${copies.length + 1}_${Date.now()}`,
+      copyNumber: copies.length + 1,
+      edition: 'standard',
+      status: 'to-read',
+      rating: 0,
+      notes: '',
+      loanedTo: '',
+      loanedDate: null,
+    };
+    setCopies([...copies, newCopy]);
+    setEditedBook({ ...editedBook, quantity: copies.length + 1 });
+  };
+
+  const handleRemoveCopy = (copyId) => {
+    if (copies.length <= 1) {
+      setError('Cannot remove the last copy');
+      return;
+    }
+    const updatedCopies = copies.filter(c => c.id !== copyId);
+    // Renumber copies
+    updatedCopies.forEach((copy, index) => {
+      copy.copyNumber = index + 1;
+    });
+    setCopies(updatedCopies);
+    setEditedBook({ ...editedBook, quantity: updatedCopies.length });
+  };
+
+  const handleCopyUpdate = (copyId, field, value) => {
+    setCopies(copies.map(copy => 
+      copy.id === copyId ? { ...copy, [field]: value } : copy
+    ));
+  };
+
   const handleSave = async () => {
     // Validate title
     if (!editedBook.title || !editedBook.title.trim()) {
@@ -260,8 +322,30 @@ const BookDetailsModal = ({
       setLoading(true);
       setError(null);
       
+      // Prepare copies for backend
+      const preparedCopies = copies.map(copy => {
+        const preparedCopy = {
+          copyNumber: copy.copyNumber,
+          edition: copy.edition || 'standard',
+          status: copy.status || 'to-read',
+          rating: copy.rating || 0,
+          notes: copy.notes || '',
+          loanedTo: copy.loanedTo || '',
+          loanedDate: copy.loanedDate || null,
+        };
+        
+        // Preserve MongoDB _id if it exists
+        if (copy._id) {
+          preparedCopy._id = copy._id;
+        }
+        
+        return preparedCopy;
+      });
+      
       const updates = {
         ...editedBook,
+        copies: preparedCopies,
+        quantity: copies.length,
         coverImage: coverOptions[selectedCoverIndex] 
           ? coverOptions[selectedCoverIndex].url 
           : editedBook.coverImage
@@ -270,6 +354,15 @@ const BookDetailsModal = ({
       const updatedBook = await bookService.updateBook(book.isbn, updates);
       
       setCurrentBookData(updatedBook);
+      
+      // Update copies from response
+      if (updatedBook.copies && updatedBook.copies.length > 0) {
+        setCopies(updatedBook.copies.map(copy => ({
+          ...copy,
+          id: copy._id || `copy_${copy.copyNumber}`,
+        })));
+      }
+      
       setEditedBook({
         title: updatedBook.title || '',
         status: updatedBook.status || 'to-read',
@@ -635,46 +728,151 @@ const BookDetailsModal = ({
                     </Box>
                   </Box>
 
-                  {/* Quantity Display with Manage Copies Button */}
-                  {(displayBook.quantity || 1) > 1 && (
-                    <Box sx={{ mt: 3, textAlign: 'center' }}>
-                      <Badge 
-                        badgeContent={displayBook.quantity} 
-                        color="secondary"
+                  {/* Copies Section */}
+                  <Box sx={{ mt: 3 }}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between',
+                      mb: 1.5
+                    }}>
+                      <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                        Copies
+                      </Typography>
+                      {editMode && (
+                        <IconButton 
+                          size="small"
+                          onClick={handleAddCopy}
+                          sx={{ 
+                            bgcolor: theme.palette.primary.main,
+                            color: 'white',
+                            '&:hover': {
+                              bgcolor: theme.palette.primary.dark,
+                            },
+                            width: 24,
+                            height: 24,
+                          }}
+                        >
+                          <AddIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
+                    
+                    {copies.map((copy, index) => (
+                      <Paper 
+                        key={copy.id} 
+                        variant="outlined" 
                         sx={{ 
-                          '& .MuiBadge-badge': { 
-                            fontSize: '1rem',
-                            height: 28,
-                            minWidth: 28,
-                            borderRadius: 14,
-                          }
+                          p: 1,
+                          mb: 1,
+                          borderRadius: 1,
+                          bgcolor: theme.palette.grey[50],
                         }}
                       >
-                        <Button
-                          variant="outlined"
-                          startIcon={<InventoryIcon />}
-                          onClick={() => setShowCopiesManager(true)}
-                          size="small"
-                        >
-                          Manage Copies
-                        </Button>
-                      </Badge>
-                    </Box>
-                  )}
-                  
-                  {/* Single copy with option to add more */}
-                  {(displayBook.quantity || 1) === 1 && (
-                    <Box sx={{ mt: 3, textAlign: 'center' }}>
-                      <Button
-                        variant="outlined"
-                        startIcon={<InventoryIcon />}
-                        onClick={() => setShowCopiesManager(true)}
-                        size="small"
-                      >
-                        Manage Copy
-                      </Button>
-                    </Box>
-                  )}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="caption" sx={{ fontWeight: 600, minWidth: 20 }}>
+                            #{copy.copyNumber}
+                          </Typography>
+                          
+                          {/* Edition Select */}
+                          <FormControl size="small" sx={{ minWidth: 90 }}>
+                            <Select
+                              value={copy.edition || 'standard'}
+                              onChange={(e) => handleCopyUpdate(copy.id, 'edition', e.target.value)}
+                              disabled={!editMode}
+                              sx={{ 
+                                height: 28,
+                                fontSize: '0.75rem',
+                                '& .MuiSelect-select': {
+                                  py: 0.5,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                }
+                              }}
+                            >
+                              <MenuItem value="standard">
+                                <Typography variant="caption">Standard</Typography>
+                              </MenuItem>
+                              <MenuItem value="signed">
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <SpecialIcon sx={{ fontSize: 14, color: theme.palette.warning.main }} />
+                                  <Typography variant="caption">Signed</Typography>
+                                </Box>
+                              </MenuItem>
+                              <MenuItem value="deluxe">
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <DiamondIcon sx={{ fontSize: 14, color: theme.palette.secondary.main }} />
+                                  <Typography variant="caption">Deluxe</Typography>
+                                </Box>
+                              </MenuItem>
+                            </Select>
+                          </FormControl>
+                          
+                          {/* Status Select */}
+                          <FormControl size="small" sx={{ minWidth: 80, flexGrow: 1 }}>
+                            <Select
+                              value={copy.status || 'to-read'}
+                              onChange={(e) => handleCopyUpdate(copy.id, 'status', e.target.value)}
+                              disabled={!editMode}
+                              sx={{ 
+                                height: 28,
+                                fontSize: '0.75rem',
+                                '& .MuiSelect-select': {
+                                  py: 0.5,
+                                }
+                              }}
+                            >
+                              <MenuItem value="to-read">
+                                <Typography variant="caption">To Read</Typography>
+                              </MenuItem>
+                              <MenuItem value="reading">
+                                <Typography variant="caption">Reading</Typography>
+                              </MenuItem>
+                              <MenuItem value="read">
+                                <Typography variant="caption">Read</Typography>
+                              </MenuItem>
+                              <MenuItem value="loaned">
+                                <Typography variant="caption">Loaned</Typography>
+                              </MenuItem>
+                            </Select>
+                          </FormControl>
+                          
+                          {/* Delete button */}
+                          {editMode && copies.length > 1 && (
+                            <IconButton 
+                              size="small"
+                              onClick={() => handleRemoveCopy(copy.id)}
+                              sx={{ 
+                                color: theme.palette.error.main,
+                                p: 0.5,
+                              }}
+                            >
+                              <RemoveIcon fontSize="small" />
+                            </IconButton>
+                          )}
+                        </Box>
+                        
+                        {/* Show loaned info if status is loaned */}
+                        {copy.status === 'loaned' && editMode && (
+                          <Box sx={{ mt: 1, pl: 3 }}>
+                            <TextField
+                              size="small"
+                              placeholder="Loaned to..."
+                              value={copy.loanedTo || ''}
+                              onChange={(e) => handleCopyUpdate(copy.id, 'loanedTo', e.target.value)}
+                              sx={{ 
+                                '& .MuiInputBase-input': {
+                                  fontSize: '0.75rem',
+                                  py: 0.5,
+                                }
+                              }}
+                              fullWidth
+                            />
+                          </Box>
+                        )}
+                      </Paper>
+                    ))}
+                  </Box>
                 </Box>
               </Fade>
             </Grid>
@@ -1200,26 +1398,6 @@ const BookDetailsModal = ({
         book={currentBookData || book}
         currentCover={displayBook.coverImage}
         onCoverSelected={handleCoverSelected}
-      />
-      
-      {/* Book Copies Manager Dialog */}
-      <BookCopiesManager
-        open={showCopiesManager}
-        onClose={() => setShowCopiesManager(false)}
-        book={currentBookData || book}
-        onUpdate={async (updatedBook) => {
-          // Update the book with copies information
-          const response = await bookService.updateBook(book.isbn, {
-            copies: updatedBook.copies,
-            quantity: updatedBook.quantity,
-          });
-          
-          setCurrentBookData(response);
-          if (onBookUpdated) {
-            onBookUpdated(response);
-          }
-          setShowCopiesManager(false);
-        }}
       />
     </>
   );
