@@ -4,10 +4,16 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
+import Layout from './components/Layout';
 import Login from './pages/Login';
+import Home from './pages/Home';
 import Library from './pages/Library';
+import AddBook from './pages/AddBook';
+import Search from './pages/Search';
+import BookDetail from './pages/BookDetail';
 import Collections from './pages/Collections';
 import CollectionDetails from './pages/CollectionDetails';
+import Dashboard from './pages/Dashboard';
 import { CollectionProvider } from './contexts/CollectionContext';
 import theme from './theme/theme';
 import useResizeAnimationStopper from './hooks/useResizeAnimationStopper';
@@ -25,9 +31,16 @@ function App() {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route element={<PrivateRoute />}>
-                <Route path="/" element={<Library />} />
-                <Route path="/collections" element={<Collections />} />
-                <Route path="/collections/:id" element={<CollectionDetails />} />
+                <Route element={<Layout />}>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/library" element={<Library />} />
+                  <Route path="/add" element={<AddBook />} />
+                  <Route path="/search" element={<Search />} />
+                  <Route path="/book/:isbn" element={<BookDetail />} />
+                  <Route path="/collections" element={<Collections />} />
+                  <Route path="/collections/:id" element={<CollectionDetails />} />
+                </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>

@@ -27,6 +27,7 @@ const statsRoutes = require('./routes/stats');
 const diagnosticRoutes = require('./routes/diagnostic');
 const collectionsRoutes = require('./routes/collections');
 const libraryRoutes = require('./routes/library');
+const dashboardStatsRoutes = require('./routes/dashboard/stats');
 
 // Debug middleware for all /api/books requests
 app.use('/api/books*', (req, res, next) => {
@@ -48,6 +49,7 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/diagnostic', diagnosticRoutes);
 app.use('/api/collections', collectionsRoutes);
 app.use('/api/library', libraryRoutes);
+app.use('/api/dashboard/stats', dashboardStatsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

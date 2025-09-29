@@ -19,6 +19,7 @@ import {
 import {
   Menu as MenuIcon,
   Home as HomeIcon,
+  Dashboard as DashboardIcon,
   LibraryBooks as LibraryIcon,
   Add as AddIcon,
   Search as SearchIcon,
@@ -37,6 +38,7 @@ const Layout = () => {
 
   const menuItems = [
     { text: 'Home', icon: <HomeIcon />, path: '/' },
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Library', icon: <LibraryIcon />, path: '/library' },
     { text: 'Add Book', icon: <AddIcon />, path: '/add' },
     { text: 'Search', icon: <SearchIcon />, path: '/search' },
