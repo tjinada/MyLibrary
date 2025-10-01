@@ -50,37 +50,60 @@ router.get('/', async (req, res) => {
       publisherStats,
       yearStats
     ] = await Promise.all([
-      // Basic counts with pages read calculation
+      // Basic counts - NOW RESPECTING QUANTITY
       Book.aggregate([
         {
           $group: {
             _id: null,
-            totalBooks: { $sum: 1 },
-            // Changed: Only count pages for books with status 'read'
+            // Count total physical copies (sum of quantities)
+            totalBooks: { 
+              $sum: { $ifNull: ['$quantity', 1] }  // Default to 1 if quantity is null
+            },
+            // Count unique titles (for reference)
+            uniqueTitles: { $sum: 1 },
+            // Count pages only for books with status 'read', multiplied by quantity
             totalPagesRead: { 
               $sum: { 
                 $cond: [
                   { $eq: ['$status', 'read'] },
-                  { $ifNull: ['$pageCount', 0] },
+                  { $multiply: [
+                    { $ifNull: ['$pageCount', 0] },
+                    { $ifNull: ['$quantity', 1] }
+                  ]},
                   0
                 ]
               }
             },
-            // Also track total pages in library for reference
-            totalPagesInLibrary: { $sum: { $ifNull: ['$pageCount', 0] } },
-            // Count books that are read
+            // Total pages in library (all books * their quantities)
+            totalPagesInLibrary: { 
+              $sum: { 
+                $multiply: [
+                  { $ifNull: ['$pageCount', 0] },
+                  { $ifNull: ['$quantity', 1] }
+                ]
+              }
+            },
+            // Count physical copies that are read
             booksRead: {
               $sum: {
-                $cond: [{ $eq: ['$status', 'read'] }, 1, 0]
+                $cond: [
+                  { $eq: ['$status', 'read'] },
+                  { $ifNull: ['$quantity', 1] },
+                  0
+                ]
               }
             },
-            // Count books currently being read
+            // Count physical copies currently being read
             booksReading: {
               $sum: {
-                $cond: [{ $eq: ['$status', 'reading'] }, 1, 0]
+                $cond: [
+                  { $eq: ['$status', 'reading'] },
+                  { $ifNull: ['$quantity', 1] },
+                  0
+                ]
               }
             },
-            // Count books to read (includes 'to-read' and 'available' statuses)
+            // Count physical copies to read (includes 'to-read' and 'available' statuses)
             booksToRead: {
               $sum: {
                 $cond: [
@@ -88,21 +111,35 @@ router.get('/', async (req, res) => {
                     { $eq: ['$status', 'to-read'] },
                     { $eq: ['$status', 'available'] }
                   ]},
-                  1,
+                  { $ifNull: ['$quantity', 1] },
                   0
                 ]
               }
             },
-            // Pages currently being read
+            // Count physical copies that are loaned
+            booksLoaned: {
+              $sum: {
+                $cond: [
+                  { $eq: ['$status', 'loaned'] },
+                  { $ifNull: ['$quantity', 1] },
+                  0
+                ]
+              }
+            },
+            // Pages currently being read (for books with status 'reading')
             pagesCurrentlyReading: {
               $sum: {
                 $cond: [
                   { $eq: ['$status', 'reading'] },
-                  { $ifNull: ['$pageCount', 0] },
+                  { $multiply: [
+                    { $ifNull: ['$pageCount', 0] },
+                    { $ifNull: ['$quantity', 1] }
+                  ]},
                   0
                 ]
               }
             },
+            // Count unique titles that have page count data
             booksWithPages: { 
               $sum: { 
                 $cond: [{ $gt: ['$pageCount', 0] }, 1, 0] 
@@ -112,19 +149,20 @@ router.get('/', async (req, res) => {
         }
       ]),
       
-      // Genre distribution
+      // Genre distribution (counting physical copies)
       Book.aggregate([
         { $unwind: '$genres' },
         { 
           $group: { 
             _id: '$genres', 
-            count: { $sum: 1 } 
+            // Count physical copies per genre
+            count: { $sum: { $ifNull: ['$quantity', 1] } } 
           } 
         },
         { $sort: { count: -1 } }
       ]),
       
-      // Fiction vs Nonfiction
+      // Fiction vs Nonfiction (counting physical copies)
       Book.aggregate([
         { 
           $match: { 
@@ -134,25 +172,27 @@ router.get('/', async (req, res) => {
         { 
           $group: { 
             _id: '$categoryType', 
-            count: { $sum: 1 } 
+            // Count physical copies per category
+            count: { $sum: { $ifNull: ['$quantity', 1] } } 
           } 
         }
       ]),
       
-      // Top authors
+      // Top authors (counting physical copies)
       Book.aggregate([
         { $unwind: '$authors' },
         { 
           $group: { 
             _id: '$authors', 
-            count: { $sum: 1 } 
+            // Count physical copies per author
+            count: { $sum: { $ifNull: ['$quantity', 1] } } 
           } 
         },
         { $sort: { count: -1 } },
         { $limit: 5 }
       ]),
       
-      // Top publishers
+      // Top publishers (counting physical copies)
       Book.aggregate([
         { 
           $match: { 
@@ -162,14 +202,15 @@ router.get('/', async (req, res) => {
         { 
           $group: { 
             _id: '$publisher', 
-            count: { $sum: 1 } 
+            // Count physical copies per publisher
+            count: { $sum: { $ifNull: ['$quantity', 1] } } 
           } 
         },
         { $sort: { count: -1 } },
         { $limit: 3 }
       ]),
       
-      // Publication years for heatmap
+      // Publication years for heatmap (counting physical copies)
       Book.aggregate([
         {
           $project: {
@@ -181,13 +222,15 @@ router.get('/', async (req, res) => {
                   $substr: ['$publishedDate', 0, 4]
                 }
               }
-            }
+            },
+            quantity: { $ifNull: ['$quantity', 1] }
           }
         },
         {
           $group: {
             _id: '$year',
-            count: { $sum: 1 }
+            // Count physical copies per year
+            count: { $sum: '$quantity' }
           }
         }
       ])
@@ -196,16 +239,18 @@ router.get('/', async (req, res) => {
     // Process basic stats
     const heroStats = basicStats[0] || {
       totalBooks: 0,
+      uniqueTitles: 0,
       totalPagesRead: 0,
       totalPagesInLibrary: 0,
       booksRead: 0,
       booksReading: 0,
       booksToRead: 0,
+      booksLoaned: 0,
       pagesCurrentlyReading: 0,
       booksWithPages: 0
     };
 
-    // Count unique authors and genres
+    // Count unique authors and genres (these remain as unique counts, not physical copies)
     const [uniqueAuthorsResult, uniqueGenresResult] = await Promise.all([
       Book.distinct('authors'),
       Book.distinct('genres')
@@ -289,13 +334,15 @@ router.get('/', async (req, res) => {
     // Compile final response
     const response = {
       heroStats: {
-        totalBooks: heroStats.totalBooks,
-        totalPagesRead: heroStats.totalPagesRead,  // Changed from totalPages
-        totalPagesInLibrary: heroStats.totalPagesInLibrary,  // Added for reference
-        booksRead: heroStats.booksRead,  // Added
-        booksReading: heroStats.booksReading,  // Added
-        booksToRead: heroStats.booksToRead,  // Added - includes both 'to-read' and 'available'
-        pagesCurrentlyReading: heroStats.pagesCurrentlyReading,  // Added
+        totalBooks: heroStats.totalBooks,  // Physical copies
+        uniqueTitles: heroStats.uniqueTitles,  // Unique book records
+        totalPagesRead: heroStats.totalPagesRead,  // Pages from read books
+        totalPagesInLibrary: heroStats.totalPagesInLibrary,  // All pages
+        booksRead: heroStats.booksRead,  // Physical copies read
+        booksReading: heroStats.booksReading,  // Physical copies being read
+        booksToRead: heroStats.booksToRead,  // Physical copies to read
+        booksLoaned: heroStats.booksLoaned,  // Physical copies loaned
+        pagesCurrentlyReading: heroStats.pagesCurrentlyReading,
         uniqueAuthors: heroStats.uniqueAuthors,
         uniqueGenres: heroStats.uniqueGenres
       },
