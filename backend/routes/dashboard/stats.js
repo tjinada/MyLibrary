@@ -50,13 +50,46 @@ router.get('/', async (req, res) => {
       publisherStats,
       yearStats
     ] = await Promise.all([
-      // Basic counts
+      // Basic counts with pages read calculation
       Book.aggregate([
         {
           $group: {
             _id: null,
             totalBooks: { $sum: 1 },
-            totalPages: { $sum: { $ifNull: ['$pageCount', 0] } },
+            // Changed: Only count pages for books with status 'read'
+            totalPagesRead: { 
+              $sum: { 
+                $cond: [
+                  { $eq: ['$status', 'read'] },
+                  { $ifNull: ['$pageCount', 0] },
+                  0
+                ]
+              }
+            },
+            // Also track total pages in library for reference
+            totalPagesInLibrary: { $sum: { $ifNull: ['$pageCount', 0] } },
+            // Count books that are read
+            booksRead: {
+              $sum: {
+                $cond: [{ $eq: ['$status', 'read'] }, 1, 0]
+              }
+            },
+            // Count books currently being read
+            booksReading: {
+              $sum: {
+                $cond: [{ $eq: ['$status', 'reading'] }, 1, 0]
+              }
+            },
+            // Pages currently being read
+            pagesCurrentlyReading: {
+              $sum: {
+                $cond: [
+                  { $eq: ['$status', 'reading'] },
+                  { $ifNull: ['$pageCount', 0] },
+                  0
+                ]
+              }
+            },
             booksWithPages: { 
               $sum: { 
                 $cond: [{ $gt: ['$pageCount', 0] }, 1, 0] 
@@ -150,7 +183,11 @@ router.get('/', async (req, res) => {
     // Process basic stats
     const heroStats = basicStats[0] || {
       totalBooks: 0,
-      totalPages: 0,
+      totalPagesRead: 0,
+      totalPagesInLibrary: 0,
+      booksRead: 0,
+      booksReading: 0,
+      pagesCurrentlyReading: 0,
       booksWithPages: 0
     };
 
@@ -239,7 +276,11 @@ router.get('/', async (req, res) => {
     const response = {
       heroStats: {
         totalBooks: heroStats.totalBooks,
-        totalPages: heroStats.totalPages,
+        totalPagesRead: heroStats.totalPagesRead,  // Changed from totalPages
+        totalPagesInLibrary: heroStats.totalPagesInLibrary,  // Added for reference
+        booksRead: heroStats.booksRead,  // Added
+        booksReading: heroStats.booksReading,  // Added
+        pagesCurrentlyReading: heroStats.pagesCurrentlyReading,  // Added
         uniqueAuthors: heroStats.uniqueAuthors,
         uniqueGenres: heroStats.uniqueGenres
       },

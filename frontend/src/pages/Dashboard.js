@@ -61,7 +61,7 @@ const Dashboard = () => {
             Library Dashboard
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Explore your reading collection with insights and statistics
+            Track your reading progress and explore your collection insights
           </Typography>
         </Paper>
       </Container>
@@ -94,7 +94,7 @@ const Dashboard = () => {
       <Container maxWidth="xl" sx={{ py: 4 }}>
         <Box sx={{ textAlign: 'center', color: 'text.secondary' }}>
           <Typography variant="body2">
-            {stats?.heroStats?.totalBooks || 0} books • {stats?.heroStats?.uniqueAuthors || 0} authors • {stats?.heroStats?.uniqueGenres || 0} genres
+            {stats?.heroStats?.totalBooks || 0} books • {stats?.heroStats?.booksRead || 0} read • {stats?.heroStats?.totalPagesRead?.toLocaleString() || 0} pages completed
           </Typography>
         </Box>
       </Container>

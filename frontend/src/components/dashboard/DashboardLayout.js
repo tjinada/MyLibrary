@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Container, Grid } from '@mui/material';
 import HeroStatsBar from './widgets/HeroStatsBar';
+import ReadingProgressCard from './widgets/ReadingProgressCard';
 import GenreDonutChart from './charts/GenreDonutChart';
 import CategoryPieChart from './charts/CategoryPieChart';
 import FunInsightsGrid from './widgets/FunInsightsGrid';
@@ -12,6 +13,9 @@ const DashboardLayout = ({ stats, loading, onGenreClick, onCategoryClick }) => {
       <Box sx={{ py: 2 }}>
         {/* Hero Stats */}
         <HeroStatsBar stats={stats} loading={loading} />
+
+        {/* Reading Progress Card */}
+        <ReadingProgressCard stats={stats} loading={loading} />
 
         {/* Charts Section */}
         <Grid container spacing={3} sx={{ mb: 4 }}>

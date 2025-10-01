@@ -1,16 +1,16 @@
 import React from 'react';
-import { Box, Card, CardContent, Typography, Grid, Skeleton, useTheme } from '@mui/material';
+import { Box, Card, CardContent, Typography, Grid, Skeleton, useTheme, Tooltip } from '@mui/material';
 import { 
   MenuBook as BookIcon,
-  Description as PagesIcon,
+  AutoStories as PagesReadIcon,
   People as AuthorsIcon,
   Category as GenresIcon 
 } from '@mui/icons-material';
 
-const StatCard = ({ icon: Icon, label, value, color, loading }) => {
+const StatCard = ({ icon: Icon, label, value, color, loading, tooltip }) => {
   const theme = useTheme();
   
-  return (
+  const cardContent = (
     <Card
       sx={{
         backgroundColor: color,
@@ -45,10 +45,27 @@ const StatCard = ({ icon: Icon, label, value, color, loading }) => {
       </CardContent>
     </Card>
   );
+
+  return tooltip ? (
+    <Tooltip title={tooltip} arrow placement="top">
+      {cardContent}
+    </Tooltip>
+  ) : cardContent;
 };
 
 const HeroStatsBar = ({ stats, loading }) => {
   const theme = useTheme();
+  
+  // Calculate additional metrics for tooltips
+  const readingProgress = stats?.heroStats?.booksRead && stats?.heroStats?.totalBooks 
+    ? Math.round((stats.heroStats.booksRead / stats.heroStats.totalBooks) * 100)
+    : 0;
+  
+  const pagesReadTooltip = stats?.heroStats?.booksRead 
+    ? `From ${stats.heroStats.booksRead} books read${stats?.heroStats?.pagesCurrentlyReading ? ` • ${stats.heroStats.pagesCurrentlyReading.toLocaleString()} pages currently reading` : ''}`
+    : null;
+  
+  const booksTooltip = `${stats?.heroStats?.booksRead || 0} read • ${stats?.heroStats?.booksReading || 0} reading • ${readingProgress}% complete`;
   
   const statCards = [
     {
@@ -56,24 +73,28 @@ const HeroStatsBar = ({ stats, loading }) => {
       label: 'Total Books',
       value: stats?.heroStats?.totalBooks,
       color: theme.palette.primary.main,
+      tooltip: booksTooltip,
     },
     {
-      icon: PagesIcon,
-      label: 'Total Pages',
-      value: stats?.heroStats?.totalPages,
+      icon: PagesReadIcon,
+      label: 'Pages Read',
+      value: stats?.heroStats?.totalPagesRead,
       color: theme.palette.secondary.main,
+      tooltip: pagesReadTooltip,
     },
     {
       icon: AuthorsIcon,
       label: 'Unique Authors',
       value: stats?.heroStats?.uniqueAuthors,
       color: theme.palette.info.main,
+      tooltip: null,
     },
     {
       icon: GenresIcon,
       label: 'Unique Genres',
       value: stats?.heroStats?.uniqueGenres,
       color: theme.palette.success.main,
+      tooltip: null,
     },
   ];
 
