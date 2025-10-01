@@ -80,6 +80,19 @@ router.get('/', async (req, res) => {
                 $cond: [{ $eq: ['$status', 'reading'] }, 1, 0]
               }
             },
+            // Count books to read (includes 'to-read' and 'available' statuses)
+            booksToRead: {
+              $sum: {
+                $cond: [
+                  { $or: [
+                    { $eq: ['$status', 'to-read'] },
+                    { $eq: ['$status', 'available'] }
+                  ]},
+                  1,
+                  0
+                ]
+              }
+            },
             // Pages currently being read
             pagesCurrentlyReading: {
               $sum: {
@@ -187,6 +200,7 @@ router.get('/', async (req, res) => {
       totalPagesInLibrary: 0,
       booksRead: 0,
       booksReading: 0,
+      booksToRead: 0,
       pagesCurrentlyReading: 0,
       booksWithPages: 0
     };
@@ -280,6 +294,7 @@ router.get('/', async (req, res) => {
         totalPagesInLibrary: heroStats.totalPagesInLibrary,  // Added for reference
         booksRead: heroStats.booksRead,  // Added
         booksReading: heroStats.booksReading,  // Added
+        booksToRead: heroStats.booksToRead,  // Added - includes both 'to-read' and 'available'
         pagesCurrentlyReading: heroStats.pagesCurrentlyReading,  // Added
         uniqueAuthors: heroStats.uniqueAuthors,
         uniqueGenres: heroStats.uniqueGenres

@@ -42,7 +42,7 @@ const ReadingProgressCard = ({ stats, loading }) => {
   const totalBooks = stats?.heroStats?.totalBooks || 0;
   const booksRead = stats?.heroStats?.booksRead || 0;
   const booksReading = stats?.heroStats?.booksReading || 0;
-  const booksToRead = totalBooks - booksRead - booksReading;
+  const booksToRead = stats?.heroStats?.booksToRead || (totalBooks - booksRead - booksReading);
   const readingProgress = totalBooks > 0 ? (booksRead / totalBooks) * 100 : 0;
   const pagesRead = stats?.heroStats?.totalPagesRead || 0;
   const pagesCurrentlyReading = stats?.heroStats?.pagesCurrentlyReading || 0;
