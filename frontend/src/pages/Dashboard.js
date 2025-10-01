@@ -5,11 +5,9 @@ import {
   Box,
   Alert,
   Button,
-  Divider,
+  Container,
+  Paper,
 } from '@mui/material';
-import {
-  Dashboard as DashboardIcon,
-} from '@mui/icons-material';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import dashboardService from '../services/dashboardService';
 
@@ -46,34 +44,31 @@ const Dashboard = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)' }}>
-      {/* Header */}
-      <Box
-        sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-          py: 4,
-          px: 3,
-          mb: 4,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-        }}
-      >
-        <Box sx={{ maxWidth: 'xl', mx: 'auto' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <DashboardIcon sx={{ mr: 2, fontSize: 32 }} />
-            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-              Library Dashboard
-            </Typography>
-          </Box>
-          <Typography variant="body1" sx={{ opacity: 0.9 }}>
-            Explore your reading collection with beautiful insights and statistics
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      {/* Page Header */}
+      <Container maxWidth="xl" sx={{ mb: 2 }}>
+        <Paper 
+          elevation={0} 
+          sx={{ 
+            p: 3, 
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+            Library Dashboard
           </Typography>
-        </Box>
-      </Box>
+          <Typography variant="body1" color="text.secondary">
+            Explore your reading collection with insights and statistics
+          </Typography>
+        </Paper>
+      </Container>
 
       {/* Error Alert */}
       {error && (
-        <Box sx={{ maxWidth: 'xl', mx: 'auto', px: 3, mb: 3 }}>
+        <Container maxWidth="xl" sx={{ mb: 3 }}>
           <Alert 
             severity="error" 
             action={
@@ -84,7 +79,7 @@ const Dashboard = () => {
           >
             {error}
           </Alert>
-        </Box>
+        </Container>
       )}
 
       {/* Dashboard Content */}
@@ -95,13 +90,14 @@ const Dashboard = () => {
         onCategoryClick={handleCategoryClick}
       />
 
-      {/* Footer */}
-      <Box sx={{ py: 4, px: 3, textAlign: 'center', color: 'text.secondary' }}>
-        <Divider sx={{ mb: 2 }} />
-        <Typography variant="body2">
-          {stats?.heroStats?.totalBooks || 0} books • {stats?.heroStats?.uniqueAuthors || 0} authors • {stats?.heroStats?.uniqueGenres || 0} genres
-        </Typography>
-      </Box>
+      {/* Footer Stats */}
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Box sx={{ textAlign: 'center', color: 'text.secondary' }}>
+          <Typography variant="body2">
+            {stats?.heroStats?.totalBooks || 0} books • {stats?.heroStats?.uniqueAuthors || 0} authors • {stats?.heroStats?.uniqueGenres || 0} genres
+          </Typography>
+        </Box>
+      </Container>
     </Box>
   );
 };

@@ -1,22 +1,6 @@
 import React from 'react';
-import { Box, Typography, Paper, Skeleton } from '@mui/material';
+import { Box, Typography, Paper, Skeleton, useTheme, alpha } from '@mui/material';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-
-// Modern gradient colors for genres
-const COLORS = [
-  '#667eea',
-  '#764ba2',
-  '#f093fb',
-  '#f5576c',
-  '#4facfe',
-  '#00f2fe',
-  '#43e97b',
-  '#38f9d7',
-  '#fa709a',
-  '#fee140',
-  '#30cfd0',
-  '#330867',
-];
 
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload[0]) {
@@ -45,6 +29,24 @@ const CustomTooltip = ({ active, payload }) => {
 };
 
 const GenreDonutChart = ({ data, loading, onGenreClick }) => {
+  const theme = useTheme();
+  
+  // Use theme colors for the chart
+  const COLORS = [
+    theme.palette.primary.main,
+    theme.palette.secondary.main,
+    theme.palette.info.main,
+    theme.palette.success.main,
+    theme.palette.warning.main,
+    theme.palette.error.main,
+    theme.palette.primary.light,
+    theme.palette.secondary.light,
+    theme.palette.info.light,
+    theme.palette.success.light,
+    theme.palette.warning.light,
+    theme.palette.error.light,
+  ];
+
   // Prepare data for the chart
   const chartData = data?.slice(0, 10) || []; // Top 10 genres
 
@@ -75,14 +77,14 @@ const GenreDonutChart = ({ data, loading, onGenreClick }) => {
       sx={{
         p: 3,
         height: '400px',
-        background: 'linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(245,245,255,1) 100%)',
+        bgcolor: 'background.paper',
         transition: 'box-shadow 0.3s',
         '&:hover': {
-          boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+          boxShadow: theme.shadows[4],
         },
       }}
     >
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'text.primary' }}>
         Genre Distribution
       </Typography>
       <ResponsiveContainer width="100%" height={350}>
@@ -105,7 +107,7 @@ const GenreDonutChart = ({ data, loading, onGenreClick }) => {
                 key={`cell-${index}`} 
                 fill={COLORS[index % COLORS.length]}
                 style={{
-                  filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.2))',
+                  filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))',
                   transition: 'all 0.3s',
                 }}
               />
@@ -116,7 +118,7 @@ const GenreDonutChart = ({ data, loading, onGenreClick }) => {
             verticalAlign="bottom" 
             height={36}
             formatter={(value, entry) => (
-              <span style={{ fontSize: '12px' }}>
+              <span style={{ fontSize: '12px', color: theme.palette.text.secondary }}>
                 {value} ({entry.payload.count})
               </span>
             )}

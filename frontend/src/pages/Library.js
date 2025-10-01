@@ -7,7 +7,6 @@ import {
   Alert,
   Pagination,
   Paper,
-  Toolbar as MuiToolbar,
   useTheme,
   useMediaQuery,
   Fade,
@@ -25,7 +24,6 @@ import {
   alpha,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import Header from '../components/Layout/Header';
 import StickyToolbar from '../components/Layout/StickyToolbar';
 import SearchBar from '../components/Search/SearchBar';
 import ActiveFilterChips from '../components/Filters/ActiveFilterChips';
@@ -828,9 +826,6 @@ const Library = () => {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Header />
-      <MuiToolbar />
-      
       {/* Sticky Toolbar */}
       <StickyToolbar
         onAddBook={handleOpenAddModal}
@@ -852,7 +847,7 @@ const Library = () => {
       <Box
         sx={{
           position: 'sticky',
-          top: 112, // Below header (64px) + StickyToolbar (48px)
+          top: 48, // Below StickyToolbar (48px)
           zIndex: theme.zIndex.appBar - 2,
           bgcolor: 'background.default',
           borderBottom: `1px solid ${theme.palette.divider}`,

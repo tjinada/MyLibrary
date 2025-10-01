@@ -1,5 +1,5 @@
 import React from 'react';
-import { Grid, Card, CardContent, Typography, Box, LinearProgress, Chip, Skeleton } from '@mui/material';
+import { Grid, Card, CardContent, Typography, Box, LinearProgress, Chip, Skeleton, useTheme, alpha } from '@mui/material';
 import {
   Diversity3 as DiversityIcon,
   Person as PersonIcon,
@@ -8,40 +8,46 @@ import {
   AutoAwesome as SparkleIcon,
 } from '@mui/icons-material';
 
-const InsightCard = ({ icon: Icon, title, children, loading, gradient }) => (
-  <Card
-    sx={{
-      height: '100%',
-      background: gradient || 'white',
-      transition: 'transform 0.2s, box-shadow 0.2s',
-      '&:hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-      },
-    }}
-  >
-    <CardContent>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <Icon sx={{ mr: 1, color: 'primary.main' }} />
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-          {title}
-        </Typography>
-      </Box>
-      {loading ? (
-        <Skeleton variant="rectangular" height={60} />
-      ) : (
-        children
-      )}
-    </CardContent>
-  </Card>
-);
+const InsightCard = ({ icon: Icon, title, children, loading, bgColor }) => {
+  const theme = useTheme();
+  
+  return (
+    <Card
+      sx={{
+        height: '100%',
+        bgcolor: bgColor || 'background.paper',
+        transition: 'transform 0.2s, box-shadow 0.2s',
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: theme.shadows[4],
+        },
+      }}
+    >
+      <CardContent>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Icon sx={{ mr: 1, color: 'primary.main' }} />
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+            {title}
+          </Typography>
+        </Box>
+        {loading ? (
+          <Skeleton variant="rectangular" height={60} />
+        ) : (
+          children
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 const DiversityMeter = ({ score, label, totalGenres }) => {
+  const theme = useTheme();
+  
   const getColor = (score) => {
-    if (score < 25) return '#f5576c';
-    if (score < 50) return '#fa709a';
-    if (score < 75) return '#4facfe';
-    return '#43e97b';
+    if (score < 25) return theme.palette.error.main;
+    if (score < 50) return theme.palette.warning.main;
+    if (score < 75) return theme.palette.info.main;
+    return theme.palette.success.main;
   };
 
   return (
@@ -54,7 +60,7 @@ const DiversityMeter = ({ score, label, totalGenres }) => {
           label={label} 
           size="small" 
           sx={{ 
-            background: `linear-gradient(135deg, ${getColor(score)} 0%, ${getColor(score)}88 100%)`,
+            bgcolor: getColor(score),
             color: 'white',
             fontWeight: 600,
           }} 
@@ -66,10 +72,10 @@ const DiversityMeter = ({ score, label, totalGenres }) => {
         sx={{
           height: 10,
           borderRadius: 5,
-          backgroundColor: 'rgba(0,0,0,0.1)',
+          backgroundColor: alpha(theme.palette.action.disabled, 0.1),
           '& .MuiLinearProgress-bar': {
             borderRadius: 5,
-            background: `linear-gradient(90deg, ${getColor(score)} 0%, ${getColor(score)}88 100%)`,
+            backgroundColor: getColor(score),
           },
         }}
       />
@@ -81,6 +87,8 @@ const DiversityMeter = ({ score, label, totalGenres }) => {
 };
 
 const FunInsightsGrid = ({ insights, loading }) => {
+  const theme = useTheme();
+  
   if (!insights && !loading) return null;
 
   return (
@@ -91,7 +99,7 @@ const FunInsightsGrid = ({ insights, loading }) => {
           icon={DiversityIcon}
           title="Genre Diversity Score"
           loading={loading}
-          gradient="linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(245,250,255,1) 100%)"
+          bgColor={alpha(theme.palette.primary.main, 0.04)}
         >
           {insights?.diversityScore && (
             <DiversityMeter
@@ -109,7 +117,7 @@ const FunInsightsGrid = ({ insights, loading }) => {
           icon={PersonIcon}
           title="Most Collected Author"
           loading={loading}
-          gradient="linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(255,245,250,1) 100%)"
+          bgColor={alpha(theme.palette.secondary.main, 0.04)}
         >
           {insights?.mostCollectedAuthor ? (
             <Box>
@@ -142,7 +150,7 @@ const FunInsightsGrid = ({ insights, loading }) => {
           icon={PublisherIcon}
           title="Top Publishers"
           loading={loading}
-          gradient="linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(250,255,245,1) 100%)"
+          bgColor={alpha(theme.palette.success.main, 0.04)}
         >
           {insights?.topPublishers?.length > 0 ? (
             <Box>
@@ -151,7 +159,7 @@ const FunInsightsGrid = ({ insights, loading }) => {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography 
                       variant={index === 0 ? 'h6' : 'body1'} 
-                      sx={{ fontWeight: index === 0 ? 'bold' : 'normal' }}
+                      sx={{ fontWeight: index === 0 ? 'bold' : 'normal', color: 'text.primary' }}
                     >
                       {publisher.name}
                     </Typography>
@@ -176,7 +184,7 @@ const FunInsightsGrid = ({ insights, loading }) => {
           icon={CalendarIcon}
           title="Publication Era Focus"
           loading={loading}
-          gradient="linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(245,245,255,1) 100%)"
+          bgColor={alpha(theme.palette.info.main, 0.04)}
         >
           {insights?.decadeFocus ? (
             <Box>

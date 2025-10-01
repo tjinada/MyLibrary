@@ -1,16 +1,6 @@
 import React from 'react';
-import { Box, Typography, Paper, Skeleton, Tooltip } from '@mui/material';
+import { Box, Typography, Paper, Skeleton, useTheme, alpha } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell, Tooltip as RechartsTooltip } from 'recharts';
-
-// Generate color based on count
-const getColor = (count, maxCount) => {
-  const intensity = count / maxCount;
-  // Gradient from light blue to deep purple
-  const r = Math.round(102 + (118 - 102) * (1 - intensity));
-  const g = Math.round(126 + (75 - 126) * (1 - intensity));
-  const b = Math.round(234 + (162 - 234) * (1 - intensity));
-  return `rgb(${r}, ${g}, ${b})`;
-};
 
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload[0]) {
@@ -36,6 +26,15 @@ const CustomTooltip = ({ active, payload }) => {
 };
 
 const YearHeatmap = ({ data, loading }) => {
+  const theme = useTheme();
+  
+  // Generate color based on count using theme colors
+  const getColor = (count, maxCount) => {
+    const intensity = count / maxCount;
+    // Use theme primary color with varying opacity
+    return alpha(theme.palette.primary.main, 0.2 + (intensity * 0.8));
+  };
+
   if (loading) {
     return (
       <Paper sx={{ p: 3, height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -63,14 +62,14 @@ const YearHeatmap = ({ data, loading }) => {
     <Paper
       sx={{
         p: 3,
-        background: 'linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(245,245,255,1) 100%)',
+        bgcolor: 'background.paper',
         transition: 'box-shadow 0.3s',
         '&:hover': {
-          boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+          boxShadow: theme.shadows[4],
         },
       }}
     >
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'text.primary' }}>
         Publication Year Distribution
       </Typography>
       <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -79,16 +78,16 @@ const YearHeatmap = ({ data, loading }) => {
       
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+          <CartesianGrid strokeDasharray="3 3" opacity={0.3} stroke={theme.palette.divider} />
           <XAxis 
             dataKey="period" 
             angle={-45}
             textAnchor="end"
             height={80}
-            tick={{ fontSize: 12 }}
+            tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
           />
           <YAxis 
-            tick={{ fontSize: 12 }}
+            tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
           />
           <RechartsTooltip content={<CustomTooltip />} />
           <Bar 
@@ -101,7 +100,7 @@ const YearHeatmap = ({ data, loading }) => {
                 key={`cell-${index}`} 
                 fill={getColor(entry.count, maxCount)}
                 style={{
-                  filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))',
+                  filter: 'drop-shadow(0px 1px 2px rgba(0,0,0,0.1))',
                 }}
               />
             ))}
@@ -117,7 +116,7 @@ const YearHeatmap = ({ data, loading }) => {
         <Box sx={{ 
           width: 120, 
           height: 10, 
-          background: 'linear-gradient(90deg, rgb(102, 126, 234) 0%, rgb(118, 75, 162) 100%)',
+          background: `linear-gradient(90deg, ${alpha(theme.palette.primary.main, 0.2)} 0%, ${theme.palette.primary.main} 100%)`,
           borderRadius: 5,
         }} />
         <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>

@@ -9,7 +9,7 @@ import YearHeatmap from './charts/YearHeatmap';
 const DashboardLayout = ({ stats, loading, onGenreClick, onCategoryClick }) => {
   return (
     <Container maxWidth="xl">
-      <Box sx={{ py: 4 }}>
+      <Box sx={{ py: 2 }}>
         {/* Hero Stats */}
         <HeroStatsBar stats={stats} loading={loading} />
 

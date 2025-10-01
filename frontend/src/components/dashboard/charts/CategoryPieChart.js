@@ -1,16 +1,6 @@
 import React from 'react';
-import { Box, Typography, Paper, Skeleton } from '@mui/material';
+import { Box, Typography, Paper, Skeleton, useTheme } from '@mui/material';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-
-const COLORS = {
-  Fiction: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  Nonfiction: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-};
-
-const SOLID_COLORS = {
-  Fiction: '#667eea',
-  Nonfiction: '#f093fb',
-};
 
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload[0]) {
@@ -39,6 +29,13 @@ const CustomTooltip = ({ active, payload }) => {
 };
 
 const CategoryPieChart = ({ data, loading, onCategoryClick }) => {
+  const theme = useTheme();
+  
+  const COLORS = {
+    Fiction: theme.palette.primary.main,
+    Nonfiction: theme.palette.secondary.main,
+  };
+
   // Prepare data for the chart
   const chartData = [
     {
@@ -99,14 +96,14 @@ const CategoryPieChart = ({ data, loading, onCategoryClick }) => {
       sx={{
         p: 3,
         height: '400px',
-        background: 'linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(250,245,255,1) 100%)',
+        bgcolor: 'background.paper',
         transition: 'box-shadow 0.3s',
         '&:hover': {
-          boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+          boxShadow: theme.shadows[4],
         },
       }}
     >
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'text.primary' }}>
         Fiction vs Nonfiction
       </Typography>
       <ResponsiveContainer width="100%" height={350}>
@@ -126,9 +123,9 @@ const CategoryPieChart = ({ data, loading, onCategoryClick }) => {
             {chartData.map((entry, index) => (
               <Cell 
                 key={`cell-${index}`} 
-                fill={SOLID_COLORS[entry.name]}
+                fill={COLORS[entry.name]}
                 style={{
-                  filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.2))',
+                  filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))',
                   transition: 'all 0.3s',
                 }}
               />
@@ -139,7 +136,7 @@ const CategoryPieChart = ({ data, loading, onCategoryClick }) => {
             verticalAlign="bottom" 
             height={36}
             formatter={(value, entry) => (
-              <span style={{ fontSize: '14px', fontWeight: 500 }}>
+              <span style={{ fontSize: '14px', fontWeight: 500, color: theme.palette.text.secondary }}>
                 {value}: {entry.payload.value} books
               </span>
             )}
