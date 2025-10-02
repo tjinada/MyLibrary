@@ -1,7 +1,6 @@
 import React from 'react';
 import { Grid, Card, CardContent, Typography, Box, LinearProgress, Chip, Skeleton, useTheme, alpha } from '@mui/material';
 import {
-  Diversity3 as DiversityIcon,
   Person as PersonIcon,
   Business as PublisherIcon,
   CalendarMonth as CalendarIcon,
@@ -93,24 +92,6 @@ const FunInsightsGrid = ({ insights, loading }) => {
 
   return (
     <Grid container spacing={3} sx={{ mb: 4 }}>
-      {/* Diversity Score */}
-      <Grid item xs={12} md={6}>
-        <InsightCard
-          icon={DiversityIcon}
-          title="Genre Diversity Score"
-          loading={loading}
-          bgColor={alpha(theme.palette.primary.main, 0.04)}
-        >
-          {insights?.diversityScore && (
-            <DiversityMeter
-              score={insights.diversityScore.score}
-              label={insights.diversityScore.label}
-              totalGenres={insights.diversityScore.totalGenres}
-            />
-          )}
-        </InsightCard>
-      </Grid>
-
       {/* Most Collected Author */}
       <Grid item xs={12} md={6}>
         <InsightCard

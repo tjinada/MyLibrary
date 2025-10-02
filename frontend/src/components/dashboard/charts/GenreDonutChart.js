@@ -95,20 +95,20 @@ const GenreDonutChart = ({ data, loading, onGenreClick }) => {
           Showing specific genres (Fiction/Nonfiction excluded)
         </Typography>
       </Box>
-      <ResponsiveContainer width="100%" height={350}>
+      <ResponsiveContainer width="100%" height={320}>
         <PieChart>
           <Pie
             data={chartData}
             cx="50%"
-            cy="50%"
+            cy="45%"
             labelLine={true}
             label={(entry) => {
               // Show label only if percentage is >= 5%
               if (entry.percentage < 5) return '';
               return entry.name.length > 15 ? entry.name.substring(0, 15) + '...' : entry.name;
             }}
-            outerRadius={100}
-            innerRadius={60}
+            outerRadius={85}
+            innerRadius={50}
             fill="#8884d8"
             dataKey="count"
             onClick={handleClick}
@@ -128,20 +128,19 @@ const GenreDonutChart = ({ data, loading, onGenreClick }) => {
           <Tooltip content={<CustomTooltip />} />
           <Legend 
             verticalAlign="bottom" 
-            height={80}
+            height={60}
             wrapperStyle={{
-              paddingTop: '20px'
+              paddingTop: '10px',
+              fontSize: '10px',
+              maxHeight: '60px',
+              overflowY: 'auto'
             }}
-            formatter={(value, entry) => (
-              <span style={{ 
-                fontSize: '11px', 
-                color: theme.palette.text.secondary,
-                display: 'block',
-                marginBottom: '4px'
-              }}>
-                {value} ({entry.payload.count})
-              </span>
-            )}
+            iconSize={10}
+            formatter={(value) => {
+              // Truncate long genre names in legend
+              const maxLength = 18;
+              return value.length > maxLength ? value.substring(0, maxLength) + '...' : value;
+            }}
           />
         </PieChart>
       </ResponsiveContainer>
