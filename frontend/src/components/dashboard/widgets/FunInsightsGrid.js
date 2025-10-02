@@ -5,6 +5,8 @@ import {
   Business as PublisherIcon,
   CalendarMonth as CalendarIcon,
   AutoAwesome as SparkleIcon,
+  MenuBook as BookIcon,
+  HistoryEdu as VintageIcon,
 } from '@mui/icons-material';
 
 const InsightCard = ({ icon: Icon, title, children, loading, bgColor }) => {
@@ -181,6 +183,49 @@ const FunInsightsGrid = ({ insights, loading }) => {
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                 Your collection favors books from this era
               </Typography>
+            </Box>
+          ) : (
+            <Typography color="text.secondary">No publication data available</Typography>
+          )}
+        </InsightCard>
+      </Grid>
+
+      {/* Collection Treasures - Oldest & Newest */}
+      <Grid item xs={12} md={6}>
+        <InsightCard
+          icon={VintageIcon}
+          title="Collection Treasures"
+          loading={loading}
+          bgColor={alpha(theme.palette.warning.main, 0.04)}
+        >
+          {insights?.oldestBook || insights?.newestBook ? (
+            <Box>
+              {insights?.oldestBook && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                    Oldest Book
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                    {insights.oldestBook.title}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {insights.oldestBook.authors?.[0]} • Published {insights.oldestBook.year}
+                  </Typography>
+                </Box>
+              )}
+              {insights?.newestBook && (
+                <Box>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                    Newest Published
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                    {insights.newestBook.title}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {insights.newestBook.authors?.[0]} • Published {insights.newestBook.year}
+                  </Typography>
+                </Box>
+              )}
             </Box>
           ) : (
             <Typography color="text.secondary">No publication data available</Typography>

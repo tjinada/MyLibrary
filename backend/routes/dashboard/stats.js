@@ -48,7 +48,9 @@ router.get('/', async (req, res) => {
       categoryStats,
       authorStats,
       publisherStats,
-      yearStats
+      yearStats,
+      oldestBook,
+      newestBook
     ] = await Promise.all([
       // Basic counts - NOW RESPECTING QUANTITY
       Book.aggregate([
@@ -233,6 +235,66 @@ router.get('/', async (req, res) => {
             count: { $sum: '$quantity' }
           }
         }
+      ]),
+      
+      // Find oldest book in collection (by publication date)
+      Book.aggregate([
+        {
+          $match: {
+            publishedDate: { $exists: true, $ne: null, $ne: '' }
+          }
+        },
+        {
+          $addFields: {
+            year: {
+              $toInt: { $substr: ['$publishedDate', 0, 4] }
+            }
+          }
+        },
+        {
+          $sort: { year: 1 }
+        },
+        {
+          $limit: 1
+        },
+        {
+          $project: {
+            title: 1,
+            authors: 1,
+            publishedDate: 1,
+            year: 1
+          }
+        }
+      ]),
+      
+      // Find newest book published in collection
+      Book.aggregate([
+        {
+          $match: {
+            publishedDate: { $exists: true, $ne: null, $ne: '' }
+          }
+        },
+        {
+          $addFields: {
+            year: {
+              $toInt: { $substr: ['$publishedDate', 0, 4] }
+            }
+          }
+        },
+        {
+          $sort: { year: -1 }
+        },
+        {
+          $limit: 1
+        },
+        {
+          $project: {
+            title: 1,
+            authors: 1,
+            publishedDate: 1,
+            year: 1
+          }
+        }
       ])
     ]);
 
@@ -362,7 +424,9 @@ router.get('/', async (req, res) => {
           period: decadeWithMostBooks.period,
           count: decadeWithMostBooks.count,
           percentage: Math.round((decadeWithMostBooks.count / heroStats.totalBooks) * 100)
-        } : null
+        } : null,
+        oldestBook: oldestBook[0] || null,
+        newestBook: newestBook[0] || null
       },
       publicationYearStats
     };

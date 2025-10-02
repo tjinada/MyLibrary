@@ -47,11 +47,10 @@ const GenreDonutChart = ({ data, loading, onGenreClick }) => {
     theme.palette.error.light,
   ];
 
-  // Filter out Fiction and Nonfiction from display, then take top 10 specific genres
-  const filteredData = data?.filter(
+  // Filter out Fiction and Nonfiction from display - show ALL specific genres
+  const chartData = data?.filter(
     genre => genre.name !== 'Fiction' && genre.name !== 'Nonfiction'
   ) || [];
-  const chartData = filteredData.slice(0, 10);
 
   const handleClick = (entry) => {
     if (onGenreClick) {
@@ -91,8 +90,8 @@ const GenreDonutChart = ({ data, loading, onGenreClick }) => {
         <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
           Genre Distribution
         </Typography>
-        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-          Showing specific genres (Fiction/Nonfiction excluded)
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>  
+          All specific genres (Fiction/Nonfiction excluded)
         </Typography>
       </Box>
       <ResponsiveContainer width="100%" height={320}>
