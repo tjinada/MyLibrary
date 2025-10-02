@@ -18,7 +18,7 @@ export const ALLOWED_GENRES = [
   'Poetry',
   "Children's Fiction",
   'Biography / Memoir',
-  'Anime'
+  'Manga'
 ];
 
 export const BOOK_EDITIONS = {

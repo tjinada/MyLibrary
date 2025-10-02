@@ -20,7 +20,7 @@ const ALLOWED_GENRES = [
   'Poetry',
   "Children's Fiction",
   'Biography / Memoir',
-  'Anime'
+  'Manga'
 ];
 
 // Define matching rules for each genre
@@ -303,11 +303,11 @@ const GENRE_RULES = {
     excludeIfPresent: [] // Removed exclusions - biography/memoir is clear enough
   },
   
-  'Anime': {
+  'Manga': {
     requiresFiction: false,  // Can be fiction or nonfiction (manga, artbooks, guides)
     requiresNonfiction: false,
     exactMatches: [
-      'anime', 'manga', 'japanese comics', 'light novel',
+      'manga', 'anime', 'japanese comics', 'light novel',
       'light novels', 'manhwa', 'manhua', 'japanese animation',
       'anime & manga', 'comics & graphic novels / manga'
     ],
@@ -352,7 +352,7 @@ const CATEGORY_TYPE_RULES = {
       'learn', 'teach', 'study', 'research', 'analysis', 'facts'
     ],
     genreIndicators: [
-      'Cookbooks', 'Biography / Memoir', 'Anime'
+      'Cookbooks', 'Biography / Memoir', 'Manga'
     ]
   }
 };
