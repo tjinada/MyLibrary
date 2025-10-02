@@ -47,8 +47,11 @@ const GenreDonutChart = ({ data, loading, onGenreClick }) => {
     theme.palette.error.light,
   ];
 
-  // Prepare data for the chart
-  const chartData = data?.slice(0, 10) || []; // Top 10 genres
+  // Filter out Fiction and Nonfiction from display, then take top 10 specific genres
+  const filteredData = data?.filter(
+    genre => genre.name !== 'Fiction' && genre.name !== 'Nonfiction'
+  ) || [];
+  const chartData = filteredData.slice(0, 10);
 
   const handleClick = (entry) => {
     if (onGenreClick) {
@@ -84,17 +87,26 @@ const GenreDonutChart = ({ data, loading, onGenreClick }) => {
         },
       }}
     >
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'text.primary' }}>
-        Genre Distribution
-      </Typography>
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+          Genre Distribution
+        </Typography>
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          Showing specific genres (Fiction/Nonfiction excluded)
+        </Typography>
+      </Box>
       <ResponsiveContainer width="100%" height={350}>
         <PieChart>
           <Pie
             data={chartData}
             cx="50%"
             cy="50%"
-            labelLine={false}
-            label={(entry) => `${entry.name.length > 15 ? entry.name.substring(0, 15) + '...' : entry.name}`}
+            labelLine={true}
+            label={(entry) => {
+              // Show label only if percentage is >= 5%
+              if (entry.percentage < 5) return '';
+              return entry.name.length > 15 ? entry.name.substring(0, 15) + '...' : entry.name;
+            }}
             outerRadius={100}
             innerRadius={60}
             fill="#8884d8"
@@ -116,9 +128,17 @@ const GenreDonutChart = ({ data, loading, onGenreClick }) => {
           <Tooltip content={<CustomTooltip />} />
           <Legend 
             verticalAlign="bottom" 
-            height={36}
+            height={80}
+            wrapperStyle={{
+              paddingTop: '20px'
+            }}
             formatter={(value, entry) => (
-              <span style={{ fontSize: '12px', color: theme.palette.text.secondary }}>
+              <span style={{ 
+                fontSize: '11px', 
+                color: theme.palette.text.secondary,
+                display: 'block',
+                marginBottom: '4px'
+              }}>
                 {value} ({entry.payload.count})
               </span>
             )}

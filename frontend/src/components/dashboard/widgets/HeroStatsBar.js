@@ -3,8 +3,7 @@ import { Box, Card, CardContent, Typography, Grid, Skeleton, useTheme, Tooltip }
 import { 
   MenuBook as BookIcon,
   AutoStories as PagesReadIcon,
-  People as AuthorsIcon,
-  Category as GenresIcon 
+  People as AuthorsIcon
 } from '@mui/icons-material';
 
 const StatCard = ({ icon: Icon, label, value, color, loading, tooltip }) => {
@@ -88,20 +87,13 @@ const HeroStatsBar = ({ stats, loading }) => {
       value: stats?.heroStats?.uniqueAuthors,
       color: theme.palette.info.main,
       tooltip: null,
-    },
-    {
-      icon: GenresIcon,
-      label: 'Unique Genres',
-      value: stats?.heroStats?.uniqueGenres,
-      color: theme.palette.success.main,
-      tooltip: null,
-    },
+    }
   ];
 
   return (
     <Grid container spacing={3} sx={{ mb: 4 }}>
       {statCards.map((stat, index) => (
-        <Grid item xs={12} sm={6} md={3} key={index}>
+        <Grid item xs={12} sm={6} md={4} key={index}>
           <StatCard {...stat} loading={loading} />
         </Grid>
       ))}

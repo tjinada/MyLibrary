@@ -19,7 +19,8 @@ const ALLOWED_GENRES = [
   'Young Adult',
   'Poetry',
   "Children's Fiction",
-  'Biography / Memoir'
+  'Biography / Memoir',
+  'Anime'
 ];
 
 // Define matching rules for each genre
@@ -300,6 +301,29 @@ const GENRE_RULES = {
       'witness', 'testimony', 'account'
     ],
     excludeIfPresent: [] // Removed exclusions - biography/memoir is clear enough
+  },
+  
+  'Anime': {
+    requiresFiction: false,  // Can be fiction or nonfiction (manga, artbooks, guides)
+    requiresNonfiction: false,
+    exactMatches: [
+      'anime', 'manga', 'japanese comics', 'light novel',
+      'light novels', 'manhwa', 'manhua', 'japanese animation',
+      'anime & manga', 'comics & graphic novels / manga'
+    ],
+    strongKeywords: [
+      'shonen', 'shojo', 'shoujo', 'seinen', 'josei', 'isekai',
+      'mecha', 'otaku', 'mangaka', 'japanese manga',
+      'anime series', 'anime adaptation', 'visual novel',
+      'kodansha', 'shueisha', 'viz media', 'tokyo pop',
+      'one piece', 'naruto', 'dragon ball', 'attack on titan',
+      'my hero academia', 'demon slayer'
+    ],
+    weakKeywords: [
+      'japanese culture', 'tokyo', 'japan', 'japanese art',
+      'illustration', 'graphic novel'
+    ],
+    excludeIfPresent: ['japanese history', 'travel guide japan', 'japanese language learning', 'japanese textbook']
   }
 };
 
@@ -328,7 +352,7 @@ const CATEGORY_TYPE_RULES = {
       'learn', 'teach', 'study', 'research', 'analysis', 'facts'
     ],
     genreIndicators: [
-      'Cookbooks', 'Biography / Memoir'
+      'Cookbooks', 'Biography / Memoir', 'Anime'
     ]
   }
 };
