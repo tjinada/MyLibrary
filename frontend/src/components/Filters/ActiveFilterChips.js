@@ -29,8 +29,20 @@ const ActiveFilterChips = ({ filters, onRemoveFilter, onClearAll }) => {
     
     activeFilters.push({
       key: 'genre',
-      label: `Genre: ${genreLabel}`,
+      label: `Include: ${genreLabel}`,
       value: filters.genre,
+      color: 'success',
+    });
+  }
+  
+  if (filters.excludeGenres && filters.excludeGenres.length > 0) {
+    const excludeLabel = filters.excludeGenres.join(', ');
+    
+    activeFilters.push({
+      key: 'excludeGenres',
+      label: `Exclude: ${excludeLabel}`,
+      value: filters.excludeGenres,
+      color: 'error',
     });
   }
 
@@ -80,8 +92,10 @@ const ActiveFilterChips = ({ filters, onRemoveFilter, onClearAll }) => {
             label={filter.label}
             size="small"
             onDelete={() => onRemoveFilter(filter.key)}
+            color={filter.color || 'primary'}
             sx={{
-              bgcolor: 'primary.main',
+              bgcolor: filter.color === 'error' ? 'error.main' : 
+                       filter.color === 'success' ? 'success.main' : 'primary.main',
               color: 'white',
               '& .MuiChip-deleteIcon': {
                 color: 'rgba(255, 255, 255, 0.7)',

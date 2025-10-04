@@ -53,6 +53,7 @@ const StickyToolbar = ({
   const activeFilterCount = [
     filters.status !== 'all',
     filters.genre !== 'all' && (Array.isArray(filters.genre) ? filters.genre.length > 0 : true),
+    filters.excludeGenres && filters.excludeGenres.length > 0,
     filters.edition !== 'all',
   ].filter(Boolean).length;
 

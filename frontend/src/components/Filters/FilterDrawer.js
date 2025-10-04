@@ -46,6 +46,9 @@ const FilterDrawer = ({
     : Array.isArray(filters.genre) 
       ? filters.genre 
       : [filters.genre];
+  
+  // Derive excludedGenres from filters prop
+  const excludedGenres = filters.excludeGenres || [];
 
   const handleStatusChange = (event) => {
     onFilterChange({ ...filters, status: event.target.value });
@@ -67,9 +70,26 @@ const FilterDrawer = ({
     
     onFilterChange({ ...filters, genre: currentGenres.length === 0 ? 'all' : currentGenres });
   };
+  
+  const handleExcludeGenreToggle = (genreName) => {
+    const currentExcluded = [...excludedGenres];
+    const index = currentExcluded.indexOf(genreName);
+    
+    if (index > -1) {
+      currentExcluded.splice(index, 1);
+    } else {
+      currentExcluded.push(genreName);
+    }
+    
+    onFilterChange({ ...filters, excludeGenres: currentExcluded });
+  };
 
   const clearGenres = () => {
     onFilterChange({ ...filters, genre: 'all' });
+  };
+  
+  const clearExcludedGenres = () => {
+    onFilterChange({ ...filters, excludeGenres: [] });
   };
 
   const clearAllFilters = () => {
@@ -77,6 +97,7 @@ const FilterDrawer = ({
       search: filters.search || '',  // Keep search if it exists
       status: 'all',
       genre: 'all',
+      excludeGenres: [],
       edition: 'all',
       sort: filters.sort || 'title',  // Keep sort preference
     });
@@ -242,14 +263,14 @@ const FilterDrawer = ({
           {genres && genres.length > 0 && (
             <Box sx={{ mb: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5, color: theme.palette.success.main }}>
                   <ReadingIcon sx={{ fontSize: 18 }} />
-                  Genres
+                  Include Genres
                   {selectedGenres.length > 0 && (
                     <Chip 
                       label={selectedGenres.length} 
                       size="small" 
-                      color="primary"
+                      color="success"
                       sx={{ height: 18, minWidth: 18, ml: 0.5 }}
                     />
                   )}
@@ -265,7 +286,7 @@ const FilterDrawer = ({
                       minWidth: 'auto',
                     }}
                   >
-                    Clear all
+                    Clear
                   </Button>
                 )}
               </Box>
@@ -279,7 +300,91 @@ const FilterDrawer = ({
                           size="small"
                           checked={selectedGenres.includes(genre.name)}
                           onChange={() => handleGenreToggle(genre.name)}
-                          sx={{ py: 0.5 }}
+                          disabled={excludedGenres.includes(genre.name)}
+                          sx={{ 
+                            py: 0.5,
+                            color: theme.palette.success.main,
+                            '&.Mui-checked': {
+                              color: theme.palette.success.main,
+                            },
+                          }}
+                        />
+                      }
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, width: '100%' }}>
+                          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                            {genre.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                            ({genre.count})
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{ 
+                        m: 0, 
+                        width: '100%',
+                        '& .MuiFormControlLabel-label': {
+                          width: '100%',
+                        }
+                      }}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          )}
+          
+          <Divider sx={{ my: 2 }} />
+          
+          {/* Exclude Genres Filter - Two Column Checkboxes */}
+          {genres && genres.length > 0 && (
+            <Box sx={{ mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5, color: theme.palette.error.main }}>
+                  <CloseIcon sx={{ fontSize: 18 }} />
+                  Exclude Genres
+                  {excludedGenres.length > 0 && (
+                    <Chip 
+                      label={excludedGenres.length} 
+                      size="small" 
+                      color="error"
+                      sx={{ height: 18, minWidth: 18, ml: 0.5 }}
+                    />
+                  )}
+                </Typography>
+                {excludedGenres.length > 0 && (
+                  <Button
+                    size="small"
+                    onClick={clearExcludedGenres}
+                    sx={{ 
+                      textTransform: 'none',
+                      fontSize: '0.75rem',
+                      py: 0,
+                      minWidth: 'auto',
+                    }}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </Box>
+              
+              <Grid container spacing={1} sx={{ pl: 1 }}>
+                {genres.map((genre) => (
+                  <Grid item xs={6} key={genre.name}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={excludedGenres.includes(genre.name)}
+                          onChange={() => handleExcludeGenreToggle(genre.name)}
+                          disabled={selectedGenres.includes(genre.name)}
+                          sx={{ 
+                            py: 0.5,
+                            color: theme.palette.error.main,
+                            '&.Mui-checked': {
+                              color: theme.palette.error.main,
+                            },
+                          }}
                         />
                       }
                       label={

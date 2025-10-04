@@ -80,6 +80,7 @@ const Library = () => {
     search: '',
     status: 'all',
     genre: 'all',
+    excludeGenres: [],
     edition: 'all',
     sort: 'title',
   });
@@ -129,6 +130,7 @@ const Library = () => {
         page: 1,
         limit: 1000,
         status: filters.status !== 'all' ? filters.status : undefined,
+        excludeGenres: filters.excludeGenres.length > 0 ? filters.excludeGenres : undefined,
       });
       
       const collectionsData = await collectionService.getCollections(true);
@@ -136,6 +138,22 @@ const Library = () => {
       setAllBooksForGenres({ books: allBooksData.books, collections: collectionsData });
       
       let booksToDisplay = allBooksData.books;
+      
+      // Apply exclude genres filter
+      if (filters.excludeGenres.length > 0) {
+        booksToDisplay = booksToDisplay.filter(book => {
+          const bookGenres = new Set();
+          if (book.primaryCategory) bookGenres.add(book.primaryCategory);
+          if (book.genres && Array.isArray(book.genres)) {
+            book.genres.forEach(genre => bookGenres.add(genre));
+          }
+          
+          // Book must NOT have any excluded genres
+          return !filters.excludeGenres.some(excludedGenre => bookGenres.has(excludedGenre));
+        });
+      }
+      
+      // Apply include genres filter
       if (filters.genre !== 'all') {
         const genreFilters = Array.isArray(filters.genre) ? filters.genre : [filters.genre];
         booksToDisplay = allBooksData.books.filter(book => {
@@ -185,11 +203,12 @@ const Library = () => {
       }));
       
       // Show all books (including those in collections) when:
-      // - Searching, filtering by genre/status/edition, or sorting by date
+      // - Searching, filtering by genre/status/edition/excludeGenres, or sorting by date
       const showAllBooks = filters.search !== '' || 
                            filters.genre !== 'all' || 
                            filters.status !== 'all' || 
                            filters.edition !== 'all' ||
+                           filters.excludeGenres.length > 0 ||
                            filters.sort === '-addedDate' || 
                            filters.sort === 'addedDate';
       const displayBookItems = showAllBooks 
@@ -216,6 +235,7 @@ const Library = () => {
         const showCollections = filters.genre === 'all' && 
                                 filters.status === 'all' && 
                                 filters.edition === 'all' &&
+                                filters.excludeGenres.length === 0 &&
                                 filters.search === '';
         
         displayItems = showCollections 
@@ -479,6 +499,7 @@ const Library = () => {
         search: '',
         status: 'all',
         genre: 'all',
+        excludeGenres: [],
         edition: 'all',
         sort: 'title',
       });
@@ -493,7 +514,8 @@ const Library = () => {
     // If any filter is being set (not 'all'), turn off collections mode
     const hasActiveFilter = newFilters.status !== 'all' || 
                            newFilters.genre !== 'all' || 
-                           newFilters.edition !== 'all';
+                           newFilters.edition !== 'all' ||
+                           (newFilters.excludeGenres && newFilters.excludeGenres.length > 0);
     
     if (hasActiveFilter && showCollectionsOnly) {
       setShowCollectionsOnly(false);
@@ -503,10 +525,17 @@ const Library = () => {
   }, [showCollectionsOnly]);
 
   const handleRemoveFilter = useCallback((filterKey) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterKey]: filterKey === 'search' ? '' : 'all'
-    }));
+    if (filterKey === 'excludeGenres') {
+      setFilters(prev => ({
+        ...prev,
+        excludeGenres: []
+      }));
+    } else {
+      setFilters(prev => ({
+        ...prev,
+        [filterKey]: filterKey === 'search' ? '' : 'all'
+      }));
+    }
   }, []);
 
   const handleClearFilters = useCallback(() => {
@@ -514,6 +543,7 @@ const Library = () => {
       search: '',
       status: 'all',
       genre: 'all',
+      excludeGenres: [],
       edition: 'all',
       sort: 'title',
     });
@@ -868,6 +898,7 @@ const Library = () => {
   const hasActiveFilters = filters.search !== '' || 
                           filters.status !== 'all' || 
                           filters.genre !== 'all' ||
+                          filters.excludeGenres.length > 0 ||
                           filters.edition !== 'all';
 
   return (

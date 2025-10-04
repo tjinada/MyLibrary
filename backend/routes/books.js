@@ -30,6 +30,7 @@ router.get('/', async (req, res) => {
       limit = 20,
       status,
       genre,
+      excludeGenres,
       author,
       sort = '-addedDate'
     } = req.query;
@@ -39,6 +40,20 @@ router.get('/', async (req, res) => {
     if (status) query.status = status;
     if (genre) query.genres = genre;
     if (author) query.authors = new RegExp(author, 'i');
+    
+    // Handle excluded genres
+    if (excludeGenres) {
+      const excludeList = Array.isArray(excludeGenres) ? excludeGenres : [excludeGenres];
+      query.genres = { $nin: excludeList };
+      
+      // If both include and exclude genres are specified, combine them
+      if (genre) {
+        query.genres = {
+          $in: Array.isArray(genre) ? genre : [genre],
+          $nin: excludeList
+        };
+      }
+    }
 
     // Handle author sorting specially (since authors is an array)
     if (sort === 'authors' || sort === '-authors') {
