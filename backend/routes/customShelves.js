@@ -6,7 +6,7 @@ const auth = require('../middleware/auth');
 // Get all shelves for current user
 router.get('/', auth, async (req, res) => {
   try {
-    const shelves = await CustomShelf.find({ userId: req.user.id })
+    const shelves = await CustomShelf.find({ userId: req.adminId })
       .sort({ sortOrder: 1, createdAt: 1 });
     
     res.json({ shelves });
@@ -34,7 +34,7 @@ router.post('/', auth, async (req, res) => {
     
     // Check for duplicate name
     const existing = await CustomShelf.findOne({ 
-      userId: req.user.id, 
+      userId: req.adminId, 
       name: trimmedName 
     });
     
@@ -43,7 +43,7 @@ router.post('/', auth, async (req, res) => {
     }
     
     // Get the highest sortOrder
-    const maxShelf = await CustomShelf.findOne({ userId: req.user.id })
+    const maxShelf = await CustomShelf.findOne({ userId: req.adminId })
       .sort({ sortOrder: -1 })
       .select('sortOrder');
     
@@ -51,7 +51,7 @@ router.post('/', auth, async (req, res) => {
     
     // Create shelf
     const shelf = new CustomShelf({
-      userId: req.user.id,
+      userId: req.adminId,
       name: trimmedName,
       filters: filters || {},
       sortOrder: newSortOrder
@@ -80,7 +80,7 @@ router.put('/:id', auth, async (req, res) => {
     // Find shelf and verify ownership
     const shelf = await CustomShelf.findOne({ 
       _id: req.params.id,
-      userId: req.user.id 
+      userId: req.adminId 
     });
     
     if (!shelf) {
@@ -101,7 +101,7 @@ router.put('/:id', auth, async (req, res) => {
       
       // Check for duplicate name (excluding current shelf)
       const existing = await CustomShelf.findOne({
-        userId: req.user.id,
+        userId: req.adminId,
         name: trimmedName,
         _id: { $ne: req.params.id }
       });
@@ -138,7 +138,7 @@ router.delete('/:id', auth, async (req, res) => {
   try {
     const shelf = await CustomShelf.findOneAndDelete({
       _id: req.params.id,
-      userId: req.user.id
+      userId: req.adminId
     });
     
     if (!shelf) {
@@ -164,7 +164,7 @@ router.put('/reorder', auth, async (req, res) => {
     // Update sortOrder for each shelf
     const updatePromises = shelfIds.map((shelfId, index) => 
       CustomShelf.updateOne(
-        { _id: shelfId, userId: req.user.id },
+        { _id: shelfId, userId: req.adminId },
         { sortOrder: index, updatedAt: Date.now() }
       )
     );
@@ -172,7 +172,7 @@ router.put('/reorder', auth, async (req, res) => {
     await Promise.all(updatePromises);
     
     // Return updated shelves
-    const shelves = await CustomShelf.find({ userId: req.user.id })
+    const shelves = await CustomShelf.find({ userId: req.adminId })
       .sort({ sortOrder: 1, createdAt: 1 });
     
     res.json({ shelves });
