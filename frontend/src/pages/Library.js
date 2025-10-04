@@ -156,7 +156,7 @@ const Library = () => {
       // Apply include genres filter
       if (filters.genre !== 'all') {
         const genreFilters = Array.isArray(filters.genre) ? filters.genre : [filters.genre];
-        booksToDisplay = allBooksData.books.filter(book => {
+        booksToDisplay = booksToDisplay.filter(book => {
           if (genreFilters.length === 0) return true;
           
           // Collect all genres for this book
