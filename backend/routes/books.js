@@ -31,6 +31,10 @@ router.get('/', async (req, res) => {
       status,
       genre,
       excludeGenres,
+      includeEditions,
+      excludeEditions,
+      includeCollections,
+      excludeCollections,
       author,
       sort = '-addedDate'
     } = req.query;
@@ -52,6 +56,44 @@ router.get('/', async (req, res) => {
           $in: Array.isArray(genre) ? genre : [genre],
           $nin: excludeList
         };
+      }
+    }
+    
+    // Handle edition filters
+    if (includeEditions) {
+      const includeList = Array.isArray(includeEditions) ? includeEditions : [includeEditions];
+      query.edition = { $in: includeList };
+    }
+    
+    if (excludeEditions) {
+      const excludeList = Array.isArray(excludeEditions) ? excludeEditions : [excludeEditions];
+      if (query.edition) {
+        // Combine with include filter
+        query.edition.$nin = excludeList;
+      } else {
+        query.edition = { $nin: excludeList };
+      }
+    }
+    
+    // Handle collection filters
+    if (excludeCollections) {
+      const excludeList = Array.isArray(excludeCollections) ? excludeCollections : [excludeCollections];
+      // Book must NOT be in any excluded collection
+      query.collections = { $nin: excludeList };
+    }
+    
+    if (includeCollections) {
+      const includeList = Array.isArray(includeCollections) ? includeCollections : [includeCollections];
+      // Book must be in at least one included collection
+      if (query.collections) {
+        // Combine with exclude filter - book must be in included AND not in excluded
+        query.$and = [
+          { collections: { $in: includeList } },
+          { collections: { $nin: query.collections.$nin } }
+        ];
+        delete query.collections;
+      } else {
+        query.collections = { $in: includeList };
       }
     }
 
