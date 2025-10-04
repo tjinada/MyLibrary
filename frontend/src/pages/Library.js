@@ -1201,7 +1201,7 @@ const Library = () => {
           <Box sx={{ mb: 2 }}>
             <ActiveFilterChips
               filters={filters}
-              collections={allBooksForGenres.collections}
+              collections={allBooksForGenres.collections || []}
               onRemoveFilter={handleRemoveFilter}
               onClearAll={handleClearFilters}
             />
@@ -1534,7 +1534,7 @@ const Library = () => {
         }}
         onSave={editingShelf ? handleUpdateShelf : handleSaveAsShelf}
         filters={filters}
-        collections={allBooksForGenres.collections}
+        collections={allBooksForGenres.collections || []}
         editMode={!!editingShelf}
         initialName={editingShelf?.name || ''}
         initialFilters={editingShelf?.filters || null}
