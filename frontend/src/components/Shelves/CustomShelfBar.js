@@ -7,12 +7,15 @@ import {
   MenuItem, 
   Typography,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Tooltip
 } from '@mui/material';
 import { 
   Add as AddIcon, 
   MoreVert as MoreIcon,
-  Settings as SettingsIcon 
+  Settings as SettingsIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon 
 } from '@mui/icons-material';
 
 const CustomShelfBar = ({ 
@@ -28,6 +31,7 @@ const CustomShelfBar = ({
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedShelf, setSelectedShelf] = useState(null);
+  const [hoveredShelfId, setHoveredShelfId] = useState(null);
 
   const handleMenuOpen = (event, shelf) => {
     event.stopPropagation();
@@ -91,7 +95,18 @@ const CustomShelfBar = ({
         </Typography>
         
         {shelves.map(shelf => (
-          <Box key={shelf._id} sx={{ position: 'relative', display: 'flex' }}>
+          <Box 
+            key={shelf._id} 
+            sx={{ 
+              position: 'relative', 
+              display: 'flex',
+              '&:hover .shelf-menu-btn': {
+                opacity: 1
+              }
+            }}
+            onMouseEnter={() => setHoveredShelfId(shelf._id)}
+            onMouseLeave={() => setHoveredShelfId(null)}
+          >
             <Button
               variant={activeShelfId === shelf._id ? 'contained' : 'outlined'}
               onClick={() => onApplyShelf(shelf)}
@@ -100,14 +115,17 @@ const CustomShelfBar = ({
                 minWidth: 'auto',
                 whiteSpace: 'nowrap',
                 textTransform: 'none',
-                pr: activeShelfId === shelf._id ? 4 : 2
+                pr: hoveredShelfId === shelf._id || activeShelfId === shelf._id ? 5 : 2,
+                transition: 'padding-right 0.2s'
               }}
             >
               {shelf.name}
             </Button>
             
-            {activeShelfId === shelf._id && (
+            {/* Menu button - shows on hover or when shelf is active */}
+            {(hoveredShelfId === shelf._id || activeShelfId === shelf._id) && (
               <IconButton
+                className="shelf-menu-btn"
                 size="small"
                 onClick={(e) => handleMenuOpen(e, shelf)}
                 sx={{ 
@@ -115,7 +133,13 @@ const CustomShelfBar = ({
                   right: 2,
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  padding: 0.5
+                  padding: 0.5,
+                  opacity: activeShelfId === shelf._id ? 1 : 0.7,
+                  transition: 'opacity 0.2s',
+                  bgcolor: activeShelfId === shelf._id ? 'rgba(255,255,255,0.2)' : 'transparent',
+                  '&:hover': {
+                    bgcolor: activeShelfId === shelf._id ? 'rgba(255,255,255,0.3)' : 'action.hover'
+                  }
                 }}
               >
                 <MoreIcon fontSize="small" />
@@ -139,14 +163,15 @@ const CustomShelfBar = ({
         </Button>
 
         {shelves.length > 3 && (
-          <IconButton
-            size="small"
-            onClick={onManageShelves}
-            sx={{ ml: 1 }}
-            title="Manage Shelves"
-          >
-            <SettingsIcon />
-          </IconButton>
+          <Tooltip title="Manage Shelves">
+            <IconButton
+              size="small"
+              onClick={onManageShelves}
+              sx={{ ml: 1 }}
+            >
+              <SettingsIcon />
+            </IconButton>
+          </Tooltip>
         )}
       </Box>
       
@@ -154,11 +179,21 @@ const CustomShelfBar = ({
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
       >
         <MenuItem onClick={handleEdit}>
+          <EditIcon fontSize="small" sx={{ mr: 1 }} />
           Edit Shelf
         </MenuItem>
         <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+          <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
           Delete Shelf
         </MenuItem>
       </Menu>
