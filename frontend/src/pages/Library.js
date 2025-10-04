@@ -242,6 +242,30 @@ const Library = () => {
           return a.sortKey.localeCompare(b.sortKey);
         }
         
+        if (filters.sort === 'authors' || filters.sort === '-authors') {
+          const multiplier = filters.sort.startsWith('-') ? -1 : 1;
+          
+          // Collections always come after books when sorting by author
+          if (a.type === 'collection' && b.type === 'book') return 1;
+          if (a.type === 'book' && b.type === 'collection') return -1;
+          
+          if (a.type === 'book' && b.type === 'book') {
+            // Extract last name from first author for sorting
+            const getAuthorLastName = (book) => {
+              if (!book.authors || book.authors.length === 0) return '';
+              const firstAuthor = book.authors[0];
+              const nameParts = firstAuthor.trim().split(/\s+/);
+              return nameParts[nameParts.length - 1].toLowerCase();
+            };
+            
+            const aName = getAuthorLastName(a.data);
+            const bName = getAuthorLastName(b.data);
+            return multiplier * aName.localeCompare(bName);
+          }
+          
+          return a.sortKey.localeCompare(b.sortKey);
+        }
+        
         return 0;
       });
       
@@ -573,6 +597,28 @@ const Library = () => {
               
               if (a.type === 'book' && b.type === 'book') {
                 return multiplier * (new Date(a.data.addedDate) - new Date(b.data.addedDate));
+              }
+              
+              return a.sortKey.localeCompare(b.sortKey);
+            }
+            
+            if (filters.sort === 'authors' || filters.sort === '-authors') {
+              const multiplier = filters.sort.startsWith('-') ? -1 : 1;
+              
+              if (a.type === 'collection' && b.type === 'book') return 1;
+              if (a.type === 'book' && b.type === 'collection') return -1;
+              
+              if (a.type === 'book' && b.type === 'book') {
+                const getAuthorLastName = (book) => {
+                  if (!book.authors || book.authors.length === 0) return '';
+                  const firstAuthor = book.authors[0];
+                  const nameParts = firstAuthor.trim().split(/\s+/);
+                  return nameParts[nameParts.length - 1].toLowerCase();
+                };
+                
+                const aName = getAuthorLastName(a.data);
+                const bName = getAuthorLastName(b.data);
+                return multiplier * aName.localeCompare(bName);
               }
               
               return a.sortKey.localeCompare(b.sortKey);
