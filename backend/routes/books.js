@@ -40,6 +40,37 @@ router.get('/', async (req, res) => {
     if (genre) query.genres = genre;
     if (author) query.authors = new RegExp(author, 'i');
 
+    // Handle author sorting specially (since authors is an array)
+    if (sort === 'authors' || sort === '-authors') {
+      const sortDirection = sort.startsWith('-') ? -1 : 1;
+      
+      // Fetch all matching books
+      const allBooks = await Book.find(query);
+      
+      // Sort in memory by author last name using virtual field
+      allBooks.sort((a, b) => {
+        const aName = a.authorLastName || '';
+        const bName = b.authorLastName || '';
+        return sortDirection * aName.localeCompare(bName);
+      });
+      
+      // Apply pagination manually
+      const paginatedBooks = allBooks.slice(
+        (page - 1) * limit,
+        page * limit
+      );
+      
+      const count = allBooks.length;
+      
+      return res.json({
+        books: paginatedBooks,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page,
+        total: count
+      });
+    }
+
+    // Normal MongoDB sort for other fields
     const books = await Book.find(query)
       .sort(sort)
       .limit(limit * 1)

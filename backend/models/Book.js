@@ -164,6 +164,17 @@ const BookSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Virtual field for sorting by author last name
+BookSchema.virtual('authorLastName').get(function() {
+  if (!this.authors || this.authors.length === 0) return '';
+  
+  const firstAuthor = this.authors[0];
+  const nameParts = firstAuthor.trim().split(/\s+/);
+  
+  // Return last name (last part of the name)
+  return nameParts[nameParts.length - 1].toLowerCase();
+});
+
 // Pre-save validation and cleanup
 BookSchema.pre('save', function(next) {
   // Ensure genres array doesn't contain "Uncategorized"
