@@ -24,12 +24,13 @@ Added functionality to sort library books by author's last name (alphabetically 
   - Applies pagination to sorted results
   - Returns paginated books with correct metadata
 
-### 3. Frontend (No Changes Required)
-**File:** `frontend/src/components/Filters/SortControl.js`
+### 3. Frontend Update
+**File:** `frontend/src/components/Layout/StickyToolbar.js`
 
-- Already contains Author (A-Z) and Author (Z-A) options
+- Added Author (A-Z) and Author (Z-A) options to the sort dropdown
 - Sort values: `'authors'` and `'-authors'`
-- UI displays Person icon for author sorting options
+- UI displays up/down arrow icons for sort direction
+- Options appear after "Oldest First" in the dropdown menu
 
 ## How It Works
 
@@ -93,4 +94,4 @@ BookSchema.virtual('authorLastName').get(function() {
 
 - `backend/models/Book.js` - Added virtual field
 - `backend/routes/books.js` - Added author sort handling logic
-- `frontend/src/components/Filters/SortControl.js` - No changes (already had UI options)
+- `frontend/src/components/Layout/StickyToolbar.js` - Added author sort options to dropdown

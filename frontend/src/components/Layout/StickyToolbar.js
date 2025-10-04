@@ -248,6 +248,8 @@ const StickyToolbar = ({
                   '-title': { label: 'Title (Z-A)', icon: <ArrowDownward sx={{ fontSize: 16 }} /> },
                   '-addedDate': { label: 'Recently Added', icon: <ArrowDownward sx={{ fontSize: 16 }} /> },
                   'addedDate': { label: 'Oldest First', icon: <ArrowUpward sx={{ fontSize: 16 }} /> },
+                  'authors': { label: 'Author (A-Z)', icon: <ArrowUpward sx={{ fontSize: 16 }} /> },
+                  '-authors': { label: 'Author (Z-A)', icon: <ArrowDownward sx={{ fontSize: 16 }} /> },
                 };
                 const option = sortOptions[value] || sortOptions['title'];
                 return (
@@ -282,6 +284,18 @@ const StickyToolbar = ({
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <ArrowUpward sx={{ fontSize: 16 }} />
                   Oldest First
+                </Box>
+              </MenuItem>
+              <MenuItem value="authors">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <ArrowUpward sx={{ fontSize: 16 }} />
+                  Author (A-Z)
+                </Box>
+              </MenuItem>
+              <MenuItem value="-authors">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <ArrowDownward sx={{ fontSize: 16 }} />
+                  Author (Z-A)
                 </Box>
               </MenuItem>
             </Select>
