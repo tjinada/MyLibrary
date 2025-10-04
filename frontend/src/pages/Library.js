@@ -1537,11 +1537,11 @@ const Library = () => {
           setEditingShelf(null);
         }}
         onSave={editingShelf ? handleUpdateShelf : handleSaveAsShelf}
-        filters={editingShelf ? editingShelf.filters : filters}
+        filters={filters}
         collections={allBooksForGenres.collections}
         editMode={!!editingShelf}
         initialName={editingShelf?.name || ''}
-        initialFilters={editingShelf?.filters}
+        initialFilters={editingShelf?.filters || null}
       />
       
       <ManageShelvesModal

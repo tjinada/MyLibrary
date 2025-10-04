@@ -58,7 +58,13 @@ const CreateShelfModal = ({
   const getFilterSummary = () => {
     // In edit mode, show currentFilters (which may have been updated)
     // In create mode, show filters from Library
-    const filtersToShow = editMode ? currentFilters : filters;
+    const filtersToShow = editMode ? (currentFilters || initialFilters || filters) : filters;
+    
+    // Safety check - if filtersToShow is still null/undefined, return empty array
+    if (!filtersToShow) {
+      return [];
+    }
+    
     const summary = [];
     
     // Genre filters
