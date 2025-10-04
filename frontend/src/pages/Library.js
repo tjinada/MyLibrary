@@ -108,7 +108,7 @@ const Library = () => {
   useEffect(() => {
     fetchLibrary();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.status, filters.genre, filters.edition, filters.sort, showCollectionsOnly]);
+  }, [filters.status, filters.genre, filters.excludeGenres, filters.edition, filters.sort, showCollectionsOnly]);
 
   // Save view preferences
   useEffect(() => {
