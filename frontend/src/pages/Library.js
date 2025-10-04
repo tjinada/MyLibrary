@@ -1192,10 +1192,6 @@ const Library = () => {
             onApplyShelf={handleApplyShelf}
             onEditShelf={handleEditShelf}
             onDeleteShelf={handleDeleteShelf}
-            onCreateShelf={() => {
-              setEditingShelf(null);
-              setCreateShelfModalOpen(true);
-            }}
             onManageShelves={() => setManageShelvesModalOpen(true)}
           />
         )}

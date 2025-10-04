@@ -11,7 +11,6 @@ import {
   Tooltip
 } from '@mui/material';
 import { 
-  Add as AddIcon, 
   MoreVert as MoreIcon,
   Settings as SettingsIcon,
   Edit as EditIcon,
@@ -24,7 +23,6 @@ const CustomShelfBar = ({
   onApplyShelf, 
   onEditShelf,
   onDeleteShelf,
-  onCreateShelf,
   onManageShelves
 }) => {
   const theme = useTheme();
@@ -147,20 +145,6 @@ const CustomShelfBar = ({
             )}
           </Box>
         ))}
-        
-        <Button
-          variant="outlined"
-          startIcon={<AddIcon />}
-          onClick={onCreateShelf}
-          size={isMobile ? 'small' : 'medium'}
-          sx={{ 
-            minWidth: 'auto',
-            textTransform: 'none',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          New Shelf
-        </Button>
 
         {shelves.length > 3 && (
           <Tooltip title="Manage Shelves">
