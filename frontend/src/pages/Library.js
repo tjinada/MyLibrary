@@ -407,7 +407,27 @@ const Library = () => {
 
   // Shelf handlers
   const handleApplyShelf = useCallback((shelf) => {
-    setFilters(shelf.filters);
+    // Normalize shelf filters before applying
+    const normalizedFilters = {
+      ...shelf.filters,
+      // Ensure arrays for new filter types
+      includeEditions: shelf.filters.includeEditions || [],
+      excludeEditions: shelf.filters.excludeEditions || [],
+      includeCollections: shelf.filters.includeCollections || [],
+      excludeCollections: shelf.filters.excludeCollections || [],
+      excludeGenres: shelf.filters.excludeGenres || [],
+      // Normalize genre - if it's an array with 'all', convert to 'all'
+      genre: (Array.isArray(shelf.filters.genre) && shelf.filters.genre.includes('all')) 
+        ? 'all' 
+        : (shelf.filters.genre || 'all'),
+      // Ensure all other fields have defaults
+      status: shelf.filters.status || 'all',
+      edition: shelf.filters.edition || 'all',
+      sort: shelf.filters.sort || 'title',
+      search: shelf.filters.search || ''
+    };
+    
+    setFilters(normalizedFilters);
     setActiveShelfId(shelf._id);
   }, []);
 
