@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Chip, Typography, Fade } from '@mui/material';
 import { Clear as ClearIcon } from '@mui/icons-material';
 
-const ActiveFilterChips = ({ filters, onRemoveFilter, onClearAll }) => {
+const ActiveFilterChips = ({ filters, collections = [], onRemoveFilter, onClearAll }) => {
   const activeFilters = [];
 
   if (filters.search) {
@@ -54,6 +54,58 @@ const ActiveFilterChips = ({ filters, onRemoveFilter, onClearAll }) => {
       key: 'edition',
       label: `Edition: ${editionLabel}`,
       value: filters.edition,
+    });
+  }
+  
+  // Include Editions
+  if (filters.includeEditions && filters.includeEditions.length > 0) {
+    const editionsLabel = filters.includeEditions
+      .map(ed => ed.charAt(0).toUpperCase() + ed.slice(1))
+      .join(', ');
+    activeFilters.push({
+      key: 'includeEditions',
+      label: `Include Editions: ${editionsLabel}`,
+      value: filters.includeEditions,
+      color: 'success',
+    });
+  }
+  
+  // Exclude Editions
+  if (filters.excludeEditions && filters.excludeEditions.length > 0) {
+    const editionsLabel = filters.excludeEditions
+      .map(ed => ed.charAt(0).toUpperCase() + ed.slice(1))
+      .join(', ');
+    activeFilters.push({
+      key: 'excludeEditions',
+      label: `Exclude Editions: ${editionsLabel}`,
+      value: filters.excludeEditions,
+      color: 'error',
+    });
+  }
+  
+  // Include Collections
+  if (filters.includeCollections && filters.includeCollections.length > 0) {
+    const collectionNames = filters.includeCollections
+      .map(id => collections.find(c => c._id === id)?.name || 'Unknown')
+      .join(', ');
+    activeFilters.push({
+      key: 'includeCollections',
+      label: `Include Collections: ${collectionNames}`,
+      value: filters.includeCollections,
+      color: 'success',
+    });
+  }
+  
+  // Exclude Collections
+  if (filters.excludeCollections && filters.excludeCollections.length > 0) {
+    const collectionNames = filters.excludeCollections
+      .map(id => collections.find(c => c._id === id)?.name || 'Unknown')
+      .join(', ');
+    activeFilters.push({
+      key: 'excludeCollections',
+      label: `Exclude Collections: ${collectionNames}`,
+      value: filters.excludeCollections,
+      color: 'error',
     });
   }
 

@@ -37,8 +37,12 @@ import AddBookModal from '../components/Modals/AddBookModal';
 import BookDetailsModal from '../components/Modals/BookDetailsModal';
 import ManageCollectionsModal from '../components/Collections/ManageCollectionsModal';
 import CreateCollectionModal from '../components/Collections/CreateCollectionModal';
+import CustomShelfBar from '../components/Shelves/CustomShelfBar';
+import CreateShelfModal from '../components/Shelves/CreateShelfModal';
+import ManageShelvesModal from '../components/Shelves/ManageShelvesModal';
 import bookService from '../services/bookService';
 import collectionService from '../services/collectionService';
+import customShelfService from '../services/customShelfService';
 import imagePreloader from '../utils/imagePreloader';
 import { useCollections } from '../contexts/CollectionContext';
 import useSelection from '../hooks/useSelection';
@@ -75,12 +79,23 @@ const Library = () => {
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
   const [openInEditMode, setOpenInEditMode] = useState(false);
   
+  // Custom shelf states
+  const [customShelves, setCustomShelves] = useState([]);
+  const [activeShelfId, setActiveShelfId] = useState(null);
+  const [createShelfModalOpen, setCreateShelfModalOpen] = useState(false);
+  const [editingShelf, setEditingShelf] = useState(null);
+  const [manageShelvesModalOpen, setManageShelvesModalOpen] = useState(false);
+  
   // Filters state
   const [filters, setFilters] = useState({
     search: '',
     status: 'all',
     genre: 'all',
     excludeGenres: [],
+    includeEditions: [],
+    excludeEditions: [],
+    includeCollections: [],
+    excludeCollections: [],
     edition: 'all',
     sort: 'title',
   });
@@ -108,7 +123,23 @@ const Library = () => {
   useEffect(() => {
     fetchLibrary();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.status, filters.genre, filters.excludeGenres, filters.edition, filters.sort, showCollectionsOnly]);
+  }, [
+    filters.status, 
+    filters.genre, 
+    filters.excludeGenres, 
+    filters.includeEditions,
+    filters.excludeEditions,
+    filters.includeCollections,
+    filters.excludeCollections,
+    filters.edition, 
+    filters.sort, 
+    showCollectionsOnly
+  ]);
+
+  // Fetch custom shelves on mount
+  useEffect(() => {
+    fetchCustomShelves();
+  }, []);
 
   // Save view preferences
   useEffect(() => {
@@ -131,6 +162,10 @@ const Library = () => {
         limit: 1000,
         status: filters.status !== 'all' ? filters.status : undefined,
         excludeGenres: filters.excludeGenres.length > 0 ? filters.excludeGenres : undefined,
+        includeEditions: filters.includeEditions.length > 0 ? filters.includeEditions : undefined,
+        excludeEditions: filters.excludeEditions.length > 0 ? filters.excludeEditions : undefined,
+        includeCollections: filters.includeCollections.length > 0 ? filters.includeCollections : undefined,
+        excludeCollections: filters.excludeCollections.length > 0 ? filters.excludeCollections : undefined,
       });
       
       const collectionsData = await collectionService.getCollections(true);
@@ -184,6 +219,46 @@ const Library = () => {
         booksToDisplay = booksToDisplay.filter(book => book.edition === filters.edition);
       }
       
+      // Apply exclude editions filter
+      if (filters.excludeEditions.length > 0) {
+        booksToDisplay = booksToDisplay.filter(book => 
+          !filters.excludeEditions.includes(book.edition)
+        );
+      }
+      
+      // Apply include editions filter
+      if (filters.includeEditions.length > 0) {
+        booksToDisplay = booksToDisplay.filter(book =>
+          filters.includeEditions.includes(book.edition)
+        );
+      }
+      
+      // Apply exclude collections filter
+      if (filters.excludeCollections.length > 0) {
+        booksToDisplay = booksToDisplay.filter(book => {
+          const bookCollections = book.collections || [];
+          // If book is in ANY excluded collection, hide it
+          return !filters.excludeCollections.some(excludedId =>
+            bookCollections.some(bookColId =>
+              (typeof bookColId === 'object' ? bookColId._id : bookColId) === excludedId
+            )
+          );
+        });
+      }
+      
+      // Apply include collections filter
+      if (filters.includeCollections.length > 0) {
+        booksToDisplay = booksToDisplay.filter(book => {
+          const bookCollections = book.collections || [];
+          // Book must be in at least one included collection
+          return filters.includeCollections.some(includedId =>
+            bookCollections.some(bookColId =>
+              (typeof bookColId === 'object' ? bookColId._id : bookColId) === includedId
+            )
+          );
+        });
+      }
+      
       const booksInCollections = new Set();
       (collectionsData || []).forEach(collection => {
         collection.books?.forEach(book => {
@@ -203,12 +278,16 @@ const Library = () => {
       }));
       
       // Show all books (including those in collections) when:
-      // - Searching, filtering by genre/status/edition/excludeGenres, or sorting by date
+      // - Searching, filtering by genre/status/edition/excludeGenres/editions/collections, or sorting by date
       const showAllBooks = filters.search !== '' || 
                            filters.genre !== 'all' || 
                            filters.status !== 'all' || 
                            filters.edition !== 'all' ||
                            filters.excludeGenres.length > 0 ||
+                           filters.includeEditions.length > 0 ||
+                           filters.excludeEditions.length > 0 ||
+                           filters.includeCollections.length > 0 ||
+                           filters.excludeCollections.length > 0 ||
                            filters.sort === '-addedDate' || 
                            filters.sort === 'addedDate';
       const displayBookItems = showAllBooks 
@@ -236,6 +315,10 @@ const Library = () => {
                                 filters.status === 'all' && 
                                 filters.edition === 'all' &&
                                 filters.excludeGenres.length === 0 &&
+                                filters.includeEditions.length === 0 &&
+                                filters.excludeEditions.length === 0 &&
+                                filters.includeCollections.length === 0 &&
+                                filters.excludeCollections.length === 0 &&
                                 filters.search === '';
         
         displayItems = showCollections 
@@ -309,6 +392,96 @@ const Library = () => {
       setLibraryItems([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch custom shelves
+  const fetchCustomShelves = async () => {
+    try {
+      const data = await customShelfService.getShelves();
+      setCustomShelves(data.shelves || []);
+    } catch (error) {
+      console.error('Failed to fetch custom shelves:', error);
+    }
+  };
+
+  // Shelf handlers
+  const handleApplyShelf = useCallback((shelf) => {
+    setFilters(shelf.filters);
+    setActiveShelfId(shelf._id);
+  }, []);
+
+  const handleClearShelf = useCallback(() => {
+    setActiveShelfId(null);
+  }, []);
+
+  const handleSaveAsShelf = async (name) => {
+    try {
+      const newShelf = await customShelfService.createShelf({
+        name: name.trim(),
+        filters: { ...filters }
+      });
+      setCustomShelves([...customShelves, newShelf]);
+      setActiveShelfId(newShelf._id);
+      setCreateShelfModalOpen(false);
+    } catch (error) {
+      if (error.response?.status === 409) {
+        alert('A shelf with this name already exists. Please choose a different name.');
+      } else {
+        console.error('Failed to create shelf:', error);
+        alert('Failed to create shelf. Please try again.');
+      }
+    }
+  };
+
+  const handleEditShelf = async (shelf) => {
+    setEditingShelf(shelf);
+    setCreateShelfModalOpen(true);
+  };
+
+  const handleUpdateShelf = async (name) => {
+    if (!editingShelf) return;
+    
+    try {
+      const updated = await customShelfService.updateShelf(editingShelf._id, {
+        name: name.trim(),
+        filters: editingShelf.filters
+      });
+      setCustomShelves(shelves => 
+        shelves.map(s => s._id === editingShelf._id ? updated : s)
+      );
+      setEditingShelf(null);
+      setCreateShelfModalOpen(false);
+    } catch (error) {
+      if (error.response?.status === 409) {
+        alert('A shelf with this name already exists. Please choose a different name.');
+      } else {
+        console.error('Failed to update shelf:', error);
+        alert('Failed to update shelf. Please try again.');
+      }
+    }
+  };
+
+  const handleDeleteShelf = async (shelfId) => {
+    try {
+      await customShelfService.deleteShelf(shelfId);
+      setCustomShelves(shelves => shelves.filter(s => s._id !== shelfId));
+      if (activeShelfId === shelfId) {
+        setActiveShelfId(null);
+      }
+    } catch (error) {
+      console.error('Failed to delete shelf:', error);
+      alert('Failed to delete shelf. Please try again.');
+    }
+  };
+
+  const handleReorderShelves = async (reorderedShelves) => {
+    try {
+      const shelfIds = reorderedShelves.map(s => s._id);
+      await customShelfService.reorderShelves(shelfIds);
+      setCustomShelves(reorderedShelves);
+    } catch (error) {
+      console.error('Failed to reorder shelves:', error);
     }
   };
 
@@ -530,13 +703,37 @@ const Library = () => {
         ...prev,
         excludeGenres: []
       }));
+    } else if (filterKey === 'includeEditions') {
+      setFilters(prev => ({
+        ...prev,
+        includeEditions: []
+      }));
+    } else if (filterKey === 'excludeEditions') {
+      setFilters(prev => ({
+        ...prev,
+        excludeEditions: []
+      }));
+    } else if (filterKey === 'includeCollections') {
+      setFilters(prev => ({
+        ...prev,
+        includeCollections: []
+      }));
+    } else if (filterKey === 'excludeCollections') {
+      setFilters(prev => ({
+        ...prev,
+        excludeCollections: []
+      }));
     } else {
       setFilters(prev => ({
         ...prev,
         [filterKey]: filterKey === 'search' ? '' : 'all'
       }));
     }
-  }, []);
+    // Clear active shelf when filters are manually changed
+    if (activeShelfId) {
+      setActiveShelfId(null);
+    }
+  }, [activeShelfId]);
 
   const handleClearFilters = useCallback(() => {
     setFilters({
@@ -544,10 +741,15 @@ const Library = () => {
       status: 'all',
       genre: 'all',
       excludeGenres: [],
+      includeEditions: [],
+      excludeEditions: [],
+      includeCollections: [],
+      excludeCollections: [],
       edition: 'all',
       sort: 'title',
     });
-    setShowCollectionsOnly(false); // Also reset collections view
+    setShowCollectionsOnly(false);
+    setActiveShelfId(null);
   }, []);
 
   const handleBooksAdded = useCallback((newBooks) => {
@@ -899,6 +1101,10 @@ const Library = () => {
                           filters.status !== 'all' || 
                           filters.genre !== 'all' ||
                           filters.excludeGenres.length > 0 ||
+                          filters.includeEditions.length > 0 ||
+                          filters.excludeEditions.length > 0 ||
+                          filters.includeCollections.length > 0 ||
+                          filters.excludeCollections.length > 0 ||
                           filters.edition !== 'all';
 
   return (
@@ -958,14 +1164,43 @@ const Library = () => {
       </Box>
 
       <Container maxWidth="xl" sx={{ py: 2, pb: selectionMode ? 8 : 2 }}>
+        {/* Custom Shelf Bar */}
+        {customShelves.length > 0 && (
+          <CustomShelfBar
+            shelves={customShelves}
+            activeShelfId={activeShelfId}
+            onApplyShelf={handleApplyShelf}
+            onEditShelf={handleEditShelf}
+            onDeleteShelf={handleDeleteShelf}
+            onCreateShelf={() => {
+              setEditingShelf(null);
+              setCreateShelfModalOpen(true);
+            }}
+            onManageShelves={() => setManageShelvesModalOpen(true)}
+          />
+        )}
 
         {/* Active Filter Chips */}
         {hasActiveFilters && (
-          <ActiveFilterChips
-            filters={filters}
-            onRemoveFilter={handleRemoveFilter}
-            onClearAll={handleClearFilters}
-          />
+          <Box sx={{ mb: 2 }}>
+            <ActiveFilterChips
+              filters={filters}
+              collections={allBooksForGenres.collections}
+              onRemoveFilter={handleRemoveFilter}
+              onClearAll={handleClearFilters}
+            />
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => {
+                setEditingShelf(null);
+                setCreateShelfModalOpen(true);
+              }}
+              sx={{ mt: 1 }}
+            >
+              💾 Save as Shelf
+            </Button>
+          </Box>
         )}
 
         {/* Results summary */}
@@ -1272,6 +1507,30 @@ const Library = () => {
           fetchLibrary();
           navigate(`/collections/${collection._id}`);
         }}
+      />
+      
+      {/* Custom Shelf Modals */}
+      <CreateShelfModal
+        open={createShelfModalOpen}
+        onClose={() => {
+          setCreateShelfModalOpen(false);
+          setEditingShelf(null);
+        }}
+        onSave={editingShelf ? handleUpdateShelf : handleSaveAsShelf}
+        filters={editingShelf ? editingShelf.filters : filters}
+        collections={allBooksForGenres.collections}
+        editMode={!!editingShelf}
+        initialName={editingShelf?.name || ''}
+        initialFilters={editingShelf?.filters}
+      />
+      
+      <ManageShelvesModal
+        open={manageShelvesModalOpen}
+        onClose={() => setManageShelvesModalOpen(false)}
+        shelves={customShelves}
+        onEdit={handleEditShelf}
+        onDelete={handleDeleteShelf}
+        onReorder={handleReorderShelves}
       />
     </Box>
   );
