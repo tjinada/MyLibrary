@@ -22,14 +22,16 @@ const CreateShelfModal = ({
   initialFilters = null
 }) => {
   const [name, setName] = useState(initialName);
+  const [currentFilters, setCurrentFilters] = useState(initialFilters);
   const [error, setError] = useState('');
   
   useEffect(() => {
     if (open) {
       setName(initialName);
+      setCurrentFilters(initialFilters);
       setError('');
     }
-  }, [open, initialName]);
+  }, [open, initialName, initialFilters]);
 
   const handleSave = () => {
     const trimmedName = name.trim();
@@ -44,31 +46,39 @@ const CreateShelfModal = ({
       return;
     }
     
-    onSave(trimmedName, editMode ? initialFilters : filters);
+    // In edit mode, use currentFilters (which may have been updated)
+    // In create mode, use the current filters from the Library
+    onSave(trimmedName, editMode ? currentFilters : filters);
+  };
+  
+  const handleUpdateFilters = () => {
+    setCurrentFilters(filters);
   };
 
   const getFilterSummary = () => {
-    const currentFilters = editMode ? initialFilters : filters;
+    // In edit mode, show currentFilters (which may have been updated)
+    // In create mode, show filters from Library
+    const filtersToShow = editMode ? currentFilters : filters;
     const summary = [];
     
     // Genre filters
-    if (currentFilters.genre !== 'all' && currentFilters.genre.length > 0) {
-      const genres = Array.isArray(currentFilters.genre) 
-        ? currentFilters.genre 
-        : [currentFilters.genre];
+    if (filtersToShow.genre !== 'all' && filtersToShow.genre.length > 0) {
+      const genres = Array.isArray(filtersToShow.genre) 
+        ? filtersToShow.genre 
+        : [filtersToShow.genre];
       summary.push({ label: 'Include Genres', value: genres.join(', '), type: 'success' });
     }
     
-    if (currentFilters.excludeGenres?.length > 0) {
+    if (filtersToShow.excludeGenres?.length > 0) {
       summary.push({ 
         label: 'Exclude Genres', 
-        value: currentFilters.excludeGenres.join(', '), 
+        value: filtersToShow.excludeGenres.join(', '), 
         type: 'error' 
       });
     }
     
     // Status
-    if (currentFilters.status !== 'all') {
+    if (filtersToShow.status !== 'all') {
       const statusLabels = {
         'to-read': 'To Read',
         'reading': 'Reading',
@@ -77,31 +87,31 @@ const CreateShelfModal = ({
       };
       summary.push({ 
         label: 'Status', 
-        value: statusLabels[currentFilters.status] || currentFilters.status,
+        value: statusLabels[filtersToShow.status] || filtersToShow.status,
         type: 'info'
       });
     }
     
     // Editions
-    if (currentFilters.includeEditions?.length > 0) {
+    if (filtersToShow.includeEditions?.length > 0) {
       summary.push({ 
         label: 'Include Editions', 
-        value: currentFilters.includeEditions.join(', '), 
+        value: filtersToShow.includeEditions.join(', '), 
         type: 'success' 
       });
     }
     
-    if (currentFilters.excludeEditions?.length > 0) {
+    if (filtersToShow.excludeEditions?.length > 0) {
       summary.push({ 
         label: 'Exclude Editions', 
-        value: currentFilters.excludeEditions.join(', '), 
+        value: filtersToShow.excludeEditions.join(', '), 
         type: 'error' 
       });
     }
     
     // Collections
-    if (currentFilters.includeCollections?.length > 0) {
-      const collectionNames = currentFilters.includeCollections
+    if (filtersToShow.includeCollections?.length > 0) {
+      const collectionNames = filtersToShow.includeCollections
         .map(id => collections.find(c => c._id === id)?.name || id)
         .join(', ');
       summary.push({ 
@@ -111,8 +121,8 @@ const CreateShelfModal = ({
       });
     }
     
-    if (currentFilters.excludeCollections?.length > 0) {
-      const collectionNames = currentFilters.excludeCollections
+    if (filtersToShow.excludeCollections?.length > 0) {
+      const collectionNames = filtersToShow.excludeCollections
         .map(id => collections.find(c => c._id === id)?.name || id)
         .join(', ');
       summary.push({ 
@@ -133,7 +143,7 @@ const CreateShelfModal = ({
     };
     summary.push({ 
       label: 'Sort', 
-      value: sortLabels[currentFilters.sort] || currentFilters.sort,
+      value: sortLabels[filtersToShow.sort] || filtersToShow.sort,
       type: 'info'
     });
     
@@ -165,8 +175,14 @@ const CreateShelfModal = ({
         />
         
         <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
-          Filters to Save:
+          {editMode ? 'Current Filters:' : 'Filters to Save:'}
         </Typography>
+        
+        {editMode && (
+          <Alert severity="info" sx={{ mt: 1, mb: 2 }}>
+            You can update the filters by applying new filters in the library, then click "Update Filters" below.
+          </Alert>
+        )}
         
         {filterSummary.length === 0 ? (
           <Alert severity="warning" sx={{ mt: 1 }}>
@@ -207,6 +223,17 @@ const CreateShelfModal = ({
               </Box>
             ))}
           </Box>
+        )}
+        
+        {editMode && (
+          <Button
+            variant="outlined"
+            onClick={handleUpdateFilters}
+            sx={{ mt: 2 }}
+            fullWidth
+          >
+            🔄 Update Filters from Current View
+          </Button>
         )}
       </DialogContent>
       <DialogActions>

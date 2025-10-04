@@ -459,13 +459,13 @@ const Library = () => {
     setCreateShelfModalOpen(true);
   };
 
-  const handleUpdateShelf = async (name) => {
+  const handleUpdateShelf = async (name, updatedFilters) => {
     if (!editingShelf) return;
     
     try {
       const updated = await customShelfService.updateShelf(editingShelf._id, {
         name: name.trim(),
-        filters: editingShelf.filters
+        filters: updatedFilters // Use the updated filters from the modal
       });
       setCustomShelves(shelves => 
         shelves.map(s => s._id === editingShelf._id ? updated : s)
