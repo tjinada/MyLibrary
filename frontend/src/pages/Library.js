@@ -23,7 +23,7 @@ import {
   Checkbox,
   alpha,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import StickyToolbar from '../components/Layout/StickyToolbar';
 import SearchBar from '../components/Search/SearchBar';
 import ActiveFilterChips from '../components/Filters/ActiveFilterChips';
@@ -71,6 +71,13 @@ const Library = () => {
   // Modal states
   const [quickAddModalOpen, setQuickAddModalOpen] = useState(false);
   const [manualAddModalOpen, setManualAddModalOpen] = useState(false);
+
+  // The mobile bottom nav's "Add" tab navigates here with a quickAdd flag.
+  const routerLocation = useLocation();
+  const quickAddRequest = routerLocation.state?.quickAdd;
+  useEffect(() => {
+    if (quickAddRequest) setQuickAddModalOpen(true);
+  }, [quickAddRequest]);
   const [selectedBook, setSelectedBook] = useState(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [manageCollectionsOpen, setManageCollectionsOpen] = useState(false);

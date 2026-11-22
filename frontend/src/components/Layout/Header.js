@@ -7,11 +7,8 @@ import {
   Menu,
   MenuItem,
   Box,
-  useTheme,
-  useMediaQuery,
   Button,
   CircularProgress,
-  Tooltip,
   ListItemIcon,
   ListItemText,
   Divider,
@@ -19,282 +16,197 @@ import {
   Alert,
 } from '@mui/material';
 import {
-  AccountCircle,
-  LibraryBooks,
-  Dashboard as DashboardIcon,
-  Download as DownloadIcon,
+  AutoStories as LogoIcon,
   Description as CsvIcon,
   CollectionsBookmark as CollectionsIcon,
   MenuBook as BooksIcon,
-  Assessment as StatsIcon,
+  Logout as LogoutIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import bookService from '../../services/bookService';
 import collectionService from '../../services/collectionService';
 import exportService from '../../services/exportService';
+import { gradients } from '../../theme/theme';
+
+const NAV_LINKS = [
+  { to: '/library', label: 'Library' },
+  { to: '/collections', label: 'Collections' },
+  { to: '/dashboard', label: 'Stats' },
+];
+
+const EXPORT_OPTIONS = [
+  { type: 'all', label: 'Export all', hint: 'Books & collections', icon: <CsvIcon fontSize="small" /> },
+  { type: 'books', label: 'Export books', hint: 'All books as CSV', icon: <BooksIcon fontSize="small" /> },
+  { type: 'collections', label: 'Export collections', hint: 'All collections as CSV', icon: <CollectionsIcon fontSize="small" /> },
+];
 
 const Header = () => {
-  const [anchorEl, setAnchorEl] = React.useState(null);
-  const [exportMenuAnchor, setExportMenuAnchor] = React.useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
+  const [exportError, setExportError] = useState(false);
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  const handleMenu = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+  const handleClose = () => setAnchorEl(null);
 
   const handleLogout = () => {
+    handleClose();
     logout();
     navigate('/login');
-    handleClose();
   };
 
-  const handleExportMenu = (event) => {
-    setExportMenuAnchor(event.currentTarget);
-  };
-
-  const handleExportClose = () => {
-    setExportMenuAnchor(null);
-  };
-
-  const handleExport = async (type = 'all') => {
+  const handleExport = async (type) => {
     setExporting(true);
-    handleExportClose();
-    
+    handleClose();
+
     try {
-      // Fetch all books and collections
       const [booksResponse, collections] = await Promise.all([
         bookService.getBooks({ page: 1, limit: 10000 }), // Get all books
-        collectionService.getCollections(true) // Get collections with book details
+        collectionService.getCollections(true), // Collections with book details
       ]);
-      
-      const data = {
-        books: booksResponse.books || [],
-        collections: collections || []
-      };
-      
-      // Generate and download CSV
-      exportService.exportLibrary(data, type);
-      
-      // Show success notification
+
+      exportService.exportLibrary(
+        { books: booksResponse.books || [], collections: collections || [] },
+        type
+      );
       setExportSuccess(true);
-      setTimeout(() => setExportSuccess(false), 3000);
-      
-      // If exporting all, also generate a statistics summary
-      if (type === 'all') {
-        const stats = exportService.generateStatistics(data);
-        console.log('Library Statistics:', stats);
-        // Could show stats in a dialog or notification
-      }
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Failed to export library data. Please try again.');
+      setExportError(true);
     } finally {
       setExporting(false);
     }
   };
 
+  const initial = (user?.email || user?.username || 'M').charAt(0).toUpperCase();
+
   return (
-    <AppBar position="fixed" elevation={1}>
-      <Toolbar>
-        <LibraryBooks sx={{ mr: 1 }} />
-        <Typography 
-          variant="h6" 
-          component="div" 
-          sx={{ 
-            flexGrow: 1,
-            fontWeight: 500,
-            cursor: 'pointer',
-          }}
-          onClick={() => navigate('/')}
+    <AppBar position="fixed">
+      <Toolbar sx={{ gap: 2 }}>
+        {/* Logo + title */}
+        <Box
+          onClick={() => navigate('/library')}
+          sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', flexGrow: { xs: 1, md: 0 }, minWidth: 0 }}
         >
-          {isMobile ? "Mekala's Library" : "Mekala's Personal Library"}
-        </Typography>
-        
-        {/* Navigation Buttons */}
-        <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
-          <Button
-            color="inherit"
-            startIcon={<LibraryBooks />}
-            onClick={() => navigate('/library')}
+          <Box
             sx={{
-              textTransform: 'none',
-              bgcolor: location.pathname === '/library' ? 'rgba(255,255,255,0.1)' : 'transparent',
-              '&:hover': {
-                bgcolor: 'rgba(255,255,255,0.2)',
-              },
-              minWidth: isMobile ? 'auto' : '100px',
+              width: 36,
+              height: 36,
+              flexShrink: 0,
+              borderRadius: '12px',
+              background: gradients.brand,
+              boxShadow: '0 10px 15px -3px rgba(14, 165, 233, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            {!isMobile && 'Library'}
-          </Button>
-          <Button
-            color="inherit"
-            startIcon={<DashboardIcon />}
-            onClick={() => navigate('/dashboard')}
-            sx={{
-              textTransform: 'none',
-              bgcolor: location.pathname === '/dashboard' ? 'rgba(255,255,255,0.1)' : 'transparent',
-              '&:hover': {
-                bgcolor: 'rgba(255,255,255,0.2)',
-              },
-              minWidth: isMobile ? 'auto' : '110px',
-            }}
-          >
-            {!isMobile && 'Dashboard'}
-          </Button>
+            <LogoIcon sx={{ fontSize: 20, color: 'common.white' }} />
+          </Box>
+          <Typography variant="h6" component="div" noWrap sx={{ fontWeight: 700 }}>
+            Mekala's Library
+          </Typography>
         </Box>
-        
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {/* Export Button */}
-          {!isMobile && (
-            <Tooltip title="Export library data">
+
+        {/* Desktop navigation (mobile uses BottomNav) */}
+        <Box component="nav" aria-label="Primary" sx={{ display: { xs: 'none', md: 'flex' }, gap: 0.5, flexGrow: 1 }}>
+          {NAV_LINKS.map((link) => {
+            const active = location.pathname.startsWith(link.to);
+            return (
               <Button
+                key={link.to}
                 color="inherit"
-                startIcon={exporting ? <CircularProgress size={16} color="inherit" /> : <DownloadIcon />}
-                onClick={handleExportMenu}
-                disabled={exporting}
-                sx={{ 
-                  textTransform: 'none',
-                  minWidth: 'auto',
+                onClick={() => navigate(link.to)}
+                aria-current={active ? 'page' : undefined}
+                sx={{
+                  px: 2,
+                  borderRadius: '8px',
+                  fontSize: '0.9375rem',
+                  color: active ? 'text.primary' : 'text.secondary',
+                  bgcolor: active ? 'rgba(31, 41, 55, 0.8)' : 'transparent',
+                  '&:hover': { bgcolor: 'rgba(31, 41, 55, 0.5)', color: 'text.primary' },
                 }}
               >
-                {!isMobile && 'Export'}
+                {link.label}
               </Button>
-            </Tooltip>
-          )}
-          
-          {isMobile && (
-            <IconButton
-              color="inherit"
-              onClick={handleExportMenu}
-              disabled={exporting}
-            >
-              {exporting ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
-            </IconButton>
-          )}
-          
-          {/* User info and menu */}
-          <Typography 
-            variant="body2" 
-            sx={{ mr: 1, display: { xs: 'none', sm: 'block' } }}
-          >
-            {user?.email}
-          </Typography>
-          <IconButton
-            size="large"
-            aria-label="account of current user"
-            aria-controls="menu-appbar"
-            aria-haspopup="true"
-            onClick={handleMenu}
-            color="inherit"
-          >
-            <AccountCircle />
-          </IconButton>
-          
-          {/* Export Menu */}
-          <Menu
-            anchorEl={exportMenuAnchor}
-            open={Boolean(exportMenuAnchor)}
-            onClose={handleExportClose}
-            anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'right',
-            }}
-            transformOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
-          >
-            <MenuItem onClick={() => handleExport('all')}>
-              <ListItemIcon>
-                <CsvIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText 
-                primary="Export All" 
-                secondary="Books & Collections"
-              />
-            </MenuItem>
-            <MenuItem onClick={() => handleExport('books')}>
-              <ListItemIcon>
-                <BooksIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText 
-                primary="Export Books" 
-                secondary="All books as CSV"
-              />
-            </MenuItem>
-            <MenuItem onClick={() => handleExport('collections')}>
-              <ListItemIcon>
-                <CollectionsIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText 
-                primary="Export Collections" 
-                secondary="All collections as CSV"
-              />
-            </MenuItem>
-          </Menu>
-          
-          {/* User Menu */}
-          <Menu
-            id="menu-appbar"
-            anchorEl={anchorEl}
-            anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'right',
-            }}
-            keepMounted
-            transformOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
-            open={Boolean(anchorEl)}
-            onClose={handleClose}
-          >
-            {isMobile && user?.email && (
-              <MenuItem disabled>
-                <Typography variant="body2">{user.email}</Typography>
-              </MenuItem>
-            )}
-            {isMobile && (
-              <>
-                <MenuItem onClick={() => handleExport('all')}>
-                  <ListItemIcon>
-                    <DownloadIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText primary="Export Library" />
-                </MenuItem>
-                <Divider />
-              </>
-            )}
-            <MenuItem onClick={handleLogout}>Logout</MenuItem>
-          </Menu>
+            );
+          })}
         </Box>
-      </Toolbar>
-      
-      {/* Success Snackbar */}
-      <Snackbar
-        open={exportSuccess}
-        autoHideDuration={3000}
-        onClose={() => setExportSuccess(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={() => setExportSuccess(false)} 
-          severity="success" 
-          sx={{ width: '100%' }}
+
+        {/* Account menu: export + logout */}
+        <IconButton
+          aria-label="Account and export"
+          aria-controls="account-menu"
+          aria-haspopup="true"
+          onClick={(event) => setAnchorEl(event.currentTarget)}
+          sx={{ p: '3px', border: '1px solid', borderColor: 'grey.700', bgcolor: 'rgba(31, 41, 55, 0.6)' }}
         >
-          Library data exported successfully!
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              background: gradients.action,
+              color: 'common.white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+            }}
+          >
+            {exporting ? <CircularProgress size={18} color="inherit" /> : initial}
+          </Box>
+        </IconButton>
+
+        <Menu
+          id="account-menu"
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          slotProps={{ paper: { sx: { mt: 1, minWidth: 230 } } }}
+        >
+          {user?.email && (
+            <MenuItem disabled sx={{ opacity: '1 !important' }}>
+              <Typography variant="body2" color="text.secondary" noWrap>
+                {user.email}
+              </Typography>
+            </MenuItem>
+          )}
+          {user?.email && <Divider />}
+          {EXPORT_OPTIONS.map((option) => (
+            <MenuItem key={option.type} onClick={() => handleExport(option.type)} disabled={exporting}>
+              <ListItemIcon>{option.icon}</ListItemIcon>
+              <ListItemText primary={option.label} secondary={option.hint} />
+            </MenuItem>
+          ))}
+          <Divider />
+          <MenuItem onClick={handleLogout} sx={{ color: 'error.light' }}>
+            <ListItemIcon>
+              <LogoutIcon fontSize="small" sx={{ color: 'error.light' }} />
+            </ListItemIcon>
+            <ListItemText primary="Logout" />
+          </MenuItem>
+        </Menu>
+      </Toolbar>
+
+      <Snackbar
+        open={exportSuccess || exportError}
+        autoHideDuration={3000}
+        onClose={() => {
+          setExportSuccess(false);
+          setExportError(false);
+        }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ bottom: { xs: 88, md: 24 } }}
+      >
+        <Alert severity={exportError ? 'error' : 'success'} sx={{ width: '100%' }}>
+          {exportError ? 'Failed to export library data. Please try again.' : 'Library data exported successfully!'}
         </Alert>
       </Snackbar>
     </AppBar>

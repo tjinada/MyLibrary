@@ -13,7 +13,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f9fafb;
+  background-color: #030712;
+  color-scheme: dark;
   overflow-x: hidden;
 }
 
@@ -45,12 +46,12 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #111827;
   border-radius: 8px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #9ca3af;
+  background: #4b5563;
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: content-box;
@@ -101,7 +102,7 @@ html {
 
 .shimmer {
   animation: shimmer 2s infinite;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, #1f2937 25%, #374151 50%, #1f2937 75%);
   background-size: 1000px 100%;
 }
 
@@ -131,7 +132,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid #6366f1;
+  outline: 2px solid #38bdf8;
   outline-offset: 2px;
 }
 
