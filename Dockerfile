@@ -10,9 +10,9 @@ WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm install
 
-# Copy frontend code and build
+# Copy frontend code and build, stamped with a datetime version (YYYY.MM.DD.HHmm)
 COPY frontend/ .
-RUN npm run build
+RUN REACT_APP_VERSION=$(date +%Y.%m.%d.%H%M) npm run build
 
 # Stage 2: Setup backend with built frontend
 FROM node:18-alpine

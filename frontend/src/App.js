@@ -16,6 +16,7 @@ import Dashboard from './pages/Dashboard';
 import { CollectionProvider } from './contexts/CollectionContext';
 import theme from './theme/theme';
 import useResizeAnimationStopper from './hooks/useResizeAnimationStopper';
+import PwaUpdatePrompt from './components/pwa/PwaUpdatePrompt';
 
 function App() {
   // Optimize animations during window resize
@@ -24,6 +25,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <PwaUpdatePrompt />
       <AuthProvider>
         <CollectionProvider>
           <Router>

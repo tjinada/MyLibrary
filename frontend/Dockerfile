@@ -16,8 +16,8 @@ COPY . .
 ARG REACT_APP_API_URL
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
 
-# Build the application
-RUN npm run build
+# Build the application, stamped with a datetime version (YYYY.MM.DD.HHmm)
+RUN REACT_APP_VERSION=$(date +%Y.%m.%d.%H%M) npm run build
 
 # Production stage  
 FROM nginx:alpine

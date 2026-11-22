@@ -192,6 +192,9 @@ const Header = () => {
             </ListItemIcon>
             <ListItemText primary="Logout" />
           </MenuItem>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', px: 2, pt: 0.5 }}>
+            Version {process.env.REACT_APP_VERSION || 'dev'}
+          </Typography>
         </Menu>
       </Toolbar>
 
