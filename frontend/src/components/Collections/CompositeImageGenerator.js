@@ -11,7 +11,7 @@ const CompositeImageGenerator = ({
   height = 600,
   onImageGenerated,
   gap = 4, // Gap between images in pixels
-  backgroundColor = '#f5f5f5'
+  backgroundColor = '#1f2937'
 }) => {
   const canvasRef = useRef(null);
   const [loading, setLoading] = useState(false);
@@ -168,7 +168,7 @@ const CompositeImageGenerator = ({
         } catch (error) {
           console.error('Error drawing image:', error);
           // Fill with placeholder color if drawing fails
-          ctx.fillStyle = '#e0e0e0';
+          ctx.fillStyle = '#374151';
           ctx.fillRect(x, y, cellWidth, cellHeight);
         }
         

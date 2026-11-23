@@ -245,7 +245,7 @@ const AddBooksToCollectionModal = ({ open, onClose, collection, onBooksAdded }) 
                     ) : (
                       <Avatar
                         variant="rounded"
-                        sx={{ width: 40, height: 60, bgcolor: 'grey.300' }}
+                        sx={{ width: 40, height: 60, bgcolor: 'grey.700' }}
                       >
                         📚
                       </Avatar>

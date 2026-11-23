@@ -533,7 +533,9 @@ const BookDetailsModal = ({
         {/* Custom Dialog Header */}
         <Box
           sx={{
-            background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+            bgcolor: 'grey.900',
+            borderBottom: '1px solid',
+            borderColor: 'grey.800',
             color: 'white',
             p: 1.5,
             display: 'flex',
@@ -707,7 +709,7 @@ const BookDetailsModal = ({
           <Grid container>
             {/* Left Column - Book Cover & Rating */}
             <Grid item xs={12} md={3} sx={{ 
-              bgcolor: isTablet ? 'background.paper' : 'grey.50',
+              bgcolor: isTablet ? 'background.paper' : 'background.elevated',
               p: 2,
               borderRight: isTablet ? 'none' : '1px solid',
               borderColor: 'divider',
@@ -735,7 +737,7 @@ const BookDetailsModal = ({
                             maxHeight: 400,
                             width: '100%',
                             objectFit: 'contain',
-                            bgcolor: 'grey.100',
+                            bgcolor: 'grey.800',
                           }}
                           onError={(e) => {
                             e.target.src = '/api/placeholder/300/450';
@@ -804,7 +806,7 @@ const BookDetailsModal = ({
                             maxHeight: 400,
                             width: '100%',
                             objectFit: 'contain',
-                            bgcolor: 'grey.100',
+                            bgcolor: 'grey.800',
                           }}
                           onError={(e) => {
                             e.target.style.display = 'none';
@@ -1222,7 +1224,7 @@ const BookDetailsModal = ({
 
                   {tabValue === 1 && (
                     <Fade in timeout={300}>
-                      <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                      <Paper sx={{ p: 2, bgcolor: 'grey.800' }}>
                         <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
                           {book.description || 'No description available'}
                         </Typography>
@@ -1252,7 +1254,7 @@ const BookDetailsModal = ({
                             }}
                           />
                         ) : (
-                          <Paper sx={{ p: 2, bgcolor: 'grey.50', minHeight: 200 }}>
+                          <Paper sx={{ p: 2, bgcolor: 'grey.800', minHeight: 200 }}>
                             <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
                               {getCurrentCopy().notes || 'No notes yet for this copy. Click edit to add notes.'}
                             </Typography>
@@ -1294,7 +1296,6 @@ const BookDetailsModal = ({
                           fullWidth
                           sx={{
                             py: 1.5,
-                            background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
                           }}
                         >
                           Manage Collections
@@ -1309,7 +1310,7 @@ const BookDetailsModal = ({
         </DialogContent>
 
         {/* Dialog Actions - Minimal Footer */}
-        <DialogActions sx={{ p: 1, bgcolor: 'grey.50' }}>
+        <DialogActions sx={{ p: 1, bgcolor: 'background.elevated' }}>
           <Button onClick={onClose} size="small" sx={{ ml: 'auto' }}>
             Close
           </Button>

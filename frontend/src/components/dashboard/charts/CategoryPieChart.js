@@ -8,9 +8,9 @@ const CustomTooltip = ({ active, payload }) => {
       <Paper
         sx={{
           p: 1.5,
-          background: 'rgba(255, 255, 255, 0.95)',
+          background: 'rgba(17, 24, 39, 0.95)',
           backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(0, 0, 0, 0.1)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
         }}
       >
         <Typography variant="body2" sx={{ fontWeight: 600 }}>

@@ -691,7 +691,7 @@ const CollectionDetails = () => {
                 p: 6, 
                 textAlign: 'center',
                 borderRadius: 2,
-                background: `linear-gradient(135deg, ${theme.palette.grey[50]} 0%, white 100%)`,
+                background: `linear-gradient(135deg, ${theme.palette.grey[900]} 0%, ${theme.palette.grey[800]} 100%)`,
                 border: `1px solid ${theme.palette.divider}`,
               }}
             >

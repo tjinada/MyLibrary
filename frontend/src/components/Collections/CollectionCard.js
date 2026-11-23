@@ -84,7 +84,7 @@ const CollectionCard = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            bgcolor: 'grey.200'
+            bgcolor: 'grey.700'
           }}
         >
           <LibraryBooksIcon sx={{ fontSize: 60, color: 'grey.500' }} />
@@ -133,7 +133,7 @@ const CollectionCard = ({
                 sx={{
                   width: '100%',
                   height: '100%',
-                  bgcolor: 'grey.200',
+                  bgcolor: 'grey.700',
                   borderRight: index % 2 === 0 ? '1px solid white' : 'none',
                   borderBottom: index < 2 ? '1px solid white' : 'none'
                 }}
@@ -158,12 +158,12 @@ const CollectionCard = ({
           transition: 'all 0.3s ease',
           border: '2px solid',
           borderColor: 'primary.main',
-          bgcolor: alpha('#1976d2', 0.02),
+          bgcolor: alpha('#0ea5e9', 0.02),
           '&:hover': {
             boxShadow: 6,
             transform: 'translateY(-4px)',
             borderColor: 'primary.dark',
-            bgcolor: alpha('#1976d2', 0.05),
+            bgcolor: alpha('#0ea5e9', 0.05),
           }
         }}
         onClick={handleCardClick}
@@ -200,7 +200,7 @@ const CollectionCard = ({
             position: 'relative',
             paddingTop: '150%', // 2:3 aspect ratio like book covers
             overflow: 'hidden',
-            bgcolor: 'grey.200',
+            bgcolor: 'grey.700',
           }}
         >
           {renderCompositeCover()}
@@ -338,12 +338,12 @@ const CollectionCard = ({
         transition: 'all 0.3s ease',
         border: '2px solid',
         borderColor: 'primary.main',
-        bgcolor: alpha('#1976d2', 0.02),
+        bgcolor: alpha('#0ea5e9', 0.02),
         '&:hover': {
           boxShadow: 6,
           transform: 'translateY(-4px)',
           borderColor: 'primary.dark',
-          bgcolor: alpha('#1976d2', 0.05),
+          bgcolor: alpha('#0ea5e9', 0.05),
         }
       }}
     >
@@ -390,9 +390,9 @@ const CollectionCard = ({
           top: 8,
           right: 8,
           zIndex: 2,
-          bgcolor: alpha('#fff', 0.8),
+          bgcolor: alpha('#111827', 0.8),
           '&:hover': {
-            bgcolor: alpha('#fff', 0.95)
+            bgcolor: alpha('#111827', 0.95)
           }
         }}
       >

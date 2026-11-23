@@ -40,8 +40,11 @@ const StatusPills = ({ status, onChange, disabled = false }) => {
         aria-label="reading status"
         disabled={disabled}
         sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 1,
           '& .MuiToggleButton-root': {
-            px: 2,
+            px: 1.5,
             py: 0.75,
             borderRadius: 3,
             border: 'none',
@@ -49,10 +52,15 @@ const StatusPills = ({ status, onChange, disabled = false }) => {
             fontWeight: 600,
             fontSize: '0.875rem',
             transition: 'all 0.2s',
-            bgcolor: 'grey.100',
+            bgcolor: 'grey.800',
             color: 'text.secondary',
+            whiteSpace: 'nowrap',
+            '&.Mui-disabled': {
+              color: 'text.secondary',
+              border: 'none',
+            },
             '&:hover': {
-              bgcolor: 'grey.200',
+              bgcolor: 'grey.700',
             },
             '&.Mui-selected': {
               color: 'white',
@@ -64,7 +72,7 @@ const StatusPills = ({ status, onChange, disabled = false }) => {
               ml: 0,
             },
             '&:not(:first-of-type)': {
-              ml: 1,
+              ml: 0,
             },
           },
           '& .MuiToggleButton-root.Mui-selected': {

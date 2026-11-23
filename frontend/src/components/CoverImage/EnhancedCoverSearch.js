@@ -265,7 +265,7 @@ const EnhancedCoverSearch = ({
                     onError={(e) => {
                       e.target.style.display = 'none';
                       e.target.parentElement.innerHTML = `
-                        <div style="height: 180px; display: flex; align-items: center; justify-content: center; background: #f5f5f5;">
+                        <div style="height: 180px; display: flex; align-items: center; justify-content: center; background: #1f2937;">
                           <span style="color: #999;">No cover found</span>
                         </div>
                       `;

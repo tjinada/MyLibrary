@@ -214,7 +214,9 @@ const theme = createTheme({
           backgroundColor: alpha(colors.grey[900], 0.95),
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
+          border: 0,
           borderBottom: `1px solid ${colors.grey[800]}`,
+          boxShadow: 'none',
           color: colors.text.primary,
         },
       },
@@ -259,14 +261,19 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: dimensions.cardBorderRadius,
+          boxShadow: glass.boxShadow,
           transition: 'all 0.2s ease-in-out',
         },
       },
     },
+    // Every surface gets the TJ Books "glass" treatment: translucent gray-800
+    // with a gray-700 hairline border.
     MuiPaper: {
       styleOverrides: {
         root: {
           backgroundImage: 'none',
+          backgroundColor: glass.backgroundColor,
+          border: glass.border,
         },
         rounded: {
           borderRadius: dimensions.cardBorderRadius,
@@ -371,6 +378,11 @@ const theme = createTheme({
       },
     },
     MuiMenu: {
+      styleOverrides: {
+        paper: menuPaper,
+      },
+    },
+    MuiAutocomplete: {
       styleOverrides: {
         paper: menuPaper,
       },

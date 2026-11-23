@@ -1290,7 +1290,7 @@ const Library = () => {
                 p: 8, 
                 textAlign: 'center',
                 borderRadius: 3,
-                background: `linear-gradient(135deg, ${theme.palette.grey[50]} 0%, white 100%)`,
+                background: `linear-gradient(135deg, ${theme.palette.grey[900]} 0%, ${theme.palette.grey[800]} 100%)`,
               }}
             >
               <Typography 

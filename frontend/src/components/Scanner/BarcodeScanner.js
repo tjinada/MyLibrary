@@ -133,7 +133,7 @@ const BarcodeScanner = ({ onScan, onError }) => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              bgcolor: 'grey.100',
+              bgcolor: 'grey.800',
               borderRadius: 2,
               border: '2px dashed #ccc',
             }}

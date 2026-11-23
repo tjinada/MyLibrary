@@ -65,6 +65,7 @@ const BottomNav = () => {
         bottom: 0,
         zIndex: (theme) => theme.zIndex.appBar,
         bgcolor: 'grey.900',
+        border: 0,
         borderTop: '1px solid',
         borderColor: 'grey.800',
         pb: 'env(safe-area-inset-bottom, 0px)',

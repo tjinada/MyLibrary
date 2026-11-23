@@ -96,7 +96,7 @@ const SearchBar = ({
             borderRadius: 2,
             transition: 'all 0.2s',
             height: 40,
-            boxShadow: isFocused ? '0 0 0 2px ' + alpha('#6366F1', 0.1) : '0 1px 2px rgba(0,0,0,0.05)',
+            boxShadow: isFocused ? '0 0 0 2px ' + alpha('#0EA5E9', 0.1) : '0 1px 2px rgba(0,0,0,0.05)',
             '& fieldset': {
               borderColor: isFocused ? 'primary.main' : 'divider',
               borderWidth: isFocused ? 2 : 1,

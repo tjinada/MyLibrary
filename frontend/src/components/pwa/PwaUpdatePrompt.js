@@ -104,6 +104,7 @@ const PwaUpdatePrompt = () => {
         alignItems: 'flex-start',
         gap: 1.5,
         borderRadius: '16px',
+        border: 0,
         bgcolor: 'primary.dark',
         color: 'common.white',
         boxShadow: '0 10px 30px rgba(14, 165, 233, 0.3)',

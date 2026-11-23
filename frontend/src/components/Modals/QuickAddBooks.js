@@ -927,7 +927,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                 
                 {/* No results message */}
                 {searchResults.length === 0 && !searchingTitle && titleQuery && (
-                  <Box sx={{ mt: 2, p: 2, textAlign: 'center', bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Box sx={{ mt: 2, p: 2, textAlign: 'center', bgcolor: 'grey.800', borderRadius: 1 }}>
                     <Typography variant="body2" color="text.secondary">
                       Click "Search" to find books
                     </Typography>
@@ -962,7 +962,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                   {/* Book cover - Improved */}
                   <Box>
                     <Box sx={{ 
-                      bgcolor: 'grey.100', 
+                      bgcolor: 'grey.800', 
                       borderRadius: 1,
                       overflow: 'hidden',
                       display: 'flex',
@@ -989,7 +989,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
                           justifyContent: 'center',
                           width: '100%',
                           height: '100%',
-                          bgcolor: 'grey.200'
+                          bgcolor: 'grey.700'
                         }}>
                           <ImageIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
                           <Typography variant="caption" color="text.secondary">
@@ -1293,7 +1293,7 @@ const QuickAddBooks = ({ open, onClose, onBooksAdded }) => {
 
         {/* Mobile recently added section */}
         {!confirmationMode && isMobile && recentlyAdded.length > 0 && (
-          <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider', bgcolor: 'grey.50' }}>
+          <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider', bgcolor: 'background.elevated' }}>
             <Typography variant="subtitle2" gutterBottom>
               Added: {recentlyAdded.length} books
             </Typography>

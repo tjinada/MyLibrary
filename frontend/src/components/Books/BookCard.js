@@ -134,7 +134,7 @@ const BookCard = ({
           position: 'relative',
           width: '100%',
           aspectRatio: `${dimensions.bookCoverAspectRatio}`,
-          bgcolor: 'grey.100',
+          bgcolor: 'grey.800',
           overflow: 'hidden',
         }}
       >
@@ -157,11 +157,11 @@ const BookCard = ({
                 }
               }}
               sx={{
-                bgcolor: 'rgba(255, 255, 255, 0.9)',
+                bgcolor: 'rgba(17, 24, 39, 0.85)',
                 borderRadius: 1,
                 p: 0.25,
                 '&:hover': {
-                  bgcolor: 'rgba(255, 255, 255, 1)',
+                  bgcolor: 'rgba(17, 24, 39, 1)',
                 },
                 '& .MuiSvgIcon-root': {
                   fontSize: 18,

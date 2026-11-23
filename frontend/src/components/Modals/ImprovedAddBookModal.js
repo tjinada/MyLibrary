@@ -471,7 +471,7 @@ const AddBookModal = ({ open, onClose, onBookAdded }) => {
                         flexDirection: 'column',
                         alignItems: 'center', 
                         justifyContent: 'center',
-                        bgcolor: 'grey.100',
+                        bgcolor: 'grey.800',
                         p: 3
                       }}>
                         <ImageIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />

@@ -293,7 +293,7 @@ const MobileBarcodeScanner = ({ onScan, onError, autoStart = true }) => {
               alignItems: 'center',
               justifyContent: 'center',
               minHeight: '300px',
-              backgroundColor: 'grey.100',
+              backgroundColor: 'grey.800',
             }}
           >
             <CameraAlt sx={{ fontSize: 60, color: 'text.secondary' }} />
